@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"time"
@@ -89,11 +90,37 @@ func (p *proxyRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 		return nil, err
 	}
 
-	transport := p.base.Clone()
+	// A fresh struct copy is used here instead of (*http.Transport).Clone().
+	// In practice some local HTTP proxies are compatible with a directly
+	// configured transport but break when a cloned transport has its Proxy
+	// field swapped per request.
+	transport := cloneTransport(p.base)
 	if proxyURL == nil {
 		transport.Proxy = nil
 	} else {
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
 	return transport.RoundTrip(req)
+}
+
+func cloneTransport(base *http.Transport) *http.Transport {
+	if base == nil {
+		return defaultTransport()
+	}
+
+	cloned := *base
+	if base.TLSClientConfig != nil {
+		cloned.TLSClientConfig = base.TLSClientConfig.Clone()
+	}
+	if base.ProxyConnectHeader != nil {
+		cloned.ProxyConnectHeader = base.ProxyConnectHeader.Clone()
+	}
+	if base.TLSNextProto != nil {
+		nextProto := make(map[string]func(string, *tls.Conn) http.RoundTripper, len(base.TLSNextProto))
+		for k, v := range base.TLSNextProto {
+			nextProto[k] = v
+		}
+		cloned.TLSNextProto = nextProto
+	}
+	return &cloned
 }

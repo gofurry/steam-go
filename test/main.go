@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,19 +28,34 @@ func main() {
 	key := readCredential("key.txt")
 	accessToken := readCredential("access-token.txt")
 	familyGroupID := readCredential("family-group-id.txt")
+	proxySelector, proxyLabel, err := loadProxySelector()
+	if err != nil {
+		fatalf("load proxy failed: %v", err)
+	}
 
-	client, err := steam.NewClient(
+	opts := []steam.Option{
 		steam.WithAPIKey(key),
 		steam.WithAccessToken(accessToken),
-		steam.WithTimeout(30*time.Second),
+		steam.WithTimeout(30 * time.Second),
 		steam.WithRetry(1),
-	)
+	}
+	if proxySelector != nil {
+		opts = append(opts, steam.WithProxySelector(proxySelector))
+	}
+
+	client, err := steam.NewClient(opts...)
 	if err != nil {
 		fatalf("create client failed: %v", err)
 	}
 	defer client.Close()
 
 	ctx := context.Background()
+
+	if proxyLabel == "" {
+		fmt.Println("proxy=direct")
+	} else {
+		fmt.Printf("proxy=%s\n", proxyLabel)
+	}
 
 	fmt.Println("== SteamUser.GetPlayerSummaries ==")
 	playerResp, err := client.API.SteamUser.GetPlayerSummaries(ctx, []string{defaultSteamID})
@@ -203,14 +221,51 @@ func main() {
 }
 
 func readCredential(name string) string {
-	body, err := os.ReadFile(name)
-	if err != nil {
-		return ""
+	for _, path := range candidatePaths(name) {
+		body, err := os.ReadFile(path)
+		if err == nil {
+			return strings.TrimSpace(string(body))
+		}
 	}
-	return strings.TrimSpace(string(body))
+	return ""
+}
+
+func loadProxySelector() (steam.ProxySelector, string, error) {
+	raw := strings.TrimSpace(os.Getenv("STEAM_PROXY"))
+	if raw == "" {
+		raw = readCredential("proxy.txt")
+	}
+	if raw == "" {
+		return nil, "", nil
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return nil, "", fmt.Errorf("parse proxy url %q: %w", raw, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return nil, "", fmt.Errorf("proxy url must include scheme and host")
+	}
+
+	return staticProxySelector{url: parsed}, parsed.String(), nil
+}
+
+func candidatePaths(name string) []string {
+	return []string{
+		name,
+		filepath.Join("test", name),
+	}
 }
 
 func fatalf(format string, args ...any) {
 	fmt.Printf("ERROR: "+format+"\n", args...)
 	os.Exit(1)
+}
+
+type staticProxySelector struct {
+	url *url.URL
+}
+
+func (s staticProxySelector) Next(*http.Request) (*url.URL, error) {
+	return s.url, nil
 }

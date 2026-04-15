@@ -1,5 +1,12 @@
 # steam-go Roadmap
 
+## 代理规划（2026-04）
+
+- 继续保留 `WithProxySelector(...)` 作为稳定扩展点
+- 当前阶段暂不内建代理池轮转、健康检查、失败摘除或熔断策略
+- 如调用方需要多代理轮换，先通过自定义 `ProxySelector` 在业务侧实现
+- 等真实使用场景稳定后，再评估是否补内建 `RoundRobinProxySelector` 一类能力
+
 ## 当前状态
 
 `steam-go` 的 Web API 主体重构已经基本完成。
