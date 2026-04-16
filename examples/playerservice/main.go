@@ -28,7 +28,7 @@ func main() {
 
 	resp, err := client.API.PlayerService.GetOwnedGames(
 		context.Background(),
-		"76561197960435530",
+		"76561198370695025",
 		&playerservice.GetOwnedGamesOptions{IncludePlayedFreeGames: true},
 	)
 	if err != nil {

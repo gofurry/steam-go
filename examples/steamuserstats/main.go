@@ -28,7 +28,7 @@ func main() {
 
 	resp, err := client.API.SteamUserStats.GetPlayerAchievements(
 		context.Background(),
-		"76561197960435530",
+		"76561198370695025",
 		550,
 		&steamuserstats.GetPlayerAchievementsOptions{Language: "en"},
 	)

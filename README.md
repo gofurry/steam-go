@@ -1,5 +1,15 @@
 # steam-go
 
+![License](https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6)
+![Release](https://img.shields.io/github/v/release/GoFurry/steam-go?style=flat&color=blue)
+![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat&logo=go&logoColor=white)
+[![Go Report Card](https://goreportcard.com/badge/github.com/GoFurry/steam-go)](https://goreportcard.com/report/github.com/GoFurry/steam-go)
+
+![Weekend Project](https://img.shields.io/badge/weekend-project-8B5CF6?style=flat)
+![Made with Love](https://img.shields.io/badge/made%20with-%E2%9D%A4-E11D48?style=flat&color=orange)
+
+[中文文档](docs/README_zh.md)
+
 `steam-go` is a lightweight Go SDK focused on the Steam Web API.
 
 ## Features
@@ -10,8 +20,7 @@
 - API key is optional and can be supplied through a rotating key provider
 - Typed responses by default with matching raw response methods
 - `401/429` can automatically retry with the next API key when `WithAPIKeys(...)` and `WithRetry(...)` are used together
-- Shared request executor, centralized endpoint registry, and a single SDK error model
-- No crawler, HTML parsing, A2S, heavy logging, or broad util package baggage
+- Independent addons can extend the SDK without bloating the core Web API client
 
 ## Installation
 
@@ -19,13 +28,7 @@
 go get github.com/GoFurry/steam-go@latest
 ```
 
-## Go Version Policy
-
-- `go.mod` is pinned to `Go 1.24`
-- The project supports `Go 1.24+`
-- CI continuously validates `Go 1.24` and `Go 1.25`
-
-## Quick start
+## Quick Start
 
 ```go
 package main
@@ -50,7 +53,7 @@ func main() {
 
 	resp, err := client.API.SteamUser.GetPlayerSummaries(
 		context.Background(),
-		[]string{"76561197960435530"},
+		[]string{"76561198370695025"},
 	)
 	if err != nil {
 		panic(err)
@@ -62,57 +65,75 @@ func main() {
 }
 ```
 
-## API overview
+Detailed API group references live in [docs/api.md](docs/api.md).
 
-- `client.API.AccountCartService.GetCart(ctx, opts)`
-- `client.API.AccountCartService.GetCartRaw(ctx, opts)`
-- `client.API.AccountCartService.DeleteCart(ctx)`
-- `client.API.AccountCartService.DeleteCartRaw(ctx)`
-- `client.API.BillingService.GetRecurringSubscriptionsCount(ctx)`
-- `client.API.BillingService.GetRecurringSubscriptionsCountRaw(ctx)`
-- `client.API.CommunityService.GetApps(ctx, appIDs)`
-- `client.API.CommunityService.GetAppsRaw(ctx, appIDs)`
-- `client.API.FamilyGroupsService.GetChangeLog(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetChangeLogRaw(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetFamilyGroup(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetFamilyGroupRaw(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetFamilyGroupForUser(ctx, familyGroupID, opts)`
-- `client.API.FamilyGroupsService.GetFamilyGroupForUserRaw(ctx, familyGroupID, opts)`
-- `client.API.FamilyGroupsService.GetPlaytimeSummary(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetPlaytimeSummaryRaw(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetSharedLibraryApps(ctx, familyGroupID)`
-- `client.API.FamilyGroupsService.GetSharedLibraryAppsRaw(ctx, familyGroupID)`
-- `client.API.LoyaltyRewardsService.GetEquippedProfileItems(ctx, steamID, opts)`
-- `client.API.LoyaltyRewardsService.GetEquippedProfileItemsRaw(ctx, steamID, opts)`
-- `client.API.LoyaltyRewardsService.GetReactionsSummaryForUser(ctx, steamID)`
-- `client.API.LoyaltyRewardsService.GetReactionsSummaryForUserRaw(ctx, steamID)`
-- `client.API.LoyaltyRewardsService.GetSummary(ctx, steamID)`
-- `client.API.LoyaltyRewardsService.GetSummaryRaw(ctx, steamID)`
-- `client.API.SteamUser.GetPlayerSummaries(ctx, steamIDs)`
-- `client.API.SteamUser.GetPlayerSummariesRaw(ctx, steamIDs)`
-- `client.API.PlayerService.GetOwnedGames(ctx, steamID, opts)`
-- `client.API.PlayerService.GetOwnedGamesRaw(ctx, steamID, opts)`
-- `client.API.SteamNews.GetNewsForApp(ctx, appID, opts)`
-- `client.API.SteamNews.GetNewsForAppRaw(ctx, appID, opts)`
-- `client.API.SteamUserStats.GetPlayerAchievements(ctx, steamID, appID, opts)`
-- `client.API.SteamUserStats.GetPlayerAchievementsRaw(ctx, steamID, appID, opts)`
+## Addons
 
-## Options
+- `addons/a2s` is a lightweight bridge to [`github.com/GoFurry/a2s-go`](https://github.com/GoFurry/a2s-go) `v1.0.1`
+- `addons/openid` provides Steam OpenID login verification for browser-based sign-in flows
+- OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
+- detailed addon notes live in [docs/addons.md](docs/addons.md)
 
-- `WithAPIKey(key string)`
-- `WithAPIKeys(keys ...string)`
-- `WithAPIKeyProvider(provider APIKeyProvider)`
-- `WithAccessToken(token string)`
-- `WithAccessTokens(tokens ...string)`
-- `WithAccessTokenProvider(provider AccessTokenProvider)`
-- `WithBaseURL(url string)`
-- `WithHTTPClient(client *http.Client)`
-- `WithTimeout(timeout time.Duration)`
-- `WithRetry(retry int)`
-- `WithRateLimit(requestsPerSecond int)`
-- `WithProxySelector(selector ProxySelector)`
+## Proxy
 
-## Error handling
+`steam-go` keeps proxy support centered on `WithProxySelector(...)`.
+
+- `NewStaticProxySelector(...)` for one fixed proxy
+- `NewRoundRobinProxySelector(...)` for simple rotation
+- `NewRoutingProxySelector(...)` for host/path-based routing
+- `NewHTTPClientWithProxySelector(...)` for addon or standalone HTTP flows
+- no built-in health checks, circuit breaking, or heavy proxy-pool management
+
+Static example:
+
+```go
+selector, err := steam.NewStaticProxySelector("http://127.0.0.1:7897")
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(selector),
+)
+if err != nil {
+	panic(err)
+}
+```
+
+Routing example:
+
+```go
+selector, err := steam.NewRoutingProxySelector(
+	steam.ProxyRoute{
+		Host:       "api.steampowered.com",
+		PathPrefix: "/ISteamUser/",
+		ProxyURL:   "http://127.0.0.1:7897",
+	},
+	steam.ProxyRoute{
+		Host:       "steamcommunity.com",
+		PathPrefix: "/openid/",
+		ProxyURL:   "",
+	},
+)
+if err != nil {
+	panic(err)
+}
+```
+
+On China-region networks, browser login may succeed while the server-side Steam OpenID `check_authentication` request still times out. The OpenID example supports `--proxy http://127.0.0.1:7897` for that case and also demonstrates cookie-backed `state` verification on the callback.
+
+## Examples
+
+- `go run ./examples/a2s -server 1.2.3.4:27015 -query info`
+- `go run ./examples/a2s -server 1.2.3.4:27015 -query players`
+- `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
+- `go run ./examples/openid`
+- `go run ./examples/openid --proxy http://127.0.0.1:7897`
+- `go run ./examples/proxy`
+- `go run ./test`
+
+## Error Handling
 
 SDK errors use `*steam.APIError` with these kinds:
 
@@ -123,11 +144,3 @@ SDK errors use `*steam.APIError` with these kinds:
 - `api_response`
 
 Use `errors.As(err, &apiErr)` to inspect kind, status code, and raw body.
-
-## Examples
-
-- [steamuser](examples/steamuser/main.go)
-- [playerservice](examples/playerservice/main.go)
-- [steamnews](examples/steamnews/main.go)
-- [steamuserstats](examples/steamuserstats/main.go)
-- Local manual scenario runner: `test/main.go`

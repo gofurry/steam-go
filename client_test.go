@@ -550,7 +550,7 @@ func TestPlayerServiceOptions(t *testing.T) {
 	client := newTestClient(t, server.URL)
 	resp, err := client.API.PlayerService.GetOwnedGames(
 		context.Background(),
-		"76561197960435530",
+		"76561198370695025",
 		&playerservice.GetOwnedGamesOptions{
 			IncludePlayedFreeGames: true,
 			AppIDsFilter:           []uint32{570, 730},
@@ -622,7 +622,7 @@ func TestSteamUserStatsGetPlayerAchievements(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		if got := query.Get("steamid"); got != "76561197960435530" {
+		if got := query.Get("steamid"); got != "76561198370695025" {
 			t.Fatalf("unexpected steamid: %s", got)
 		}
 		if got := query.Get("appid"); got != "550" {
@@ -631,14 +631,14 @@ func TestSteamUserStatsGetPlayerAchievements(t *testing.T) {
 		if got := query.Get("l"); got != "en" {
 			t.Fatalf("unexpected language: %s", got)
 		}
-		_, _ = w.Write([]byte(`{"playerstats":{"steamID":"76561197960435530","gameName":"Left 4 Dead 2","achievements":[{"apiname":"ACH_WIN_ONE_GAME","achieved":1,"unlocktime":123,"name":"Winner","description":"Win one game"}],"success":true}}`))
+		_, _ = w.Write([]byte(`{"playerstats":{"steamID":"76561198370695025","gameName":"Left 4 Dead 2","achievements":[{"apiname":"ACH_WIN_ONE_GAME","achieved":1,"unlocktime":123,"name":"Winner","description":"Win one game"}],"success":true}}`))
 	}))
 	defer server.Close()
 
 	client := newTestClient(t, server.URL)
 	resp, err := client.API.SteamUserStats.GetPlayerAchievements(
 		context.Background(),
-		"76561197960435530",
+		"76561198370695025",
 		550,
 		&steamuserstats.GetPlayerAchievementsOptions{Language: "en"},
 	)
@@ -905,6 +905,57 @@ func TestProxySelector(t *testing.T) {
 	}
 }
 
+func TestProxySelectorCalledPerRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"response":{"players":[]}}`))
+	}))
+	defer server.Close()
+
+	selector := &stubProxySelector{}
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithProxySelector(selector),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	for range 2 {
+		_, err = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"})
+		if err != nil {
+			t.Fatalf("GetPlayerSummaries returned error: %v", err)
+		}
+	}
+
+	if got := selector.calls.Load(); got != 2 {
+		t.Fatalf("expected proxy selector to be called twice, got %d", got)
+	}
+}
+
+func TestProxySelectorErrorReturnsTransportError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"response":{"players":[]}}`))
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithProxySelector(errorProxySelector{}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"})
+	expectKind(t, err, steam.ErrorKindTransport)
+}
+
 type stubProxySelector struct {
 	calls atomic.Int32
 }
@@ -912,6 +963,12 @@ type stubProxySelector struct {
 func (s *stubProxySelector) Next(*http.Request) (*url.URL, error) {
 	s.calls.Add(1)
 	return nil, nil
+}
+
+type errorProxySelector struct{}
+
+func (errorProxySelector) Next(*http.Request) (*url.URL, error) {
+	return nil, errors.New("proxy selector failed")
 }
 
 func newTestClient(t *testing.T, baseURL string) *steam.Client {

@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -239,15 +237,11 @@ func loadProxySelector() (steam.ProxySelector, string, error) {
 		return nil, "", nil
 	}
 
-	parsed, err := url.Parse(raw)
+	selector, err := steam.NewStaticProxySelector(raw)
 	if err != nil {
-		return nil, "", fmt.Errorf("parse proxy url %q: %w", raw, err)
+		return nil, "", err
 	}
-	if parsed.Scheme == "" || parsed.Host == "" {
-		return nil, "", fmt.Errorf("proxy url must include scheme and host")
-	}
-
-	return staticProxySelector{url: parsed}, parsed.String(), nil
+	return selector, raw, nil
 }
 
 func candidatePaths(name string) []string {
@@ -260,12 +254,4 @@ func candidatePaths(name string) []string {
 func fatalf(format string, args ...any) {
 	fmt.Printf("ERROR: "+format+"\n", args...)
 	os.Exit(1)
-}
-
-type staticProxySelector struct {
-	url *url.URL
-}
-
-func (s staticProxySelector) Next(*http.Request) (*url.URL, error) {
-	return s.url, nil
 }

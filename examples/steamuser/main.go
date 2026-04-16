@@ -27,7 +27,7 @@ func main() {
 
 	resp, err := client.API.SteamUser.GetPlayerSummaries(
 		context.Background(),
-		[]string{"76561197960435530"},
+		[]string{"76561198370695025"},
 	)
 	if err != nil {
 		panic(err)
