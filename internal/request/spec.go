@@ -35,12 +35,12 @@ type RequestSpec struct {
 
 // Executor performs request assembly and response reading.
 type Executor struct {
-	baseURL             *url.URL
-	apiKeyProvider      auth.APIKeyProvider
-	accessTokenProvider auth.AccessTokenProvider
-	retry               int
+	baseURL              *url.URL
+	apiKeyProvider       auth.APIKeyProvider
+	accessTokenProvider  auth.AccessTokenProvider
+	retry                int
 	maxResponseBodyBytes int64
-	transport           Transport
+	transport            Transport
 }
 
 type requestCredentials struct {
@@ -58,12 +58,12 @@ func NewExecutor(baseURL string, apiKeyProvider auth.APIKeyProvider, accessToken
 		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max response body bytes must be greater than zero", nil, nil)
 	}
 	return &Executor{
-		baseURL:             parsed,
-		apiKeyProvider:      apiKeyProvider,
-		accessTokenProvider: accessTokenProvider,
-		retry:               retry,
+		baseURL:              parsed,
+		apiKeyProvider:       apiKeyProvider,
+		accessTokenProvider:  accessTokenProvider,
+		retry:                retry,
 		maxResponseBodyBytes: maxResponseBodyBytes,
-		transport:           transport,
+		transport:            transport,
 	}, nil
 }
 

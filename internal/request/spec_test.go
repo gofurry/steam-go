@@ -157,10 +157,55 @@ func TestExecutorPreservesExplicitContentTypeHeader(t *testing.T) {
 	}
 }
 
+func TestExecutorPreservesExplicitCredentialsFromQuery(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		auth.NewStaticKeyProvider("global-key"),
+		auth.NewStaticAccessTokenProvider("global-token"),
+		0,
+		1024,
+		recorder,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+		Query: url.Values{
+			"key":          []string{"explicit-key"},
+			"access_token": []string{"explicit-token"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if len(recorder.requests) != 1 {
+		t.Fatalf("expected 1 request, got %d", len(recorder.requests))
+	}
+	got := recorder.requests[0].query
+	if got.Get("key") != "explicit-key" {
+		t.Fatalf("unexpected key: %s", got.Get("key"))
+	}
+	if got.Get("access_token") != "explicit-token" {
+		t.Fatalf("unexpected access token: %s", got.Get("access_token"))
+	}
+}
+
 type recordingTransport struct {
-	mu       sync.Mutex
-	requests []capturedRequest
-	statuses []int
+	mu           sync.Mutex
+	requests     []capturedRequest
+	statuses     []int
 	responseBody string
 }
 
@@ -230,8 +275,8 @@ func TestExecutorRejectsResponsesThatExceedBodyLimit(t *testing.T) {
 	t.Parallel()
 
 	recorder := &recordingTransport{
-		statuses:      []int{http.StatusOK},
-		responseBody:  strings.Repeat("a", 32),
+		statuses:     []int{http.StatusOK},
+		responseBody: strings.Repeat("a", 32),
 	}
 
 	executor, err := request.NewExecutor(
