@@ -68,6 +68,17 @@ func main() {
 
 Detailed API group references live in [docs/api.md](docs/api.md).
 
+## PlayerService Coverage
+
+`client.API.PlayerService` already covers a useful mix of public and authenticated profile/gameplay endpoints, including:
+
+- badges, community badge progress, favorite badge, Steam level, and Steam level distribution
+- animated avatars, avatar frames, profile backgrounds, mini-profile backgrounds, equipped items, and owned profile items
+- profile customization, purchased customizations, purchased/upgraded customization summaries, and available profile themes
+- nickname lists, player link details, friends gameplay info, recently played games, last played times, and top achievements for games
+
+When a method signature explicitly asks for `accessToken` or `key`, that credential must be passed to the method itself. Client-level credentials remain useful as defaults for endpoints that do not require caller-specific credentials in the method signature.
+
 ## Addons
 
 - `addons/a2s` is a lightweight bridge to [`github.com/GoFurry/a2s-go`](https://github.com/GoFurry/a2s-go) `v1.0.1`

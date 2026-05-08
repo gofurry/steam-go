@@ -996,6 +996,159 @@ func TestPlayerServiceNicknameLinkAndProfileInventoryEndpoints(t *testing.T) {
 	}
 }
 
+func TestPlayerServicePurchasedAndRecentlyPlayedEndpoints(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/IPlayerService/GetPurchasedAndUpgradedProfileCustomizations/v1/":
+			query := r.URL.Query()
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"purchased_customizations":[{"customization_type":6,"count":1},{"customization_type":24,"count":1}],"upgraded_customizations":[{"customization_type":1,"level":3},{"customization_type":17,"level":2}]}}`))
+		case "/IPlayerService/GetPurchasedProfileCustomizations/v1/":
+			if got := r.URL.Query().Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"purchased_customizations":[{"purchaseid":"916672","customization_type":6},{"purchaseid":"7442062","customization_type":24}]}}`))
+		case "/IPlayerService/GetRecentlyPlayedGames/v1/":
+			query := r.URL.Query()
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			if got := query.Get("count"); got != "5" {
+				t.Fatalf("unexpected count: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"total_count":1,"games":[{"appid":550,"name":"Left 4 Dead 2","playtime_2weeks":177,"playtime_forever":51162,"img_icon_url":"7d5a243f9500d2f8467312822f8af2a2928777ed","playtime_windows_forever":16852,"playtime_mac_forever":0,"playtime_linux_forever":0,"playtime_deck_forever":0}]}}`))
+		case "/IPlayerService/GetSteamLevel/v1/":
+			if got := r.URL.Query().Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"player_level":67}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL(server.URL),
+		steam.WithAccessToken("global-token"),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	purchasedAndUpgraded, err := client.API.PlayerService.GetPurchasedAndUpgradedProfileCustomizations(
+		context.Background(),
+		"user-token",
+		"76561198370695025",
+	)
+	if err != nil {
+		t.Fatalf("GetPurchasedAndUpgradedProfileCustomizations returned error: %v", err)
+	}
+	if len(purchasedAndUpgraded.Response.UpgradedCustomizations) != 2 || purchasedAndUpgraded.Response.UpgradedCustomizations[0].Level != 3 {
+		t.Fatalf("unexpected upgraded customizations: %#v", purchasedAndUpgraded.Response.UpgradedCustomizations)
+	}
+
+	purchased, err := client.API.PlayerService.GetPurchasedProfileCustomizations(context.Background(), "76561198370695025")
+	if err != nil {
+		t.Fatalf("GetPurchasedProfileCustomizations returned error: %v", err)
+	}
+	if len(purchased.Response.PurchasedCustomizations) != 2 || purchased.Response.PurchasedCustomizations[1].PurchaseID != "7442062" {
+		t.Fatalf("unexpected purchased customizations: %#v", purchased.Response.PurchasedCustomizations)
+	}
+
+	recentlyPlayed, err := client.API.PlayerService.GetRecentlyPlayedGames(
+		context.Background(),
+		"user-token",
+		"76561198370695025",
+		&playerservice.GetRecentlyPlayedGamesOptions{Count: 5},
+	)
+	if err != nil {
+		t.Fatalf("GetRecentlyPlayedGames returned error: %v", err)
+	}
+	if recentlyPlayed.Response.TotalCount != 1 || len(recentlyPlayed.Response.Games) != 1 || recentlyPlayed.Response.Games[0].AppID != 550 {
+		t.Fatalf("unexpected recently played response: %#v", recentlyPlayed.Response)
+	}
+
+	level, err := client.API.PlayerService.GetSteamLevel(context.Background(), "76561198370695025")
+	if err != nil {
+		t.Fatalf("GetSteamLevel returned error: %v", err)
+	}
+	if level.Response.PlayerLevel != 67 {
+		t.Fatalf("unexpected steam level: %#v", level.Response)
+	}
+}
+
+func TestPlayerServiceSteamLevelDistributionAndTopAchievementsEndpoints(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/IPlayerService/GetSteamLevelDistribution/v1/":
+			if got := r.URL.Query().Get("player_level"); got != "10" {
+				t.Fatalf("unexpected player_level: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"player_level_percentile":89.1774597167969}}`))
+		case "/IPlayerService/GetTopAchievementsForGames/v1/":
+			query := r.URL.Query()
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			if got := query.Get("language"); got != "en" {
+				t.Fatalf("unexpected language: %s", got)
+			}
+			if got := query.Get("max_achievements"); got != "3" {
+				t.Fatalf("unexpected max_achievements: %s", got)
+			}
+			if got := query.Get("appids[0]"); got != "550" {
+				t.Fatalf("unexpected appids[0]: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"games":[{"appid":550,"total_achievements":101,"achievements":[{"statid":517,"bit":6,"name":"Valve Gift Grab 2011 - L4D2","desc":"Collect three gifts dropped by Special Infected in Versus Mode.","icon":"6378d5648f017f2c1039b927f7e4995fd4cc87ab.jpg","icon_gray":"bbdbc3e9dde37cf3e5dacc5b38e6c30f9e7410dd.jpg","hidden":false,"player_percent_unlocked":"7.1"}]}]}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(steam.WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	distribution, err := client.API.PlayerService.GetSteamLevelDistribution(context.Background(), 10)
+	if err != nil {
+		t.Fatalf("GetSteamLevelDistribution returned error: %v", err)
+	}
+	if distribution.Response.PlayerLevelPercentile != 89.1774597167969 {
+		t.Fatalf("unexpected distribution: %#v", distribution.Response)
+	}
+
+	topAchievements, err := client.API.PlayerService.GetTopAchievementsForGames(
+		context.Background(),
+		"76561198370695025",
+		&playerservice.GetTopAchievementsForGamesOptions{
+			Language:        "en",
+			MaxAchievements: 3,
+			AppIDs:          []uint32{550},
+		},
+	)
+	if err != nil {
+		t.Fatalf("GetTopAchievementsForGames returned error: %v", err)
+	}
+	if len(topAchievements.Response.Games) != 1 || len(topAchievements.Response.Games[0].Achievements) != 1 || topAchievements.Response.Games[0].Achievements[0].PlayerPercentUnlocked != "7.1" {
+		t.Fatalf("unexpected top achievements response: %#v", topAchievements.Response)
+	}
+}
+
 func TestExplicitAccessTokenValidation(t *testing.T) {
 	t.Parallel()
 
@@ -1026,6 +1179,39 @@ func TestExplicitAccessTokenValidation(t *testing.T) {
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 
 	_, err = client.API.PlayerService.GetProfileThemesAvailable(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetPurchasedAndUpgradedProfileCustomizations(context.Background(), "", "76561198370695025")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetPurchasedAndUpgradedProfileCustomizations(context.Background(), "user-token", "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetPurchasedProfileCustomizations(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetRecentlyPlayedGames(context.Background(), "", "76561198370695025", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetRecentlyPlayedGames(context.Background(), "user-token", "", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetSteamLevel(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetTopAchievementsForGames(context.Background(), "", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetTopAchievementsForGames(context.Background(), "76561198370695025", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetTopAchievementsForGames(context.Background(), "76561198370695025", &playerservice.GetTopAchievementsForGamesOptions{})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetTopAchievementsForGames(context.Background(), "76561198370695025", &playerservice.GetTopAchievementsForGamesOptions{AppIDs: []uint32{0}})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.PlayerService.GetTopAchievementsForGames(context.Background(), "76561198370695025", &playerservice.GetTopAchievementsForGamesOptions{MaxAchievements: 9, AppIDs: []uint32{550}})
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 
 	_, err = client.API.NewsService.ConvertHTMLToBBCode(context.Background(), "", nil)

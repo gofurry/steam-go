@@ -317,6 +317,118 @@ type ProfileThemesAvailablePayload struct {
 	ProfileThemes []ProfileTheme `json:"profile_themes"`
 }
 
+// GetPurchasedAndUpgradedProfileCustomizationsResponse matches IPlayerService/GetPurchasedAndUpgradedProfileCustomizations/v1.
+type GetPurchasedAndUpgradedProfileCustomizationsResponse struct {
+	Response PurchasedAndUpgradedProfileCustomizationsPayload `json:"response"`
+}
+
+// PurchasedAndUpgradedProfileCustomizationsPayload is the top-level purchased/upgraded customizations payload.
+type PurchasedAndUpgradedProfileCustomizationsPayload struct {
+	PurchasedCustomizations []PurchasedCustomizationSummary `json:"purchased_customizations"`
+	UpgradedCustomizations  []UpgradedCustomizationSummary  `json:"upgraded_customizations"`
+}
+
+// PurchasedCustomizationSummary matches one purchased customization count.
+type PurchasedCustomizationSummary struct {
+	CustomizationType int `json:"customization_type"`
+	Count             int `json:"count"`
+}
+
+// UpgradedCustomizationSummary matches one upgraded customization level.
+type UpgradedCustomizationSummary struct {
+	CustomizationType int `json:"customization_type"`
+	Level             int `json:"level"`
+}
+
+// GetPurchasedProfileCustomizationsResponse matches IPlayerService/GetPurchasedProfileCustomizations/v1.
+type GetPurchasedProfileCustomizationsResponse struct {
+	Response PurchasedProfileCustomizationsPayload `json:"response"`
+}
+
+// PurchasedProfileCustomizationsPayload is the top-level purchased customizations payload.
+type PurchasedProfileCustomizationsPayload struct {
+	PurchasedCustomizations []PurchasedCustomizationRecord `json:"purchased_customizations"`
+}
+
+// PurchasedCustomizationRecord matches one purchased customization entry.
+type PurchasedCustomizationRecord struct {
+	PurchaseID        string `json:"purchaseid"`
+	CustomizationType int    `json:"customization_type"`
+}
+
+// GetRecentlyPlayedGamesResponse matches IPlayerService/GetRecentlyPlayedGames/v1.
+type GetRecentlyPlayedGamesResponse struct {
+	Response RecentlyPlayedGamesPayload `json:"response"`
+}
+
+// RecentlyPlayedGamesPayload is the top-level recently-played payload.
+type RecentlyPlayedGamesPayload struct {
+	TotalCount int                  `json:"total_count"`
+	Games      []RecentlyPlayedGame `json:"games"`
+}
+
+// RecentlyPlayedGame matches one game entry in GetRecentlyPlayedGames.
+type RecentlyPlayedGame struct {
+	AppID                  uint32 `json:"appid"`
+	Name                   string `json:"name"`
+	Playtime2Weeks         int    `json:"playtime_2weeks"`
+	PlaytimeForever        int    `json:"playtime_forever"`
+	ImgIconURL             string `json:"img_icon_url"`
+	PlaytimeWindowsForever int    `json:"playtime_windows_forever"`
+	PlaytimeMacForever     int    `json:"playtime_mac_forever"`
+	PlaytimeLinuxForever   int    `json:"playtime_linux_forever"`
+	PlaytimeDeckForever    int    `json:"playtime_deck_forever"`
+}
+
+// GetSteamLevelResponse matches IPlayerService/GetSteamLevel/v1.
+type GetSteamLevelResponse struct {
+	Response SteamLevelPayload `json:"response"`
+}
+
+// SteamLevelPayload is the top-level steam-level payload.
+type SteamLevelPayload struct {
+	PlayerLevel int `json:"player_level"`
+}
+
+// GetSteamLevelDistributionResponse matches IPlayerService/GetSteamLevelDistribution/v1.
+type GetSteamLevelDistributionResponse struct {
+	Response SteamLevelDistributionPayload `json:"response"`
+}
+
+// SteamLevelDistributionPayload is the top-level steam-level distribution payload.
+type SteamLevelDistributionPayload struct {
+	PlayerLevelPercentile float64 `json:"player_level_percentile"`
+}
+
+// GetTopAchievementsForGamesResponse matches IPlayerService/GetTopAchievementsForGames/v1.
+type GetTopAchievementsForGamesResponse struct {
+	Response TopAchievementsForGamesPayload `json:"response"`
+}
+
+// TopAchievementsForGamesPayload is the top-level top-achievements payload.
+type TopAchievementsForGamesPayload struct {
+	Games []TopAchievementsGame `json:"games"`
+}
+
+// TopAchievementsGame matches one game entry in GetTopAchievementsForGames.
+type TopAchievementsGame struct {
+	AppID             uint32           `json:"appid"`
+	TotalAchievements int              `json:"total_achievements"`
+	Achievements      []TopAchievement `json:"achievements"`
+}
+
+// TopAchievement matches one achievement entry in GetTopAchievementsForGames.
+type TopAchievement struct {
+	StatID                int    `json:"statid"`
+	Bit                   int    `json:"bit"`
+	Name                  string `json:"name"`
+	Desc                  string `json:"desc"`
+	Icon                  string `json:"icon"`
+	IconGray              string `json:"icon_gray"`
+	Hidden                bool   `json:"hidden"`
+	PlayerPercentUnlocked string `json:"player_percent_unlocked"`
+}
+
 // GetBadgesResponse matches IPlayerService/GetBadges/v1.
 type GetBadgesResponse struct {
 	Response BadgesPayload `json:"response"`

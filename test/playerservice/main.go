@@ -116,6 +116,28 @@ func main() {
 			realtest.Fatalf("GetProfileItemsEquipped failed: %v", err)
 		}
 		fmt.Printf("background=%s avatar_frame=%s\n", equippedResp.Response.ProfileBackground.Name, equippedResp.Response.AvatarFrame.Name)
+
+		fmt.Println("\n== PlayerService.GetSteamLevelDistribution ==")
+		levelDistributionResp, err := client.API.PlayerService.GetSteamLevelDistribution(ctx, 10)
+		if err != nil {
+			realtest.Fatalf("GetSteamLevelDistribution failed: %v", err)
+		}
+		fmt.Printf("player_level_percentile=%.4f\n", levelDistributionResp.Response.PlayerLevelPercentile)
+
+		fmt.Println("\n== PlayerService.GetTopAchievementsForGames ==")
+		topAchievementsResp, err := client.API.PlayerService.GetTopAchievementsForGames(
+			ctx,
+			realtest.DefaultSteamID,
+			&playerservice.GetTopAchievementsForGamesOptions{
+				Language:        "zh",
+				MaxAchievements: 3,
+				AppIDs:          []uint32{realtest.DefaultAppID},
+			},
+		)
+		if err != nil {
+			realtest.Fatalf("GetTopAchievementsForGames failed: %v", err)
+		}
+		fmt.Printf("games=%d\n", len(topAchievementsResp.Response.Games))
 	}
 
 	if !realtest.RequireAccessToken(cfg) {
@@ -202,4 +224,44 @@ func main() {
 		realtest.Fatalf("GetProfileThemesAvailable failed: %v", err)
 	}
 	fmt.Printf("themes=%d\n", len(profileThemesResp.Response.ProfileThemes))
+
+	fmt.Println("\n== PlayerService.GetPurchasedAndUpgradedProfileCustomizations ==")
+	purchasedAndUpgradedResp, err := client.API.PlayerService.GetPurchasedAndUpgradedProfileCustomizations(
+		ctx,
+		cfg.AccessToken,
+		realtest.DefaultSteamID,
+	)
+	if err != nil {
+		realtest.Fatalf("GetPurchasedAndUpgradedProfileCustomizations failed: %v", err)
+	}
+	fmt.Printf("purchased=%d upgraded=%d\n",
+		len(purchasedAndUpgradedResp.Response.PurchasedCustomizations),
+		len(purchasedAndUpgradedResp.Response.UpgradedCustomizations),
+	)
+
+	fmt.Println("\n== PlayerService.GetRecentlyPlayedGames ==")
+	recentlyPlayedResp, err := client.API.PlayerService.GetRecentlyPlayedGames(
+		ctx,
+		cfg.AccessToken,
+		realtest.DefaultSteamID,
+		&playerservice.GetRecentlyPlayedGamesOptions{Count: 10},
+	)
+	if err != nil {
+		realtest.Fatalf("GetRecentlyPlayedGames failed: %v", err)
+	}
+	fmt.Printf("total_count=%d games=%d\n", recentlyPlayedResp.Response.TotalCount, len(recentlyPlayedResp.Response.Games))
+
+	fmt.Println("\n== PlayerService.GetPurchasedProfileCustomizations ==")
+	purchasedProfileResp, err := client.API.PlayerService.GetPurchasedProfileCustomizations(ctx, realtest.DefaultSteamID)
+	if err != nil {
+		realtest.Fatalf("GetPurchasedProfileCustomizations failed: %v", err)
+	}
+	fmt.Printf("purchased_customizations=%d\n", len(purchasedProfileResp.Response.PurchasedCustomizations))
+
+	fmt.Println("\n== PlayerService.GetSteamLevel ==")
+	steamLevelResp, err := client.API.PlayerService.GetSteamLevel(ctx, realtest.DefaultSteamID)
+	if err != nil {
+		realtest.Fatalf("GetSteamLevel failed: %v", err)
+	}
+	fmt.Printf("player_level=%d\n", steamLevelResp.Response.PlayerLevel)
 }

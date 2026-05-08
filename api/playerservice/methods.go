@@ -426,6 +426,178 @@ func (s *Service) GetProfileThemesAvailableRaw(ctx context.Context, accessToken 
 	})
 }
 
+// GetPurchasedAndUpgradedProfileCustomizations returns purchased and upgraded customization counts for the authenticated player.
+func (s *Service) GetPurchasedAndUpgradedProfileCustomizations(ctx context.Context, accessToken, steamID string) (GetPurchasedAndUpgradedProfileCustomizationsResponse, error) {
+	body, err := s.GetPurchasedAndUpgradedProfileCustomizationsRaw(ctx, accessToken, steamID)
+	if err != nil {
+		return GetPurchasedAndUpgradedProfileCustomizationsResponse{}, err
+	}
+	return response.DecodeJSON[GetPurchasedAndUpgradedProfileCustomizationsResponse](body)
+}
+
+// GetPurchasedAndUpgradedProfileCustomizationsRaw returns the raw JSON response body.
+func (s *Service) GetPurchasedAndUpgradedProfileCustomizationsRaw(ctx context.Context, accessToken, steamID string) ([]byte, error) {
+	query, err := buildSteamIDAccessTokenQuery(steamID, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.executor.DoRaw(ctx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   endpoint.PlayerServiceGetPurchasedAndUpgradedProfileCustomizations,
+		Query:  query,
+	})
+}
+
+// GetPurchasedProfileCustomizations returns profile customization purchases for the given player.
+func (s *Service) GetPurchasedProfileCustomizations(ctx context.Context, steamID string) (GetPurchasedProfileCustomizationsResponse, error) {
+	body, err := s.GetPurchasedProfileCustomizationsRaw(ctx, steamID)
+	if err != nil {
+		return GetPurchasedProfileCustomizationsResponse{}, err
+	}
+	return response.DecodeJSON[GetPurchasedProfileCustomizationsResponse](body)
+}
+
+// GetPurchasedProfileCustomizationsRaw returns the raw JSON response body.
+func (s *Service) GetPurchasedProfileCustomizationsRaw(ctx context.Context, steamID string) ([]byte, error) {
+	query, err := buildSteamIDQuery(steamID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.executor.DoRaw(ctx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   endpoint.PlayerServiceGetPurchasedProfileCustomizations,
+		Query:  query,
+	})
+}
+
+// GetRecentlyPlayedGamesOptions controls optional query parameters for GetRecentlyPlayedGames.
+type GetRecentlyPlayedGamesOptions struct {
+	Count uint32
+}
+
+// GetRecentlyPlayedGames returns recently played games for the authenticated player.
+func (s *Service) GetRecentlyPlayedGames(ctx context.Context, accessToken, steamID string, opts *GetRecentlyPlayedGamesOptions) (GetRecentlyPlayedGamesResponse, error) {
+	body, err := s.GetRecentlyPlayedGamesRaw(ctx, accessToken, steamID, opts)
+	if err != nil {
+		return GetRecentlyPlayedGamesResponse{}, err
+	}
+	return response.DecodeJSON[GetRecentlyPlayedGamesResponse](body)
+}
+
+// GetRecentlyPlayedGamesRaw returns the raw JSON response body.
+func (s *Service) GetRecentlyPlayedGamesRaw(ctx context.Context, accessToken, steamID string, opts *GetRecentlyPlayedGamesOptions) ([]byte, error) {
+	query, err := buildSteamIDAccessTokenQuery(steamID, accessToken)
+	if err != nil {
+		return nil, err
+	}
+	if opts != nil && opts.Count > 0 {
+		query.Set("count", strconv.FormatUint(uint64(opts.Count), 10))
+	}
+
+	return s.executor.DoRaw(ctx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   endpoint.PlayerServiceGetRecentlyPlayedGames,
+		Query:  query,
+	})
+}
+
+// GetSteamLevel returns the public Steam level for the given player.
+func (s *Service) GetSteamLevel(ctx context.Context, steamID string) (GetSteamLevelResponse, error) {
+	body, err := s.GetSteamLevelRaw(ctx, steamID)
+	if err != nil {
+		return GetSteamLevelResponse{}, err
+	}
+	return response.DecodeJSON[GetSteamLevelResponse](body)
+}
+
+// GetSteamLevelRaw returns the raw JSON response body.
+func (s *Service) GetSteamLevelRaw(ctx context.Context, steamID string) ([]byte, error) {
+	query, err := buildSteamIDQuery(steamID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.executor.DoRaw(ctx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   endpoint.PlayerServiceGetSteamLevel,
+		Query:  query,
+	})
+}
+
+// GetSteamLevelDistribution returns the percentile distribution entry for a Steam level.
+func (s *Service) GetSteamLevelDistribution(ctx context.Context, playerLevel uint32) (GetSteamLevelDistributionResponse, error) {
+	body, err := s.GetSteamLevelDistributionRaw(ctx, playerLevel)
+	if err != nil {
+		return GetSteamLevelDistributionResponse{}, err
+	}
+	return response.DecodeJSON[GetSteamLevelDistributionResponse](body)
+}
+
+// GetSteamLevelDistributionRaw returns the raw JSON response body.
+func (s *Service) GetSteamLevelDistributionRaw(ctx context.Context, playerLevel uint32) ([]byte, error) {
+	query := url.Values{}
+	query.Set("player_level", strconv.FormatUint(uint64(playerLevel), 10))
+
+	return s.executor.DoRaw(ctx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   endpoint.PlayerServiceGetSteamLevelDistribution,
+		Query:  query,
+	})
+}
+
+// GetTopAchievementsForGamesOptions controls optional query parameters for GetTopAchievementsForGames.
+type GetTopAchievementsForGamesOptions struct {
+	Language        string
+	MaxAchievements uint32
+	AppIDs          []uint32
+}
+
+// GetTopAchievementsForGames returns the top achievements for one or more games.
+func (s *Service) GetTopAchievementsForGames(ctx context.Context, steamID string, opts *GetTopAchievementsForGamesOptions) (GetTopAchievementsForGamesResponse, error) {
+	body, err := s.GetTopAchievementsForGamesRaw(ctx, steamID, opts)
+	if err != nil {
+		return GetTopAchievementsForGamesResponse{}, err
+	}
+	return response.DecodeJSON[GetTopAchievementsForGamesResponse](body)
+}
+
+// GetTopAchievementsForGamesRaw returns the raw JSON response body.
+func (s *Service) GetTopAchievementsForGamesRaw(ctx context.Context, steamID string, opts *GetTopAchievementsForGamesOptions) ([]byte, error) {
+	query, err := buildSteamIDQuery(steamID)
+	if err != nil {
+		return nil, err
+	}
+	if opts != nil {
+		if strings.TrimSpace(opts.Language) != "" {
+			query.Set("language", strings.TrimSpace(opts.Language))
+		}
+		if opts.MaxAchievements > 8 {
+			return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max achievements must be less than or equal to 8", nil, nil)
+		}
+		if opts.MaxAchievements > 0 {
+			query.Set("max_achievements", strconv.FormatUint(uint64(opts.MaxAchievements), 10))
+		}
+		for idx, appID := range opts.AppIDs {
+			if appID == 0 {
+				return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "app id must be greater than zero", nil, nil)
+			}
+			query.Set("appids["+strconv.Itoa(idx)+"]", strconv.FormatUint(uint64(appID), 10))
+		}
+		if len(opts.AppIDs) == 0 {
+			return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "at least one app id is required", nil, nil)
+		}
+		return s.executor.DoRaw(ctx, request.RequestSpec{
+			Method: http.MethodGet,
+			Path:   endpoint.PlayerServiceGetTopAchievementsForGames,
+			Query:  query,
+		})
+	}
+
+	return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "top achievements options are required", nil, nil)
+}
+
 // GetCommunityPreferences returns the caller's community and text-filter settings.
 func (s *Service) GetCommunityPreferences(ctx context.Context, accessToken string) (GetCommunityPreferencesResponse, error) {
 	body, err := s.GetCommunityPreferencesRaw(ctx, accessToken)
@@ -534,6 +706,19 @@ func buildAccessTokenQuery(accessToken string) (url.Values, error) {
 	}
 
 	query := url.Values{}
+	query.Set("access_token", trimmed)
+	return query, nil
+}
+
+func buildSteamIDAccessTokenQuery(steamID, accessToken string) (url.Values, error) {
+	query, err := buildSteamIDQuery(steamID)
+	if err != nil {
+		return nil, err
+	}
+	trimmed := strings.TrimSpace(accessToken)
+	if trimmed == "" {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "access token is required", nil, nil)
+	}
 	query.Set("access_token", trimmed)
 	return query, nil
 }
