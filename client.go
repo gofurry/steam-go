@@ -8,6 +8,8 @@ import (
 	"github.com/GoFurry/steam-go/api/communityservice"
 	"github.com/GoFurry/steam-go/api/familygroupsservice"
 	"github.com/GoFurry/steam-go/api/loyaltyrewardsservice"
+	"github.com/GoFurry/steam-go/api/mobilenotificationservice"
+	"github.com/GoFurry/steam-go/api/newsservice"
 	"github.com/GoFurry/steam-go/api/playerservice"
 	"github.com/GoFurry/steam-go/api/steamnews"
 	"github.com/GoFurry/steam-go/api/steamuser"
@@ -25,15 +27,17 @@ type Client struct {
 
 // API groups all typed Steam Web API services under one stable entrypoint.
 type API struct {
-	AccountCartService    *accountcartservice.Service
-	BillingService        *billingservice.Service
-	CommunityService      *communityservice.Service
-	FamilyGroupsService   *familygroupsservice.Service
-	LoyaltyRewardsService *loyaltyrewardsservice.Service
-	SteamUser             *steamuser.Service
-	PlayerService         *playerservice.Service
-	SteamNews             *steamnews.Service
-	SteamUserStats        *steamuserstats.Service
+	AccountCartService        *accountcartservice.Service
+	BillingService            *billingservice.Service
+	CommunityService          *communityservice.Service
+	FamilyGroupsService       *familygroupsservice.Service
+	LoyaltyRewardsService     *loyaltyrewardsservice.Service
+	MobileNotificationService *mobilenotificationservice.Service
+	NewsService               *newsservice.Service
+	SteamUser                 *steamuser.Service
+	PlayerService             *playerservice.Service
+	SteamNews                 *steamnews.Service
+	SteamUserStats            *steamuserstats.Service
 }
 
 // NewClient builds a Steam Web API client using functional options.
@@ -66,15 +70,17 @@ func NewClient(opts ...Option) (*Client, error) {
 		httpClient: httpClient,
 	}
 	client.API = &API{
-		AccountCartService:    accountcartservice.NewService(executor),
-		BillingService:        billingservice.NewService(executor),
-		CommunityService:      communityservice.NewService(executor),
-		FamilyGroupsService:   familygroupsservice.NewService(executor),
-		LoyaltyRewardsService: loyaltyrewardsservice.NewService(executor),
-		SteamUser:             steamuser.NewService(executor),
-		PlayerService:         playerservice.NewService(executor),
-		SteamNews:             steamnews.NewService(executor),
-		SteamUserStats:        steamuserstats.NewService(executor),
+		AccountCartService:        accountcartservice.NewService(executor),
+		BillingService:            billingservice.NewService(executor),
+		CommunityService:          communityservice.NewService(executor),
+		FamilyGroupsService:       familygroupsservice.NewService(executor),
+		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(executor),
+		MobileNotificationService: mobilenotificationservice.NewService(executor),
+		NewsService:               newsservice.NewService(executor),
+		SteamUser:                 steamuser.NewService(executor),
+		PlayerService:             playerservice.NewService(executor),
+		SteamNews:                 steamnews.NewService(executor),
+		SteamUserStats:            steamuserstats.NewService(executor),
 	}
 	return client, nil
 }

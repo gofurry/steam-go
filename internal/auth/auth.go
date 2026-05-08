@@ -55,10 +55,10 @@ func InjectCredentials(query url.Values, apiKey, accessToken string) url.Values 
 		copy(copied, values)
 		cloned[key] = copied
 	}
-	if apiKey != "" {
+	if apiKey != "" && strings.TrimSpace(cloned.Get("key")) == "" {
 		cloned.Set("key", apiKey)
 	}
-	if accessToken != "" {
+	if accessToken != "" && strings.TrimSpace(cloned.Get("access_token")) == "" {
 		cloned.Set("access_token", accessToken)
 	}
 	return cloned

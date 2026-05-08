@@ -9,6 +9,8 @@ This directory keeps reference-style documentation that is too detailed for the 
 - `client.API.CommunityService`
 - `client.API.FamilyGroupsService`
 - `client.API.LoyaltyRewardsService`
+- `client.API.MobileNotificationService`
+- `client.API.NewsService`
 - `client.API.PlayerService`
 - `client.API.SteamNews`
 - `client.API.SteamUser`
