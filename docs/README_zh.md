@@ -8,7 +8,9 @@
 
 - 统一的根 `Client`，通过 `client.API.*` 分组访问服务
 - 提供 API key、access token、timeout、retry、rate limit、proxy 的函数式配置
+- 默认限制缓冲响应体大小，并可通过 `WithMaxResponseBodyBytes(...)` 调整
 - `key` 和 `access_token` 作为两种不同凭证独立处理
+- API key 可选，也可以通过轮换 key provider 提供
 - 支持 typed/raw 双层返回
 - 在 `WithAPIKeys(...)` 和 `WithRetry(...)` 一起使用时，`401/429` 可以自动轮换到下一个 key 重试
 - 通过 addon 扩展能力，但不把非 Web API 能力重新塞回核心 SDK
@@ -57,6 +59,17 @@ func main() {
 ```
 
 详细 API 分组请看 [api.md](api.md)。
+
+## PlayerService 覆盖范围
+
+`client.API.PlayerService` 目前已经覆盖一批比较实用的公开接口和需要身份凭证的资料/游戏行为接口，包括：
+
+- 徽章、社区徽章进度、精选徽章、Steam 等级、Steam 等级分布
+- 动态头像、头像边框、个人资料背景、小型个人资料背景、已装备资料物品、已拥有资料物品
+- 资料展示、自定义项购买记录、已购买/已升级自定义项摘要、可用主题
+- 昵称列表、玩家链接详情、好友游玩信息、最近游玩游戏、最近游玩时间、游戏热门成就
+
+如果方法签名里显式要求传入 `accessToken` 或 `key`，就应该把调用者自己的凭证直接传给这个方法。`Client` 级别的全局凭证仍然适合作为那些“不要求方法级显式凭证”的公共接口默认值。
 
 ## Addons
 
