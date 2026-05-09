@@ -101,6 +101,13 @@ These are not exhaustive lists, but they reflect the main typed SDK coverage ava
 - `GetPreferences`
 - `GetSteamNotifications`
 
+### `client.API.SteamUser`
+
+- `GetFriendList`
+- `GetPlayerBans`
+- `GetPlayerSummaries`
+- `GetUserGroupList`
+
 ## Credential Notes
 
 - `key` and `access_token` are treated as different credentials.

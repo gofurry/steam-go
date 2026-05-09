@@ -24,6 +24,7 @@ import (
 	"github.com/GoFurry/steam-go/api/steamdirectory"
 	"github.com/GoFurry/steam-go/api/steamnews"
 	"github.com/GoFurry/steam-go/api/steamnotificationservice"
+	"github.com/GoFurry/steam-go/api/steamuser"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
 )
 
@@ -1015,6 +1016,70 @@ func TestSteamUserGetPlayerSummariesWithRotatingAccessTokens(t *testing.T) {
 	}
 }
 
+func TestSteamUserAdditionalEndpoints(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		if got := query.Get("key"); got != "test-key" {
+			t.Fatalf("unexpected api key: %s", got)
+		}
+		switch r.URL.Path {
+		case "/ISteamUser/GetFriendList/v1/":
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			if got := query.Get("relationship"); got != "friend" {
+				t.Fatalf("unexpected relationship: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"friendslist":{"friends":[{"steamid":"76561198291978477","relationship":"friend","friend_since":1712215394},{"steamid":"76561198370695025","relationship":"friend","friend_since":1664934882}]}}`))
+		case "/ISteamUser/GetPlayerBans/v1/":
+			if got := query.Get("steamids"); got != "76561198856448829,76561198370695025" {
+				t.Fatalf("unexpected steamids: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"players":[{"SteamId":"76561198370695025","CommunityBanned":false,"VACBanned":false,"NumberOfVACBans":0,"DaysSinceLastBan":766,"NumberOfGameBans":1,"EconomyBan":"none"},{"SteamId":"76561198856448829","CommunityBanned":false,"VACBanned":true,"NumberOfVACBans":1,"DaysSinceLastBan":1049,"NumberOfGameBans":0,"EconomyBan":"none"}]}`))
+		case "/ISteamUser/GetUserGroupList/v1/":
+			if got := query.Get("steamid"); got != "76561198856448829" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"success":true,"groups":[{"gid":"32222334"},{"gid":"35210443"},{"gid":"38546535"}]}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+
+	friends, err := client.API.SteamUser.GetFriendList(
+		context.Background(),
+		"76561198370695025",
+		&steamuser.GetFriendListOptions{Relationship: "friend"},
+	)
+	if err != nil {
+		t.Fatalf("GetFriendList returned error: %v", err)
+	}
+	if len(friends.FriendsList.Friends) != 2 || friends.FriendsList.Friends[0].FriendSince != 1712215394 {
+		t.Fatalf("unexpected friend list: %#v", friends.FriendsList.Friends)
+	}
+
+	bans, err := client.API.SteamUser.GetPlayerBans(context.Background(), []string{"76561198856448829", "76561198370695025"})
+	if err != nil {
+		t.Fatalf("GetPlayerBans returned error: %v", err)
+	}
+	if len(bans.Players) != 2 || !bans.Players[1].VACBanned {
+		t.Fatalf("unexpected player bans: %#v", bans.Players)
+	}
+
+	groupList, err := client.API.SteamUser.GetUserGroupList(context.Background(), "76561198856448829")
+	if err != nil {
+		t.Fatalf("GetUserGroupList returned error: %v", err)
+	}
+	if !groupList.Response.Success || len(groupList.Response.Groups) != 3 || groupList.Response.Groups[0].GID != "32222334" {
+		t.Fatalf("unexpected group list: %#v", groupList.Response)
+	}
+}
+
 func TestSteamUserGetPlayerSummariesRaw(t *testing.T) {
 	t.Parallel()
 
@@ -1049,6 +1114,15 @@ func TestSteamUserValidation(t *testing.T) {
 		tooMany[i] = "1"
 	}
 	_, err = client.API.SteamUser.GetPlayerSummaries(context.Background(), tooMany)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SteamUser.GetFriendList(context.Background(), "", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SteamUser.GetPlayerBans(context.Background(), nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SteamUser.GetUserGroupList(context.Background(), "")
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 }
 
