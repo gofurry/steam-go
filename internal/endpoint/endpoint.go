@@ -54,6 +54,8 @@ const (
 	SteamChartsServiceGetMostPlayedGames                      = "/ISteamChartsService/GetMostPlayedGames/v1/"
 	SteamChartsServiceGetTopReleasesPages                     = "/ISteamChartsService/GetTopReleasesPages/v1/"
 	SteamChartsServiceGetYearTopAppReleases                   = "/ISteamChartsService/GetYearTopAppReleases/v1/"
+	SteamNotificationServiceGetPreferences                    = "/ISteamNotificationService/GetPreferences/v1/"
+	SteamNotificationServiceGetSteamNotifications             = "/ISteamNotificationService/GetSteamNotifications/v1/"
 	SteamUserGetPlayerSummaries                               = "/ISteamUser/GetPlayerSummaries/v2/"
 	PlayerServiceGetOwnedGames                                = "/IPlayerService/GetOwnedGames/v1/"
 	SteamNewsGetNewsForApp                                    = "/ISteamNews/GetNewsForApp/v2/"

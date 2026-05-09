@@ -23,6 +23,7 @@ import (
 	"github.com/GoFurry/steam-go/api/steamchartsservice"
 	"github.com/GoFurry/steam-go/api/steamdirectory"
 	"github.com/GoFurry/steam-go/api/steamnews"
+	"github.com/GoFurry/steam-go/api/steamnotificationservice"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
 )
 
@@ -59,6 +60,9 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	}
 	if client.API.SteamDirectory == nil {
 		t.Fatal("expected steam directory service to be initialized")
+	}
+	if client.API.SteamNotificationService == nil {
+		t.Fatal("expected steam notification service to be initialized")
 	}
 }
 
@@ -1115,6 +1119,89 @@ func TestMobileNotificationServiceUsesExplicitAccessToken(t *testing.T) {
 	}
 }
 
+func TestSteamNotificationServiceUsesExplicitAccessToken(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ISteamNotificationService/GetPreferences/v1/":
+			query := r.URL.Query()
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"preferences":[{"notification_type":2,"notification_targets":11},{"notification_type":3,"notification_targets":1}]}}`))
+		case "/ISteamNotificationService/GetSteamNotifications/v1/":
+			query := r.URL.Query()
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			if got := query.Get("include_hidden"); got != "true" {
+				t.Fatalf("unexpected include_hidden: %s", got)
+			}
+			if got := query.Get("language"); got != "6" {
+				t.Fatalf("unexpected language: %s", got)
+			}
+			if got := query.Get("include_confirmation_count"); got != "true" {
+				t.Fatalf("unexpected include_confirmation_count: %s", got)
+			}
+			if got := query.Get("include_pinned_counts"); got != "true" {
+				t.Fatalf("unexpected include_pinned_counts: %s", got)
+			}
+			if got := query.Get("include_read"); got != "true" {
+				t.Fatalf("unexpected include_read: %s", got)
+			}
+			if got := query.Get("count_only"); got != "false" {
+				t.Fatalf("unexpected count_only: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"notifications":[{"notification_id":"147813875091","notification_targets":3,"notification_type":8,"body_data":"{\"appid\":1139900,\"count\":1}","read":false,"timestamp":1777309268,"hidden":false,"expiry":1778515200,"viewed":1778159038}],"confirmation_count":0,"pending_gift_count":0,"pending_friend_count":0,"unread_count":19,"pending_family_invite_count":0}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL(server.URL),
+		steam.WithAccessToken("global-token"),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	preferences, err := client.API.SteamNotificationService.GetPreferences(context.Background(), "user-token")
+	if err != nil {
+		t.Fatalf("GetPreferences returned error: %v", err)
+	}
+	if len(preferences.Response.Preferences) != 2 || preferences.Response.Preferences[0].NotificationTargets != 11 {
+		t.Fatalf("unexpected preferences: %#v", preferences.Response.Preferences)
+	}
+
+	trueValue := true
+	falseValue := false
+	language := int32(6)
+	notifications, err := client.API.SteamNotificationService.GetSteamNotifications(
+		context.Background(),
+		"user-token",
+		&steamnotificationservice.GetSteamNotificationsOptions{
+			IncludeHidden:            &trueValue,
+			Language:                 &language,
+			IncludeConfirmationCount: &trueValue,
+			IncludePinnedCounts:      &trueValue,
+			IncludeRead:              &trueValue,
+			CountOnly:                &falseValue,
+		},
+	)
+	if err != nil {
+		t.Fatalf("GetSteamNotifications returned error: %v", err)
+	}
+	if notifications.Response.UnreadCount != 19 || len(notifications.Response.Notifications) != 1 {
+		t.Fatalf("unexpected notifications payload: %#v", notifications.Response)
+	}
+	if notifications.Response.Notifications[0].NotificationID != "147813875091" {
+		t.Fatalf("unexpected notification id: %#v", notifications.Response.Notifications[0])
+	}
+}
+
 func TestNewsServiceConvertHTMLToBBCode(t *testing.T) {
 	t.Parallel()
 
@@ -1674,6 +1761,12 @@ func TestExplicitAccessTokenValidation(t *testing.T) {
 	_, err = client.API.MobileNotificationService.GetUserNotificationCounts(context.Background(), "")
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 
+	_, err = client.API.SteamNotificationService.GetPreferences(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SteamNotificationService.GetSteamNotifications(context.Background(), "", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
 	_, err = client.API.PlayerService.ClientGetLastPlayedTimes(context.Background(), "", nil)
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 
@@ -1753,6 +1846,9 @@ func TestSteamNewsOptions(t *testing.T) {
 		if got := query.Get("feeds"); got != "steam_community_announcements,steam_blog" {
 			t.Fatalf("unexpected feeds: %s", got)
 		}
+		if got := query.Get("tags"); got != "patchnotes,events" {
+			t.Fatalf("unexpected tags query: %s", got)
+		}
 		_, _ = w.Write([]byte(`{"appnews":{"appid":570,"newsitems":[{"gid":"1","title":"update","tags":["patchnotes"]}],"count":1}}`))
 	}))
 	defer server.Close()
@@ -1766,6 +1862,7 @@ func TestSteamNewsOptions(t *testing.T) {
 			EndDate:   endDate,
 			Count:     3,
 			Feeds:     []string{"steam_community_announcements", "steam_blog"},
+			Tags:      []string{"patchnotes", "events"},
 		},
 	)
 	if err != nil {

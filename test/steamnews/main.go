@@ -28,6 +28,7 @@ func main() {
 		&steamnews.GetNewsForAppOptions{
 			Count:     3,
 			MaxLength: 200,
+			Tags:      []string{"patchnotes"},
 		},
 	)
 	if err != nil {

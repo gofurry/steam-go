@@ -23,5 +23,6 @@ Run a specific API-group smoke test with:
 - `go run ./test/steamapps`
 - `go run ./test/steamchartsservice`
 - `go run ./test/steamnews`
+- `go run ./test/steamnotificationservice`
 - `go run ./test/steamuser`
 - `go run ./test/steamuserstats`

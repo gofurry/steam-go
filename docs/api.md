@@ -18,6 +18,7 @@ This directory keeps reference-style documentation that is too detailed for the 
 - `client.API.SteamApps`
 - `client.API.SteamChartsService`
 - `client.API.SteamNews`
+- `client.API.SteamNotificationService`
 - `client.API.SteamUser`
 - `client.API.SteamUserStats`
 
@@ -90,6 +91,15 @@ These are not exhaustive lists, but they reflect the main typed SDK coverage ava
 - `GetMostPlayedGames`
 - `GetTopReleasesPages`
 - `GetYearTopAppReleases`
+
+### `client.API.SteamNews`
+
+- `GetNewsForApp`
+
+### `client.API.SteamNotificationService`
+
+- `GetPreferences`
+- `GetSteamNotifications`
 
 ## Credential Notes
 

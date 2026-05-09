@@ -17,6 +17,7 @@ import (
 	"github.com/GoFurry/steam-go/api/steamchartsservice"
 	"github.com/GoFurry/steam-go/api/steamdirectory"
 	"github.com/GoFurry/steam-go/api/steamnews"
+	"github.com/GoFurry/steam-go/api/steamnotificationservice"
 	"github.com/GoFurry/steam-go/api/steamuser"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
 	"github.com/GoFurry/steam-go/internal/request"
@@ -44,6 +45,7 @@ type API struct {
 	SteamDirectory            *steamdirectory.Service
 	SteamApps                 *steamapps.Service
 	SteamChartsService        *steamchartsservice.Service
+	SteamNotificationService  *steamnotificationservice.Service
 	SteamUser                 *steamuser.Service
 	PlayerService             *playerservice.Service
 	SteamNews                 *steamnews.Service
@@ -92,6 +94,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		SteamDirectory:            steamdirectory.NewService(executor),
 		SteamApps:                 steamapps.NewService(executor),
 		SteamChartsService:        steamchartsservice.NewService(executor),
+		SteamNotificationService:  steamnotificationservice.NewService(executor),
 		SteamUser:                 steamuser.NewService(executor),
 		PlayerService:             playerservice.NewService(executor),
 		SteamNews:                 steamnews.NewService(executor),
