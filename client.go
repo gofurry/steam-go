@@ -22,6 +22,10 @@ import (
 	"github.com/GoFurry/steam-go/api/steamuseroauth"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
 	"github.com/GoFurry/steam-go/api/steamwebapiutil"
+	"github.com/GoFurry/steam-go/api/storebrowseservice"
+	"github.com/GoFurry/steam-go/api/storecatalogservice"
+	"github.com/GoFurry/steam-go/api/storepreferencesservice"
+	"github.com/GoFurry/steam-go/api/storeservice"
 	"github.com/GoFurry/steam-go/internal/request"
 	"github.com/GoFurry/steam-go/internal/transport"
 )
@@ -44,6 +48,10 @@ type API struct {
 	NewsService               *newsservice.Service
 	QuestService              *questservice.Service
 	SaleFeatureService        *salefeatureservice.Service
+	StoreBrowseService        *storebrowseservice.Service
+	StoreCatalogService       *storecatalogservice.Service
+	StorePreferencesService   *storepreferencesservice.Service
+	StoreService              *storeservice.Service
 	SteamDirectory            *steamdirectory.Service
 	SteamApps                 *steamapps.Service
 	SteamChartsService        *steamchartsservice.Service
@@ -95,6 +103,10 @@ func NewClient(opts ...Option) (*Client, error) {
 		NewsService:               newsservice.NewService(executor),
 		QuestService:              questservice.NewService(executor),
 		SaleFeatureService:        salefeatureservice.NewService(executor),
+		StoreBrowseService:        storebrowseservice.NewService(executor),
+		StoreCatalogService:       storecatalogservice.NewService(executor),
+		StorePreferencesService:   storepreferencesservice.NewService(executor),
+		StoreService:              storeservice.NewService(executor),
 		SteamDirectory:            steamdirectory.NewService(executor),
 		SteamApps:                 steamapps.NewService(executor),
 		SteamChartsService:        steamchartsservice.NewService(executor),

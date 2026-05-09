@@ -14,6 +14,10 @@ This directory keeps reference-style documentation that is too detailed for the 
 - `client.API.PlayerService`
 - `client.API.QuestService`
 - `client.API.SaleFeatureService`
+- `client.API.StoreBrowseService`
+- `client.API.StoreCatalogService`
+- `client.API.StorePreferencesService`
+- `client.API.StoreService`
 - `client.API.SteamDirectory`
 - `client.API.SteamApps`
 - `client.API.SteamChartsService`
@@ -73,6 +77,26 @@ These are not exhaustive lists, but they reflect the main typed SDK coverage ava
 - `GetFriendsSharedYearInReview`
 - `GetUserYearAchievements`
 - `GetUserYearInReview`
+
+### `client.API.StoreBrowseService`
+
+- `GetContentHubConfig`
+
+### `client.API.StoreCatalogService`
+
+- `GetDevPageLinks`
+
+### `client.API.StorePreferencesService`
+
+- `GetIgnoreList`
+
+### `client.API.StoreService`
+
+- `GetAppList`
+- `GetGamesFollowed`
+- `GetGamesFollowedCount`
+- `GetMostPopularTags`
+- `GetUserGameInterestState`
 
 ### `client.API.SteamDirectory`
 

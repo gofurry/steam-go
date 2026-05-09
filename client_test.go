@@ -26,6 +26,7 @@ import (
 	"github.com/GoFurry/steam-go/api/steamnotificationservice"
 	"github.com/GoFurry/steam-go/api/steamuser"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
+	"github.com/GoFurry/steam-go/api/storeservice"
 )
 
 func TestNewClientRequiresAPIKey(t *testing.T) {
@@ -52,6 +53,12 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	}
 	if client.API.QuestService == nil || client.API.SaleFeatureService == nil {
 		t.Fatal("expected quest and sale feature services to be initialized")
+	}
+	if client.API.StoreBrowseService == nil || client.API.StoreCatalogService == nil {
+		t.Fatal("expected store browse and catalog services to be initialized")
+	}
+	if client.API.StorePreferencesService == nil || client.API.StoreService == nil {
+		t.Fatal("expected store preference and store services to be initialized")
 	}
 	if client.API.SteamApps == nil {
 		t.Fatal("expected steam apps service to be initialized")
@@ -2234,6 +2241,253 @@ func TestSteamWebAPIUtilEndpoints(t *testing.T) {
 	if len(apiList.APIList.Interfaces) != 1 || len(apiList.APIList.Interfaces[0].Methods) != 2 {
 		t.Fatalf("unexpected api list: %#v", apiList.APIList)
 	}
+}
+
+func TestStoreBrowseServiceGetContentHubConfig(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/IStoreBrowseService/GetContentHubConfig/v1/" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"response":{"hubconfigs":[{"hubcategoryid":1,"type":"tagids","handle":"action","display_name":"Action","url_path":"category/action","replaces_tags":[19],"must_have_tags":[19]},{"hubcategoryid":86,"type":"contenthub","handle":"adultonly","display_name":"Adult Only","url_path":"adultonly"}]}}`))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+	resp, err := client.API.StoreBrowseService.GetContentHubConfig(context.Background())
+	if err != nil {
+		t.Fatalf("GetContentHubConfig returned error: %v", err)
+	}
+	if len(resp.Response.HubConfigs) != 2 || resp.Response.HubConfigs[0].MustHaveTags[0] != 19 {
+		t.Fatalf("unexpected hub configs: %#v", resp.Response.HubConfigs)
+	}
+}
+
+func TestStoreCatalogServiceGetDevPageLinks(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/IStoreCatalogService/GetDevPageLinks/v1/" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("appid"); got != "550" {
+			t.Fatalf("unexpected appid: %s", got)
+		}
+		_, _ = w.Write([]byte(`{"response":{"links":[{"appid":550,"clan_steamid":"103582791429521412","relation":0,"linkname":"Valve","json":"{\"link_url\":\"https://www.youtube.com/watch?v=Jz6FCFoL3k4&t=4s\"}"}]}}`))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+	resp, err := client.API.StoreCatalogService.GetDevPageLinks(context.Background(), 550)
+	if err != nil {
+		t.Fatalf("GetDevPageLinks returned error: %v", err)
+	}
+	if len(resp.Response.Links) != 1 || resp.Response.Links[0].LinkName != "Valve" {
+		t.Fatalf("unexpected links: %#v", resp.Response.Links)
+	}
+}
+
+func TestStorePreferencesServiceUsesExplicitAccessToken(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/IStorePreferencesService/GetIgnoreList/v1/" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		query := r.URL.Query()
+		if got := query.Get("access_token"); got != "user-token" {
+			t.Fatalf("unexpected access token: %s", got)
+		}
+		if got := query.Get("key"); got != "test-key" {
+			t.Fatalf("unexpected api key: %s", got)
+		}
+		_, _ = w.Write([]byte(`{"response":{"ignore_list":[{"appid":1005490,"reason":0},{"appid":1128960,"reason":0}]}}`))
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithAccessToken("global-token"),
+		steam.WithBaseURL(server.URL),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	resp, err := client.API.StorePreferencesService.GetIgnoreList(context.Background(), "user-token")
+	if err != nil {
+		t.Fatalf("GetIgnoreList returned error: %v", err)
+	}
+	if len(resp.Response.IgnoreList) != 2 || resp.Response.IgnoreList[0].AppID != 1005490 {
+		t.Fatalf("unexpected ignore list: %#v", resp.Response.IgnoreList)
+	}
+}
+
+func TestStoreServiceEndpoints(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		switch r.URL.Path {
+		case "/IStoreService/GetAppList/v1/":
+			if got := query.Get("include_games"); got != "true" {
+				t.Fatalf("unexpected include_games: %s", got)
+			}
+			if got := query.Get("include_dlc"); got != "true" {
+				t.Fatalf("unexpected include_dlc: %s", got)
+			}
+			if got := query.Get("include_software"); got != "true" {
+				t.Fatalf("unexpected include_software: %s", got)
+			}
+			if got := query.Get("include_videos"); got != "true" {
+				t.Fatalf("unexpected include_videos: %s", got)
+			}
+			if got := query.Get("include_hardware"); got != "true" {
+				t.Fatalf("unexpected include_hardware: %s", got)
+			}
+			if got := query.Get("last_appid"); got != "550" {
+				t.Fatalf("unexpected last_appid: %s", got)
+			}
+			if got := query.Get("max_results"); got != "10" {
+				t.Fatalf("unexpected max_results: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"apps":[{"appid":570,"name":"Dota 2","last_modified":1769535998,"price_change_number":23683736},{"appid":620,"name":"Portal 2","last_modified":1745363004,"price_change_number":34672985}],"have_more_results":true,"last_appid":620}}`))
+		case "/IStoreService/GetGamesFollowed/v1/":
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"appids":[550,219740,431960]}}`))
+		case "/IStoreService/GetGamesFollowedCount/v1/":
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"followed_game_count":33}}`))
+		case "/IStoreService/GetMostPopularTags/v1/":
+			_, _ = w.Write([]byte(`{"response":{"tags":[{"tagid":492,"name":"Indie"},{"tagid":19,"name":"Action"}]}}`))
+		case "/IStoreService/GetUserGameInterestState/v1/":
+			if r.Method != http.MethodPost {
+				t.Fatalf("unexpected method: %s", r.Method)
+			}
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			if got := query.Get("appid"); got != "550" {
+				t.Fatalf("unexpected appid: %s", got)
+			}
+			if got := query.Get("store_appid"); got != "551" {
+				t.Fatalf("unexpected store_appid: %s", got)
+			}
+			if got := query.Get("beta_appid"); got != "552" {
+				t.Fatalf("unexpected beta_appid: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"owned":true,"following":true,"in_queues":[1],"queue_items_remaining":[12],"queue_items_next_appid":[2288340],"queues":[{"type":1,"skipped":false,"items_remaining":12,"next_appid":2288340,"experimental_cohort":4}]}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithAccessToken("global-token"),
+		steam.WithBaseURL(server.URL),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	trueValue := true
+	lastAppID := uint32(550)
+	maxResults := uint32(10)
+	appList, err := client.API.StoreService.GetAppList(context.Background(), &storeservice.GetAppListOptions{
+		IncludeGames:    &trueValue,
+		IncludeDLC:      &trueValue,
+		IncludeSoftware: &trueValue,
+		IncludeVideos:   &trueValue,
+		IncludeHardware: &trueValue,
+		LastAppID:       &lastAppID,
+		MaxResults:      &maxResults,
+	})
+	if err != nil {
+		t.Fatalf("GetAppList returned error: %v", err)
+	}
+	if len(appList.Response.Apps) != 2 || !appList.Response.HaveMoreResults || appList.Response.LastAppID != 620 {
+		t.Fatalf("unexpected app list: %#v", appList.Response)
+	}
+
+	followed, err := client.API.StoreService.GetGamesFollowed(context.Background(), "76561198370695025")
+	if err != nil {
+		t.Fatalf("GetGamesFollowed returned error: %v", err)
+	}
+	if len(followed.Response.AppIDs) != 3 || followed.Response.AppIDs[0] != 550 {
+		t.Fatalf("unexpected followed games: %#v", followed.Response.AppIDs)
+	}
+
+	followedCount, err := client.API.StoreService.GetGamesFollowedCount(context.Background(), "76561198370695025")
+	if err != nil {
+		t.Fatalf("GetGamesFollowedCount returned error: %v", err)
+	}
+	if followedCount.Response.FollowedGameCount != 33 {
+		t.Fatalf("unexpected followed game count: %#v", followedCount.Response)
+	}
+
+	tags, err := client.API.StoreService.GetMostPopularTags(context.Background())
+	if err != nil {
+		t.Fatalf("GetMostPopularTags returned error: %v", err)
+	}
+	if len(tags.Response.Tags) != 2 || tags.Response.Tags[1].TagID != 19 {
+		t.Fatalf("unexpected tags: %#v", tags.Response.Tags)
+	}
+
+	storeAppID := uint32(551)
+	betaAppID := uint32(552)
+	interestState, err := client.API.StoreService.GetUserGameInterestState(
+		context.Background(),
+		"user-token",
+		550,
+		&storeservice.GetUserGameInterestStateOptions{
+			StoreAppID: &storeAppID,
+			BetaAppID:  &betaAppID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("GetUserGameInterestState returned error: %v", err)
+	}
+	if !interestState.Response.Owned || !interestState.Response.Following || len(interestState.Response.Queues) != 1 {
+		t.Fatalf("unexpected interest state: %#v", interestState.Response)
+	}
+}
+
+func TestStoreServiceValidation(t *testing.T) {
+	t.Parallel()
+
+	client, err := steam.NewClient(steam.WithAPIKey("test-key"))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = client.API.StoreCatalogService.GetDevPageLinks(context.Background(), 0)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.StorePreferencesService.GetIgnoreList(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.StoreService.GetGamesFollowed(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.StoreService.GetGamesFollowedCount(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	maxResults := uint32(50001)
+	_, err = client.API.StoreService.GetAppList(context.Background(), &storeservice.GetAppListOptions{MaxResults: &maxResults})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.StoreService.GetUserGameInterestState(context.Background(), "", 550, nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.StoreService.GetUserGameInterestState(context.Background(), "user-token", 0, nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
 }
 
 func TestHTTPStatusError(t *testing.T) {
