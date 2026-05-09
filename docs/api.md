@@ -12,6 +12,8 @@ This directory keeps reference-style documentation that is too detailed for the 
 - `client.API.MobileNotificationService`
 - `client.API.NewsService`
 - `client.API.PlayerService`
+- `client.API.QuestService`
+- `client.API.SaleFeatureService`
 - `client.API.SteamNews`
 - `client.API.SteamUser`
 - `client.API.SteamUserStats`
@@ -54,6 +56,16 @@ These are not exhaustive lists, but they reflect the main typed SDK coverage ava
 ### `client.API.NewsService`
 
 - `ConvertHTMLToBBCode`
+
+### `client.API.QuestService`
+
+- `GetCommunityInventory`
+- `GetNumTradingCardsEarned`
+
+### `client.API.SaleFeatureService`
+
+- `GetFriendsSharedYearInReview`
+- `GetUserYearAchievements`
 
 ## Credential Notes
 

@@ -18,6 +18,8 @@ import (
 	"github.com/GoFurry/steam-go/api/loyaltyrewardsservice"
 	"github.com/GoFurry/steam-go/api/newsservice"
 	"github.com/GoFurry/steam-go/api/playerservice"
+	"github.com/GoFurry/steam-go/api/questservice"
+	"github.com/GoFurry/steam-go/api/salefeatureservice"
 	"github.com/GoFurry/steam-go/api/steamnews"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
 )
@@ -43,6 +45,9 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	}
 	if client.API.MobileNotificationService == nil || client.API.NewsService == nil {
 		t.Fatal("expected additional service groups to be initialized")
+	}
+	if client.API.QuestService == nil || client.API.SaleFeatureService == nil {
+		t.Fatal("expected quest and sale feature services to be initialized")
 	}
 }
 
@@ -337,6 +342,208 @@ func TestLoyaltyRewardsServiceValidation(t *testing.T) {
 	}
 
 	_, err = client.API.LoyaltyRewardsService.GetSummary(context.Background(), "")
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+}
+
+func TestQuestService(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/IQuestService/GetCommunityInventory/v1/":
+			if got := r.URL.Query().Get("filter_appids[0]"); got != "550" {
+				t.Fatalf("unexpected filter_appids[0]: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"items":[{"communityitemid":"8644390882","item_type":12,"appid":550,"owner":410429297,"attributes":[{"attributeid":4,"value":"1532415600"}],"used":false,"owner_origin":4,"amount":"1"}]}}`))
+		case "/IQuestService/GetNumTradingCardsEarned/v1/":
+			query := r.URL.Query()
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			if got := query.Get("timestamp_start"); got != "1700000000" {
+				t.Fatalf("unexpected timestamp_start: %s", got)
+			}
+			if got := query.Get("timestamp_end"); got != "1701000000" {
+				t.Fatalf("unexpected timestamp_end: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"num_trading_cards":2}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL(server.URL),
+		steam.WithAccessToken("global-token"),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	inventory, err := client.API.QuestService.GetCommunityInventory(
+		context.Background(),
+		&questservice.GetCommunityInventoryOptions{FilterAppIDs: []uint32{550}},
+	)
+	if err != nil {
+		t.Fatalf("GetCommunityInventory returned error: %v", err)
+	}
+	if len(inventory.Response.Items) != 1 || inventory.Response.Items[0].CommunityItemID != "8644390882" {
+		t.Fatalf("unexpected inventory: %#v", inventory.Response.Items)
+	}
+
+	cards, err := client.API.QuestService.GetNumTradingCardsEarned(
+		context.Background(),
+		"user-token",
+		&questservice.GetNumTradingCardsEarnedOptions{
+			TimestampStart: 1700000000,
+			TimestampEnd:   1701000000,
+		},
+	)
+	if err != nil {
+		t.Fatalf("GetNumTradingCardsEarned returned error: %v", err)
+	}
+	if cards.Response.NumTradingCards != 2 {
+		t.Fatalf("unexpected num_trading_cards: %#v", cards.Response)
+	}
+}
+
+func TestQuestServiceValidation(t *testing.T) {
+	t.Parallel()
+
+	client, err := steam.NewClient(steam.WithAccessToken("global-token"))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = client.API.QuestService.GetCommunityInventory(context.Background(), &questservice.GetCommunityInventoryOptions{
+		FilterAppIDs: []uint32{0},
+	})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.QuestService.GetNumTradingCardsEarned(context.Background(), "", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+}
+
+func TestSaleFeatureService(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ISaleFeatureService/GetFriendsSharedYearInReview/v1/":
+			query := r.URL.Query()
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			if got := query.Get("year"); got != "2025" {
+				t.Fatalf("unexpected year: %s", got)
+			}
+			if got := query.Get("return_private"); got != "false" {
+				t.Fatalf("unexpected return_private: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"friend_shares":[{"steamid":"76561198337088545","privacy_state":2,"rt_privacy_updated":0,"privacy_override":false},{"steamid":"76561198856448829","privacy_state":3,"rt_privacy_updated":0,"privacy_override":false}]}}`))
+		case "/ISaleFeatureService/GetUserYearAchievements/v1/":
+			query := r.URL.Query()
+			if got := query.Get("access_token"); got != "user-token" {
+				t.Fatalf("unexpected access token: %s", got)
+			}
+			if got := query.Get("steamid"); got != "76561198370695025" {
+				t.Fatalf("unexpected steamid: %s", got)
+			}
+			if got := query.Get("year"); got != "2022" {
+				t.Fatalf("unexpected year: %s", got)
+			}
+			if got := query.Get("appids[0]"); got != "550" {
+				t.Fatalf("unexpected appids[0]: %s", got)
+			}
+			if got := query.Get("total_only"); got != "false" {
+				t.Fatalf("unexpected total_only: %s", got)
+			}
+			_, _ = w.Write([]byte(`{"response":{"game_achievements":[{"appid":550,"achievements":[{"statid":0,"fieldid":0,"achievement_name_internal":"ACH_HONK_A_CLOWNS_NOSE"}],"all_time_unlocked_achievements":95,"unlocked_more_in_future":true}],"total_achievements":41,"total_rare_achievements":33,"total_games_with_achievements":1}}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL(server.URL),
+		steam.WithAccessToken("global-token"),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	returnPrivate := false
+	friendShares, err := client.API.SaleFeatureService.GetFriendsSharedYearInReview(
+		context.Background(),
+		"76561198370695025",
+		2025,
+		&salefeatureservice.GetFriendsSharedYearInReviewOptions{ReturnPrivate: &returnPrivate},
+	)
+	if err != nil {
+		t.Fatalf("GetFriendsSharedYearInReview returned error: %v", err)
+	}
+	if len(friendShares.Response.FriendShares) != 2 || friendShares.Response.FriendShares[1].PrivacyState != 3 {
+		t.Fatalf("unexpected friend shares: %#v", friendShares.Response.FriendShares)
+	}
+
+	totalOnly := false
+	yearAchievements, err := client.API.SaleFeatureService.GetUserYearAchievements(
+		context.Background(),
+		"user-token",
+		&salefeatureservice.GetUserYearAchievementsOptions{
+			SteamID:   "76561198370695025",
+			Year:      2022,
+			AppIDs:    []uint32{550},
+			TotalOnly: &totalOnly,
+		},
+	)
+	if err != nil {
+		t.Fatalf("GetUserYearAchievements returned error: %v", err)
+	}
+	if yearAchievements.Response.TotalAchievements != 41 || len(yearAchievements.Response.GameAchievements) != 1 {
+		t.Fatalf("unexpected year achievements: %#v", yearAchievements.Response)
+	}
+}
+
+func TestSaleFeatureServiceValidation(t *testing.T) {
+	t.Parallel()
+
+	client, err := steam.NewClient(steam.WithAccessToken("global-token"))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = client.API.SaleFeatureService.GetFriendsSharedYearInReview(context.Background(), "", 2025, nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SaleFeatureService.GetFriendsSharedYearInReview(context.Background(), "76561198370695025", 0, nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SaleFeatureService.GetUserYearAchievements(context.Background(), "", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SaleFeatureService.GetUserYearAchievements(context.Background(), "user-token", nil)
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SaleFeatureService.GetUserYearAchievements(context.Background(), "user-token", &salefeatureservice.GetUserYearAchievementsOptions{
+		SteamID: "",
+		Year:    2022,
+	})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SaleFeatureService.GetUserYearAchievements(context.Background(), "user-token", &salefeatureservice.GetUserYearAchievementsOptions{
+		SteamID: "76561198370695025",
+		Year:    0,
+	})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+
+	_, err = client.API.SaleFeatureService.GetUserYearAchievements(context.Background(), "user-token", &salefeatureservice.GetUserYearAchievementsOptions{
+		SteamID: "76561198370695025",
+		Year:    2022,
+		AppIDs:  []uint32{0},
+	})
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 }
 

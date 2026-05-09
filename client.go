@@ -11,6 +11,8 @@ import (
 	"github.com/GoFurry/steam-go/api/mobilenotificationservice"
 	"github.com/GoFurry/steam-go/api/newsservice"
 	"github.com/GoFurry/steam-go/api/playerservice"
+	"github.com/GoFurry/steam-go/api/questservice"
+	"github.com/GoFurry/steam-go/api/salefeatureservice"
 	"github.com/GoFurry/steam-go/api/steamnews"
 	"github.com/GoFurry/steam-go/api/steamuser"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
@@ -34,6 +36,8 @@ type API struct {
 	LoyaltyRewardsService     *loyaltyrewardsservice.Service
 	MobileNotificationService *mobilenotificationservice.Service
 	NewsService               *newsservice.Service
+	QuestService              *questservice.Service
+	SaleFeatureService        *salefeatureservice.Service
 	SteamUser                 *steamuser.Service
 	PlayerService             *playerservice.Service
 	SteamNews                 *steamnews.Service
@@ -77,6 +81,8 @@ func NewClient(opts ...Option) (*Client, error) {
 		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(executor),
 		MobileNotificationService: mobilenotificationservice.NewService(executor),
 		NewsService:               newsservice.NewService(executor),
+		QuestService:              questservice.NewService(executor),
+		SaleFeatureService:        salefeatureservice.NewService(executor),
 		SteamUser:                 steamuser.NewService(executor),
 		PlayerService:             playerservice.NewService(executor),
 		SteamNews:                 steamnews.NewService(executor),
