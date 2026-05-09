@@ -205,6 +205,18 @@ func TestNewHTTPClientWithProxySelectorRejectsNegativeTimeout(t *testing.T) {
 	}
 }
 
+func TestNewHTTPClientWithProxySelectorDefaultsZeroTimeout(t *testing.T) {
+	t.Parallel()
+
+	client, err := steam.NewHTTPClientWithProxySelector(nil, 0)
+	if err != nil {
+		t.Fatalf("NewHTTPClientWithProxySelector returned error: %v", err)
+	}
+	if got := client.Timeout; got != 10*time.Second {
+		t.Fatalf("unexpected timeout: %s", got)
+	}
+}
+
 type countingProxySelector struct {
 	calls atomic.Int32
 }

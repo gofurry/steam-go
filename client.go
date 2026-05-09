@@ -11,9 +11,26 @@ import (
 	"github.com/GoFurry/steam-go/api/mobilenotificationservice"
 	"github.com/GoFurry/steam-go/api/newsservice"
 	"github.com/GoFurry/steam-go/api/playerservice"
+	"github.com/GoFurry/steam-go/api/questservice"
+	"github.com/GoFurry/steam-go/api/salefeatureservice"
+	"github.com/GoFurry/steam-go/api/steamapps"
+	"github.com/GoFurry/steam-go/api/steamchartsservice"
+	"github.com/GoFurry/steam-go/api/steamdirectory"
 	"github.com/GoFurry/steam-go/api/steamnews"
+	"github.com/GoFurry/steam-go/api/steamnotificationservice"
 	"github.com/GoFurry/steam-go/api/steamuser"
+	"github.com/GoFurry/steam-go/api/steamuseroauth"
 	"github.com/GoFurry/steam-go/api/steamuserstats"
+	"github.com/GoFurry/steam-go/api/steamwebapiutil"
+	"github.com/GoFurry/steam-go/api/storebrowseservice"
+	"github.com/GoFurry/steam-go/api/storecatalogservice"
+	"github.com/GoFurry/steam-go/api/storepreferencesservice"
+	"github.com/GoFurry/steam-go/api/storeservice"
+	"github.com/GoFurry/steam-go/api/storetopsellersservice"
+	"github.com/GoFurry/steam-go/api/useraccountservice"
+	"github.com/GoFurry/steam-go/api/userreviewsservice"
+	"github.com/GoFurry/steam-go/api/userstorevisitservice"
+	"github.com/GoFurry/steam-go/api/wishlistservice"
 	"github.com/GoFurry/steam-go/internal/request"
 	"github.com/GoFurry/steam-go/internal/transport"
 )
@@ -34,7 +51,24 @@ type API struct {
 	LoyaltyRewardsService     *loyaltyrewardsservice.Service
 	MobileNotificationService *mobilenotificationservice.Service
 	NewsService               *newsservice.Service
+	QuestService              *questservice.Service
+	SaleFeatureService        *salefeatureservice.Service
+	StoreBrowseService        *storebrowseservice.Service
+	StoreCatalogService       *storecatalogservice.Service
+	StorePreferencesService   *storepreferencesservice.Service
+	StoreService              *storeservice.Service
+	StoreTopSellersService    *storetopsellersservice.Service
+	SteamDirectory            *steamdirectory.Service
+	SteamApps                 *steamapps.Service
+	SteamChartsService        *steamchartsservice.Service
+	SteamNotificationService  *steamnotificationservice.Service
 	SteamUser                 *steamuser.Service
+	SteamUserOAuth            *steamuseroauth.Service
+	SteamWebAPIUtil           *steamwebapiutil.Service
+	UserAccountService        *useraccountservice.Service
+	UserReviewsService        *userreviewsservice.Service
+	UserStoreVisitService     *userstorevisitservice.Service
+	WishlistService           *wishlistservice.Service
 	PlayerService             *playerservice.Service
 	SteamNews                 *steamnews.Service
 	SteamUserStats            *steamuserstats.Service
@@ -77,7 +111,24 @@ func NewClient(opts ...Option) (*Client, error) {
 		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(executor),
 		MobileNotificationService: mobilenotificationservice.NewService(executor),
 		NewsService:               newsservice.NewService(executor),
+		QuestService:              questservice.NewService(executor),
+		SaleFeatureService:        salefeatureservice.NewService(executor),
+		StoreBrowseService:        storebrowseservice.NewService(executor),
+		StoreCatalogService:       storecatalogservice.NewService(executor),
+		StorePreferencesService:   storepreferencesservice.NewService(executor),
+		StoreService:              storeservice.NewService(executor),
+		StoreTopSellersService:    storetopsellersservice.NewService(executor),
+		SteamDirectory:            steamdirectory.NewService(executor),
+		SteamApps:                 steamapps.NewService(executor),
+		SteamChartsService:        steamchartsservice.NewService(executor),
+		SteamNotificationService:  steamnotificationservice.NewService(executor),
 		SteamUser:                 steamuser.NewService(executor),
+		SteamUserOAuth:            steamuseroauth.NewService(executor),
+		SteamWebAPIUtil:           steamwebapiutil.NewService(executor),
+		UserAccountService:        useraccountservice.NewService(executor),
+		UserReviewsService:        userreviewsservice.NewService(executor),
+		UserStoreVisitService:     userstorevisitservice.NewService(executor),
+		WishlistService:           wishlistservice.NewService(executor),
 		PlayerService:             playerservice.NewService(executor),
 		SteamNews:                 steamnews.NewService(executor),
 		SteamUserStats:            steamuserstats.NewService(executor),

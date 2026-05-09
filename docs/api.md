@@ -12,9 +12,26 @@ This directory keeps reference-style documentation that is too detailed for the 
 - `client.API.MobileNotificationService`
 - `client.API.NewsService`
 - `client.API.PlayerService`
+- `client.API.QuestService`
+- `client.API.SaleFeatureService`
+- `client.API.StoreBrowseService`
+- `client.API.StoreCatalogService`
+- `client.API.StorePreferencesService`
+- `client.API.StoreService`
+- `client.API.StoreTopSellersService`
+- `client.API.SteamDirectory`
+- `client.API.SteamApps`
+- `client.API.SteamChartsService`
 - `client.API.SteamNews`
+- `client.API.SteamNotificationService`
 - `client.API.SteamUser`
+- `client.API.SteamUserOAuth`
 - `client.API.SteamUserStats`
+- `client.API.SteamWebAPIUtil`
+- `client.API.UserAccountService`
+- `client.API.UserReviewsService`
+- `client.API.UserStoreVisitService`
+- `client.API.WishlistService`
 
 ## Selected Endpoint Coverage
 
@@ -54,6 +71,120 @@ These are not exhaustive lists, but they reflect the main typed SDK coverage ava
 ### `client.API.NewsService`
 
 - `ConvertHTMLToBBCode`
+
+### `client.API.QuestService`
+
+- `GetCommunityInventory`
+- `GetNumTradingCardsEarned`
+
+### `client.API.SaleFeatureService`
+
+- `GetFriendsSharedYearInReview`
+- `GetUserYearAchievements`
+- `GetUserYearInReview`
+
+### `client.API.StoreBrowseService`
+
+- `GetContentHubConfig`
+
+### `client.API.StoreCatalogService`
+
+- `GetDevPageLinks`
+
+### `client.API.StorePreferencesService`
+
+- `GetIgnoreList`
+
+### `client.API.StoreService`
+
+- `GetAppList`
+- `GetGamesFollowed`
+- `GetGamesFollowedCount`
+- `GetMostPopularTags`
+- `GetUserGameInterestState`
+
+### `client.API.StoreTopSellersService`
+
+- `GetCountryList`
+- `GetWeeklyTopSellers`
+
+### `client.API.SteamDirectory`
+
+- `GetCMListForConnect`
+- `GetSteamPipeDomains`
+
+### `client.API.SteamApps`
+
+- `GetSDRConfig`
+- `GetServersAtAddress`
+- `UpToDateCheck`
+
+### `client.API.SteamChartsService`
+
+- `GetBestOfYearPages`
+- `GetGamesByConcurrentPlayers`
+- `GetMonthTopAppReleases`
+- `GetMostPlayedGames`
+- `GetTopReleasesPages`
+- `GetYearTopAppReleases`
+
+### `client.API.SteamNews`
+
+- `GetNewsForApp`
+
+### `client.API.SteamNotificationService`
+
+- `GetPreferences`
+- `GetSteamNotifications`
+
+### `client.API.SteamUser`
+
+- `GetFriendList`
+- `GetPlayerBans`
+- `GetPlayerSummaries`
+- `GetUserGroupList`
+
+### `client.API.SteamUserOAuth`
+
+- `GetFriendList`
+- `GetUserSummaries`
+
+### `client.API.SteamUserStats`
+
+- `GetGlobalAchievementPercentagesForApp`
+- `GetNumberOfCurrentPlayers`
+- `GetPlayerAchievements`
+- `GetSchemaForGame`
+- `GetUserStatsForGame`
+
+### `client.API.SteamWebAPIUtil`
+
+- `GetServerInfo`
+- `GetSupportedAPIList`
+
+### `client.API.UserAccountService`
+
+- `GetUserCountry`
+
+### `client.API.UserReviewsService`
+
+- `GetFriendsRecommendedApp`
+
+### `client.API.UserStoreVisitService`
+
+- `GetFrequentlyVisitedPages`
+- `GetMostVisitedItemsOnStore`
+
+### `client.API.WishlistService`
+
+- `GetWishlist`
+- `GetWishlistItemCount`
+- `GetWishlistItemsOnSale`
+
+Notes:
+- `GetWishlist` and `GetWishlistItemCount` accept `steamid`.
+- `GetWishlistItemsOnSale` accepts `accessToken`, `countryCode`, and optional `data_request` fields through `input_json`.
+- The `store_item` field in `GetWishlistItemsOnSale` is intentionally exposed as `json.RawMessage` because the payload is large and Steam changes it frequently.
 
 ## Credential Notes
 

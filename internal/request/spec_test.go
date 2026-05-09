@@ -120,6 +120,46 @@ func TestExecutorReusesRequestBodyAcrossRetries(t *testing.T) {
 	}
 }
 
+func TestExecutorRotatesAccessTokenOnUnauthorizedRetry(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusUnauthorized, http.StatusOK},
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		auth.NewRoundRobinAccessTokenProvider("token-a", "token-b"),
+		1,
+		1024,
+		recorder,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+	})
+	if err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if len(recorder.requests) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(recorder.requests))
+	}
+	if got := recorder.requests[0].query.Get("access_token"); got != "token-a" {
+		t.Fatalf("unexpected first access token: %s", got)
+	}
+	if got := recorder.requests[1].query.Get("access_token"); got != "token-b" {
+		t.Fatalf("unexpected second access token: %s", got)
+	}
+}
+
 func TestExecutorPreservesExplicitContentTypeHeader(t *testing.T) {
 	t.Parallel()
 

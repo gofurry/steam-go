@@ -20,6 +20,7 @@ type GetNewsForAppOptions struct {
 	EndDate   time.Time
 	Count     uint32
 	Feeds     []string
+	Tags      []string
 }
 
 // GetNewsForApp returns typed news items for the provided AppID.
@@ -59,6 +60,18 @@ func (s *Service) GetNewsForAppRaw(ctx context.Context, appID uint32, opts *GetN
 			}
 			if len(feeds) > 0 {
 				query.Set("feeds", strings.Join(feeds, ","))
+			}
+		}
+		if len(opts.Tags) > 0 {
+			tags := make([]string, 0, len(opts.Tags))
+			for _, tag := range opts.Tags {
+				trimmed := strings.TrimSpace(tag)
+				if trimmed != "" {
+					tags = append(tags, trimmed)
+				}
+			}
+			if len(tags) > 0 {
+				query.Set("tags", strings.Join(tags, ","))
 			}
 		}
 	}

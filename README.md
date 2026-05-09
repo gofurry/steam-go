@@ -68,6 +68,16 @@ func main() {
 
 Detailed API group references live in [docs/api.md](docs/api.md).
 
+## WishlistService Coverage
+
+`client.API.WishlistService` currently covers the main wishlist lookup flows:
+
+- `GetWishlist` for the wishlist item list of a Steam account
+- `GetWishlistItemCount` for the total wishlist count
+- `GetWishlistItemsOnSale` for detailed on-sale wishlist items with configurable `input_json` fields
+
+`GetWishlist` and `GetWishlistItemCount` use typed lightweight responses. `GetWishlistItemsOnSale` keeps each `store_item` as raw JSON so the SDK can tolerate Steam's very large and frequently changing store payload.
+
 ## PlayerService Coverage
 
 `client.API.PlayerService` already covers a useful mix of public and authenticated profile/gameplay endpoints, including:
@@ -145,6 +155,7 @@ On China-region networks, browser login may succeed while the server-side Steam 
 - `go run ./examples/proxy`
 - `go run ./test/steamuser`
 - `go run ./test/playerservice`
+- `go run ./test/wishlistservice`
 
 ## Error Handling
 

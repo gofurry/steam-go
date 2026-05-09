@@ -37,6 +37,15 @@ func TestNewVerifierValidatesConfig(t *testing.T) {
 		openid.WithTimeout(0),
 	)
 	expectCode(t, err, openid.ErrorCodeConfig)
+
+	_, err = openid.NewVerifier(
+		openid.Config{
+			Realm:    "https://example.com",
+			ReturnTo: "https://example.com/callback",
+		},
+		openid.WithMaxResponseBodyBytes(0),
+	)
+	expectCode(t, err, openid.ErrorCodeConfig)
 }
 
 func TestLoginURLIncludesOpenIDParams(t *testing.T) {
@@ -250,6 +259,30 @@ func TestVerifyValuesHandlesTimeout(t *testing.T) {
 		},
 		openid.WithEndpoint(server.URL),
 		openid.WithTimeout(20*time.Millisecond),
+	)
+	if err != nil {
+		t.Fatalf("NewVerifier returned error: %v", err)
+	}
+
+	_, err = verifier.VerifyValues(context.Background(), sampleValues(""))
+	expectCode(t, err, openid.ErrorCodeTransport)
+}
+
+func TestVerifyValuesRejectsOversizedResponseBody(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat("a", 128)))
+	}))
+	defer server.Close()
+
+	verifier, err := openid.NewVerifier(
+		openid.Config{
+			Realm:    "https://example.com",
+			ReturnTo: "https://example.com/auth/steam/callback",
+		},
+		openid.WithEndpoint(server.URL),
+		openid.WithMaxResponseBodyBytes(32),
 	)
 	if err != nil {
 		t.Fatalf("NewVerifier returned error: %v", err)

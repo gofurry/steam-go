@@ -30,12 +30,13 @@ type Identity struct {
 }
 
 type Verifier struct {
-	realm      string
-	returnTo   *url.URL
-	endpoint   *url.URL
-	httpClient *http.Client
-	timeout    time.Duration
-	stateParam string
+	realm                string
+	returnTo             *url.URL
+	endpoint             *url.URL
+	httpClient           *http.Client
+	timeout              time.Duration
+	stateParam           string
+	maxResponseBodyBytes int64
 }
 
 func NewVerifier(cfg Config, opts ...Option) (*Verifier, error) {
@@ -82,12 +83,13 @@ func NewVerifier(cfg Config, opts ...Option) (*Verifier, error) {
 	}
 
 	return &Verifier{
-		realm:      realmURL.String(),
-		returnTo:   cloneURL(returnToURL),
-		endpoint:   cloneURL(options.endpoint),
-		httpClient: options.httpClient,
-		timeout:    options.timeout,
-		stateParam: options.stateParam,
+		realm:                realmURL.String(),
+		returnTo:             cloneURL(returnToURL),
+		endpoint:             cloneURL(options.endpoint),
+		httpClient:           options.httpClient,
+		timeout:              options.timeout,
+		stateParam:           options.stateParam,
+		maxResponseBodyBytes: options.maxResponseBodyBytes,
 	}, nil
 }
 
@@ -188,7 +190,7 @@ func (v *Verifier) VerifyValues(ctx context.Context, values url.Values) (*Identi
 	}
 	defer resp.Body.Close()
 
-	body, readErr := io.ReadAll(resp.Body)
+	body, readErr := readBodyLimited(resp.Body, v.maxResponseBodyBytes)
 	if readErr != nil {
 		return nil, &Error{
 			Code:    ErrorCodeTransport,
@@ -358,4 +360,20 @@ func withTimeout(ctx context.Context, timeout time.Duration) (context.Context, c
 		return context.WithCancel(ctx)
 	}
 	return context.WithTimeout(ctx, timeout)
+}
+
+func readBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		return io.ReadAll(r)
+	}
+
+	reader := &io.LimitedReader{R: r, N: maxBytes + 1}
+	body, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > maxBytes {
+		return nil, fmt.Errorf("response body exceeds limit of %d bytes", maxBytes)
+	}
+	return body, nil
 }

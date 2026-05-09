@@ -2,18 +2,18 @@
 
 [English](../README.md)
 
-`steam-go` 是一个聚焦 Steam Web API 的轻量 Go SDK。
+`steam-go` 是一个专注于 Steam Web API 的轻量级 Go SDK。
 
 ## 特性
 
-- 统一的根 `Client`，通过 `client.API.*` 分组访问服务
+- 统一的根 `Client`，通过 `client.API.*` 分组访问各类服务
 - 提供 API key、access token、timeout、retry、rate limit、proxy 的函数式配置
 - 默认限制缓冲响应体大小，并可通过 `WithMaxResponseBodyBytes(...)` 调整
-- `key` 和 `access_token` 作为两种不同凭证独立处理
+- `key` 和 `access_token` 被视为两种不同凭证，分别处理
 - API key 可选，也可以通过轮换 key provider 提供
-- 支持 typed/raw 双层返回
-- 在 `WithAPIKeys(...)` 和 `WithRetry(...)` 一起使用时，`401/429` 可以自动轮换到下一个 key 重试
-- 通过 addon 扩展能力，但不把非 Web API 能力重新塞回核心 SDK
+- 同时支持 typed/raw 两层返回
+- 当 `WithAPIKeys(...)` 与 `WithRetry(...)` 一起使用时，`401/429` 可自动切换到下一个 key 重试
+- 通过 addon 扩展能力，但不会把非 Web API 能力重新塞回核心 SDK
 
 ## 安装
 
@@ -58,7 +58,17 @@ func main() {
 }
 ```
 
-详细 API 分组请看 [api.md](api.md)。
+更详细的 API 分组说明请看 [api.md](api.md)。
+
+## WishlistService 覆盖范围
+
+`client.API.WishlistService` 目前已经覆盖常用的愿望单查询流程：
+
+- `GetWishlist`：获取某个 Steam 账号的愿望单条目列表
+- `GetWishlistItemCount`：获取愿望单总数
+- `GetWishlistItemsOnSale`：按国家/地区拉取正在打折的愿望单条目，并支持配置 `input_json` 的明细字段
+
+其中 `GetWishlist` 和 `GetWishlistItemCount` 返回轻量的 typed 结构；`GetWishlistItemsOnSale` 则把每个 `store_item` 暴露为原始 JSON，以兼容 Steam 体积很大且变化频繁的商店数据结构。
 
 ## PlayerService 覆盖范围
 
@@ -69,7 +79,7 @@ func main() {
 - 资料展示、自定义项购买记录、已购买/已升级自定义项摘要、可用主题
 - 昵称列表、玩家链接详情、好友游玩信息、最近游玩游戏、最近游玩时间、游戏热门成就
 
-如果方法签名里显式要求传入 `accessToken` 或 `key`，就应该把调用者自己的凭证直接传给这个方法。`Client` 级别的全局凭证仍然适合作为那些“不要求方法级显式凭证”的公共接口默认值。
+如果方法签名里显式要求传入 `accessToken` 或 `key`，就应该把调用者自己的凭证直接传给这个方法。`Client` 级别的全局凭证依然适合作为那些“不要求方法级显式凭证”的公共接口默认值。
 
 ## Addons
 
@@ -80,7 +90,7 @@ func main() {
 
 ## Proxy
 
-`steam-go` 继续把代理能力收敛在 `WithProxySelector(...)` 这一个稳定扩展点上。
+`steam-go` 继续把代理能力收敛在 `WithProxySelector(...)` 这一稳定扩展点上。
 
 - `NewStaticProxySelector(...)`：固定代理
 - `NewRoundRobinProxySelector(...)`：简单轮转
@@ -105,7 +115,7 @@ if err != nil {
 }
 ```
 
-按 host/path 路由示例：
+按 `host/path` 路由示例：
 
 ```go
 selector, err := steam.NewRoutingProxySelector(
@@ -125,7 +135,7 @@ if err != nil {
 }
 ```
 
-中国网络环境下，浏览器里的 Steam OpenID 登录可能成功，但服务端的 `check_authentication` 校验请求仍然可能超时。`examples/openid` 支持通过 `--proxy http://127.0.0.1:7897` 来处理这种情况，并且示例里已经加入了基于 cookie 的 `state` 校验流程。
+在中国网络环境下，浏览器里的 Steam OpenID 登录可能成功，但服务端的 `check_authentication` 校验请求仍然可能超时。`examples/openid` 支持通过 `--proxy http://127.0.0.1:7897` 处理这种情况，并且示例里已经加入了基于 cookie 的 `state` 校验流程。
 
 ## 示例
 
@@ -137,6 +147,7 @@ if err != nil {
 - `go run ./examples/proxy`
 - `go run ./test/steamuser`
 - `go run ./test/playerservice`
+- `go run ./test/wishlistservice`
 
 ## 错误处理
 

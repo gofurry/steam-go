@@ -11,6 +11,8 @@ import (
 	itransport "github.com/GoFurry/steam-go/internal/transport"
 )
 
+const defaultProxyClientTimeout = 10 * time.Second
+
 // NewStaticProxySelector creates a selector that always returns the same proxy.
 //
 // Empty strings are treated as "no proxy" and return nil, nil.
@@ -83,9 +85,13 @@ func NewRoutingProxySelector(routes ...ProxyRoute) (ProxySelector, error) {
 // NewHTTPClientWithProxySelector builds an http.Client backed by one ProxySelector.
 //
 // Passing a nil selector keeps the client in direct mode.
+// A zero timeout falls back to a safe default timeout.
 func NewHTTPClientWithProxySelector(selector ProxySelector, timeout time.Duration) (*http.Client, error) {
 	if timeout < 0 {
 		return nil, fmt.Errorf("timeout must not be negative")
+	}
+	if timeout == 0 {
+		timeout = defaultProxyClientTimeout
 	}
 
 	rt, err := itransport.WrapRoundTripper(http.DefaultTransport, selector)

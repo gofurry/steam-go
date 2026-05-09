@@ -7,24 +7,27 @@ import (
 )
 
 const (
-	defaultEndpoint   = "https://steamcommunity.com/openid/login"
-	defaultStateParam = "state"
+	defaultEndpoint             = "https://steamcommunity.com/openid/login"
+	defaultStateParam           = "state"
+	defaultMaxResponseBodyBytes = 64 << 10
 )
 
 type Option func(*verifierOptions) error
 
 type verifierOptions struct {
-	endpoint   *url.URL
-	httpClient *http.Client
-	timeout    time.Duration
-	stateParam string
+	endpoint             *url.URL
+	httpClient           *http.Client
+	timeout              time.Duration
+	stateParam           string
+	maxResponseBodyBytes int64
 }
 
 func defaultVerifierOptions() verifierOptions {
 	return verifierOptions{
-		httpClient: http.DefaultClient,
-		timeout:    10 * time.Second,
-		stateParam: defaultStateParam,
+		httpClient:           http.DefaultClient,
+		timeout:              10 * time.Second,
+		stateParam:           defaultStateParam,
+		maxResponseBodyBytes: defaultMaxResponseBodyBytes,
 	}
 }
 
@@ -68,6 +71,20 @@ func WithTimeout(d time.Duration) Option {
 			}
 		}
 		opts.timeout = d
+		return nil
+	}
+}
+
+func WithMaxResponseBodyBytes(max int64) Option {
+	return func(opts *verifierOptions) error {
+		if max <= 0 {
+			return &Error{
+				Code:    ErrorCodeConfig,
+				Op:      "with_max_response_body_bytes",
+				Message: "max response body bytes must be greater than zero",
+			}
+		}
+		opts.maxResponseBodyBytes = max
 		return nil
 	}
 }
