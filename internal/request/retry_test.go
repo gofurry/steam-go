@@ -71,3 +71,12 @@ func TestRetryAfterDelayRejectsInvalidHeader(t *testing.T) {
 		t.Fatalf("expected invalid header to be ignored, got %s", delay)
 	}
 }
+
+func TestRetryDelayAddsBoundedJitterWithoutRetryAfter(t *testing.T) {
+	t.Parallel()
+
+	delay := retryDelay(0, nil, time.Unix(0, 0))
+	if delay < 100*time.Millisecond || delay > 150*time.Millisecond {
+		t.Fatalf("unexpected jittered delay: %s", delay)
+	}
+}

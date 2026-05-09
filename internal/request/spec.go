@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -123,12 +124,10 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 				body,
 				nil,
 			)
-			if shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil) && attempt < e.retry {
-				if shouldRotateAPIKey(resp.StatusCode, e.apiKeyProvider != nil) {
-					creds.apiKey, err = e.resolveAPIKey(req)
-					if err != nil {
-						return nil, err
-					}
+			if shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil, e.accessTokenProvider != nil) && attempt < e.retry {
+				creds, err = e.rotateRetryCredentials(req, resp.StatusCode, creds)
+				if err != nil {
+					return nil, err
 				}
 				if !sleepBeforeRetry(ctx, attempt, resp) {
 					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
@@ -192,6 +191,28 @@ func (e *Executor) resolveAccessToken(req *http.Request) (string, error) {
 	return accessToken, nil
 }
 
+func (e *Executor) rotateRetryCredentials(req *http.Request, statusCode int, creds requestCredentials) (requestCredentials, error) {
+	if !shouldRotateCredentials(statusCode) {
+		return creds, nil
+	}
+
+	var err error
+	if e.apiKeyProvider != nil {
+		creds.apiKey, err = e.resolveAPIKey(req)
+		if err != nil {
+			return requestCredentials{}, err
+		}
+	}
+	if e.accessTokenProvider != nil {
+		creds.accessToken, err = e.resolveAccessToken(req)
+		if err != nil {
+			return requestCredentials{}, err
+		}
+	}
+
+	return creds, nil
+}
+
 func (e *Executor) buildRequest(ctx context.Context, resolved *url.URL, spec RequestSpec, creds requestCredentials) (*http.Request, error) {
 	var body io.Reader
 	if len(spec.Body) > 0 {
@@ -243,20 +264,17 @@ func shouldRetryTransport(ctx context.Context, err error) bool {
 	return !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded)
 }
 
-func shouldRetryStatus(statusCode int, hasAPIKeyProvider bool) bool {
+func shouldRetryStatus(statusCode int, hasAPIKeyProvider, hasAccessTokenProvider bool) bool {
 	if statusCode >= http.StatusInternalServerError {
 		return true
 	}
-	if !hasAPIKeyProvider {
+	if !hasAPIKeyProvider && !hasAccessTokenProvider {
 		return false
 	}
 	return statusCode == http.StatusUnauthorized || statusCode == http.StatusTooManyRequests
 }
 
-func shouldRotateAPIKey(statusCode int, hasAPIKeyProvider bool) bool {
-	if !hasAPIKeyProvider {
-		return false
-	}
+func shouldRotateCredentials(statusCode int) bool {
 	return statusCode == http.StatusUnauthorized || statusCode == http.StatusTooManyRequests
 }
 
@@ -274,7 +292,13 @@ func retryDelay(attempt int, resp *http.Response, now time.Time) time.Duration {
 	if delay, ok := retryAfterDelay(resp, now); ok {
 		return delay
 	}
-	return time.Duration(attempt+1) * 100 * time.Millisecond
+
+	baseDelay := time.Duration(attempt+1) * 100 * time.Millisecond
+	jitterWindow := baseDelay / 2
+	if jitterWindow <= 0 {
+		return baseDelay
+	}
+	return baseDelay + time.Duration(rand.Int64N(int64(jitterWindow)+1))
 }
 
 func retryAfterDelay(resp *http.Response, now time.Time) (time.Duration, bool) {
