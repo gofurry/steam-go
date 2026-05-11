@@ -53,12 +53,14 @@ type TrafficSessionControlPolicy struct {
 
 // TrafficPolicy overrides selected request behavior for one traffic class.
 type TrafficPolicy struct {
-	ProxySelector  ProxySelector
-	CookieJar      http.CookieJar
-	RateLimiter    *TrafficRateLimiterPolicy
-	Retry          *TrafficRetryPolicy
-	HostControl    *TrafficHostControlPolicy
-	SessionControl *TrafficSessionControlPolicy
+	ProxySelector   ProxySelector
+	CookieJar       http.CookieJar
+	RateLimiter     *TrafficRateLimiterPolicy
+	Retry           *TrafficRetryPolicy
+	HostControl     *TrafficHostControlPolicy
+	SessionControl  *TrafficSessionControlPolicy
+	HeaderProfile   *HeaderProfile
+	RefererSelector RefererSelector
 }
 
 // WithTrafficClass attaches one traffic class to a request context.
@@ -85,6 +87,8 @@ type trafficPolicyConfig struct {
 	retry             *TrafficRetryPolicy
 	hostControl       *TrafficHostControlPolicy
 	sessionControl    *TrafficSessionControlPolicy
+	headerProfile     *HeaderProfile
+	refererSelector   RefererSelector
 	cookieJarProvided bool
 }
 
@@ -128,6 +132,8 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 			retry:             policy.Retry,
 			hostControl:       policy.HostControl,
 			sessionControl:    policy.SessionControl,
+			headerProfile:     cloneHeaderProfile(policy.HeaderProfile),
+			refererSelector:   policy.RefererSelector,
 			cookieJarProvided: policy.CookieJar != nil,
 		}
 		return nil

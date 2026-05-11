@@ -125,8 +125,10 @@ if err != nil {
 
 - `TrafficClassOfficialAPI`：现有 typed `client.API.*` 方法的默认类别
 - `TrafficClassPublicStorePage`：为后续公开商店页接入预留的类别
-- `WithTrafficPolicy(...)`：按类别覆盖 proxy、cookie jar、retry 和 rate limit
+- `WithTrafficPolicy(...)`：按类别覆盖 proxy、cookie jar、retry、rate limit、header profile 和 Referer 策略
 - `WithTrafficClass(ctx, class)`：让单次请求显式切到非默认类别
+- `DefaultPublicStoreHeaderProfileZH()` / `DefaultPublicStoreHeaderProfileEN()`：提供稳定的浏览器式请求头预设
+- `WithRefererSource(ctx, rawURL)`、`NewStaticRefererSelector(...)`、`NewRoutingRefererSelector(...)`、`NewContextRefererSelector(...)`：提供固定、路由式和上下文来源式 Referer 策略
 
 示例：
 
@@ -146,6 +148,27 @@ if err != nil {
 
 ctx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
 _, _ = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
+```
+
+公开商店页请求画像示例：
+
+```go
+profile := steam.DefaultPublicStoreHeaderProfileZH()
+refererSelector, err := steam.NewStaticRefererSelector("https://store.steampowered.com/search/")
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		HeaderProfile:  &profile,
+		RefererSelector: refererSelector,
+	}),
+)
+if err != nil {
+	panic(err)
+}
 ```
 
 粘性代理示例：

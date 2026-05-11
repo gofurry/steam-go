@@ -223,6 +223,11 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 	cfg := defaultClientConfig()
 	jar := stubCookieJar{}
 	backoff := DefaultRetryBackoffConfig()
+	profile := DefaultPublicStoreHeaderProfileZH()
+	selector, err := NewStaticRefererSelector("https://store.steampowered.com/search/")
+	if err != nil {
+		t.Fatalf("NewStaticRefererSelector returned error: %v", err)
+	}
 	if err := WithTrafficPolicy(TrafficClassPublicStorePage, TrafficPolicy{
 		CookieJar: jar,
 		RateLimiter: &TrafficRateLimiterPolicy{
@@ -247,6 +252,8 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 			},
 			MaxConcurrent: 5,
 		},
+		HeaderProfile:   &profile,
+		RefererSelector: selector,
 	})(&cfg); err != nil {
 		t.Fatalf("WithTrafficPolicy returned error: %v", err)
 	}
@@ -275,6 +282,12 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 	}
 	if policy.sessionControl.RateLimiter == nil || policy.sessionControl.RateLimiter.Limit != rate.Limit(1) || policy.sessionControl.RateLimiter.Burst != 2 {
 		t.Fatalf("unexpected session control limiter: %#v", policy.sessionControl)
+	}
+	if policy.headerProfile == nil || policy.headerProfile.AcceptLanguage != profile.AcceptLanguage {
+		t.Fatalf("unexpected header profile: %#v", policy.headerProfile)
+	}
+	if policy.refererSelector == nil {
+		t.Fatal("expected referer selector to be stored")
 	}
 }
 

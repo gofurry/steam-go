@@ -474,3 +474,76 @@ func TestExecutorRoutesTrafficClassPolicies(t *testing.T) {
 		t.Fatalf("expected one store request, got %d", storeCount)
 	}
 }
+
+func TestExecutorAppliesPrepareRequestHook(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			PrepareRequest: func(req *http.Request) error {
+				req.Header.Set("X-Prepared", "yes")
+				return nil
+			},
+			Transport: recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	if _, err := executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/Prepared/v1/",
+	}); err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if got := recorder.requests[0].header.Get("X-Prepared"); got != "yes" {
+		t.Fatalf("expected prepared header, got %q", got)
+	}
+}
+
+func TestExecutorReportsPrepareRequestErrorAsRequestBuild(t *testing.T) {
+	t.Parallel()
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			PrepareRequest: func(*http.Request) error {
+				return errors.New("prepare failed")
+			},
+			Transport: &recordingTransport{},
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/Prepared/v1/",
+	})
+	var apiErr *sdkerrors.APIError
+	if err == nil || !errors.As(err, &apiErr) || apiErr.Kind != sdkerrors.KindRequestBuild {
+		t.Fatalf("expected request_build error, got %v", err)
+	}
+}

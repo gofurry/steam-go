@@ -3632,6 +3632,112 @@ func TestTrafficPolicyIsolatesSessionRateLimiterByClass(t *testing.T) {
 	}
 }
 
+func TestTrafficPolicyAppliesHeaderProfileByClass(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch requestCount.Add(1) {
+		case 1:
+			if got := r.Header.Get("User-Agent"); got != "steam-go/1" {
+				t.Fatalf("expected official default user-agent, got %q", got)
+			}
+			if got := r.Header.Get("Accept-Language"); got != "" {
+				t.Fatalf("expected no official accept-language override, got %q", got)
+			}
+		case 2:
+			if got := r.Header.Get("User-Agent"); got != steam.DefaultPublicStoreHeaderProfileZH().UserAgent {
+				t.Fatalf("unexpected store user-agent: %q", got)
+			}
+			if got := r.Header.Get("Accept-Language"); got != steam.DefaultPublicStoreHeaderProfileZH().AcceptLanguage {
+				t.Fatalf("unexpected store accept-language: %q", got)
+			}
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+		_, _ = w.Write([]byte(`{"response":{"players":[]}}`))
+	}))
+	defer server.Close()
+
+	profile := steam.DefaultPublicStoreHeaderProfileZH()
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			HeaderProfile: &profile,
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if _, err := client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"}); err != nil {
+		t.Fatalf("official request returned error: %v", err)
+	}
+	storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+	if _, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"}); err != nil {
+		t.Fatalf("store request returned error: %v", err)
+	}
+}
+
+func TestTrafficPolicyAppliesRefererSelectorByClass(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch requestCount.Add(1) {
+		case 1:
+			if got := r.Header.Get("Referer"); got != "" {
+				t.Fatalf("expected no official referer, got %q", got)
+			}
+		case 2:
+			if got := r.Header.Get("Referer"); got != "https://store.steampowered.com/search/" {
+				t.Fatalf("unexpected store referer: %q", got)
+			}
+		case 3:
+			if got := r.Header.Get("Referer"); got != "https://store.steampowered.com/search/?term=bg3" {
+				t.Fatalf("unexpected context referer: %q", got)
+			}
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+		_, _ = w.Write([]byte(`{"response":{"players":[]}}`))
+	}))
+	defer server.Close()
+
+	fallbackSelector, err := steam.NewStaticRefererSelector("https://store.steampowered.com/search/")
+	if err != nil {
+		t.Fatalf("NewStaticRefererSelector returned error: %v", err)
+	}
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			RefererSelector: steam.NewContextRefererSelector(fallbackSelector),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if _, err := client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"}); err != nil {
+		t.Fatalf("official request returned error: %v", err)
+	}
+
+	storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+	if _, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"}); err != nil {
+		t.Fatalf("store fallback request returned error: %v", err)
+	}
+
+	storeCtx = steam.WithTrafficClass(
+		steam.WithRefererSource(context.Background(), "https://store.steampowered.com/search/?term=bg3"),
+		steam.TrafficClassPublicStorePage,
+	)
+	if _, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"}); err != nil {
+		t.Fatalf("store context-source request returned error: %v", err)
+	}
+}
+
 func TestWithHTTPClientAndDefaultCookieJarUsesClonedJar(t *testing.T) {
 	t.Parallel()
 

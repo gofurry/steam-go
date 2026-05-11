@@ -203,8 +203,10 @@ fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingPro
 
 - `TrafficClassOfficialAPI` is the default for existing typed `client.API.*` methods
 - `TrafficClassPublicStorePage` is reserved for future public store-page integrations
-- `WithTrafficPolicy(...)` overrides proxy, cookie jar, retry, and rate limit per class
+- `WithTrafficPolicy(...)` overrides proxy, cookie jar, retry, rate limit, header profile, and Referer strategy per class
 - `WithTrafficClass(ctx, class)` lets one request opt into a non-default class
+- `DefaultPublicStoreHeaderProfileZH()` and `DefaultPublicStoreHeaderProfileEN()` provide stable browser-like header presets
+- `WithRefererSource(ctx, rawURL)` plus `NewStaticRefererSelector(...)`, `NewRoutingRefererSelector(...)`, and `NewContextRefererSelector(...)` support fixed, routed, and context-driven Referer policies
 
 Example:
 
@@ -224,6 +226,27 @@ if err != nil {
 
 ctx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
 _, _ = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
+```
+
+Public store-page profile example:
+
+```go
+profile := steam.DefaultPublicStoreHeaderProfileZH()
+refererSelector, err := steam.NewStaticRefererSelector("https://store.steampowered.com/search/")
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		HeaderProfile:  &profile,
+		RefererSelector: refererSelector,
+	}),
+)
+if err != nil {
+	panic(err)
+}
 ```
 
 On China-region networks, browser login may succeed while the server-side Steam OpenID `check_authentication` request still times out. The OpenID example supports `--proxy http://127.0.0.1:7897` for that case and also demonstrates cookie-backed `state` verification on the callback.

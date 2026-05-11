@@ -51,6 +51,9 @@ type requestCredentials struct {
 	accessToken string
 }
 
+// RequestPreparer mutates one fully-built request before transport execution.
+type RequestPreparer func(req *http.Request) error
+
 // RetryBackoffConfig controls local retry delay behavior.
 type RetryBackoffConfig struct {
 	BaseDelay         time.Duration
@@ -60,9 +63,10 @@ type RetryBackoffConfig struct {
 
 // ExecutionPolicy routes one request to one transport and retry profile.
 type ExecutionPolicy struct {
-	Retry        int
-	RetryBackoff RetryBackoffConfig
-	Transport    Transport
+	Retry          int
+	RetryBackoff   RetryBackoffConfig
+	Transport      Transport
+	PrepareRequest RequestPreparer
 }
 
 // DefaultRetryBackoffConfig returns the SDK retry defaults.
@@ -127,6 +131,11 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		req, err := e.buildRequest(ctx, resolved, spec, creds)
 		if err != nil {
 			return nil, err
+		}
+		if policy.PrepareRequest != nil {
+			if err := policy.PrepareRequest(req); err != nil {
+				return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
+			}
 		}
 
 		resp, err := policy.Transport.Do(ctx, req)
