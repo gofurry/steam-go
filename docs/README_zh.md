@@ -94,8 +94,10 @@ func main() {
 
 - `NewStaticProxySelector(...)`：固定代理
 - `NewRoundRobinProxySelector(...)`：简单轮转
+- `NewStickyProxySelector(...)`：按显式 session key 复用同一个代理
 - `NewRoutingProxySelector(...)`：按 `host/path` 路由代理
 - `NewHTTPClientWithProxySelector(...)`：给 addon 或独立 HTTP 流程复用
+- `WithProxySessionKey(ctx, key)`：把粘性代理的会话键挂到请求上下文里
 - 目前仍然不内建健康检查、熔断和重型代理池管理
 
 固定代理示例：
@@ -110,6 +112,32 @@ client, err := steam.NewClient(
 	steam.WithAPIKey("your-key"),
 	steam.WithProxySelector(selector),
 )
+if err != nil {
+	panic(err)
+}
+```
+
+粘性代理示例：
+
+```go
+baseSelector, err := steam.NewRoundRobinProxySelector(
+	"http://127.0.0.1:7897",
+	"http://127.0.0.1:7898",
+)
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(steam.NewStickyProxySelector(baseSelector)),
+)
+if err != nil {
+	panic(err)
+}
+
+ctx := steam.WithProxySessionKey(context.Background(), "browser-session-1")
+_, err = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
 if err != nil {
 	panic(err)
 }

@@ -203,10 +203,16 @@ Notes:
 ## Proxy Helpers
 
 - `WithProxySelector(selector ProxySelector)`
+- `WithProxySessionKey(ctx context.Context, key string) context.Context`
 - `NewStaticProxySelector(rawURL string)`
 - `NewRoundRobinProxySelector(rawURLs ...string)`
+- `NewStickyProxySelector(base ProxySelector)`
 - `NewRoutingProxySelector(routes ...ProxyRoute)`
 - `NewHTTPClientWithProxySelector(selector ProxySelector, timeout time.Duration)`
+
+Notes:
+- `WithProxySessionKey(...)` only affects selectors that explicitly support sticky session lookup.
+- `NewStickyProxySelector(...)` is designed as a wrapper and can be composed with static, round-robin, or routing selectors.
 
 ## Examples
 

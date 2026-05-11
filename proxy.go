@@ -1,10 +1,12 @@
 package steam
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -12,6 +14,24 @@ import (
 )
 
 const defaultProxyClientTimeout = 10 * time.Second
+
+type proxySessionKeyContextKey struct{}
+
+// WithProxySessionKey attaches one explicit sticky-proxy session key to a request context.
+//
+// Blank keys are treated as "unset" and leave the context unchanged.
+// A nil context falls back to context.Background().
+func WithProxySessionKey(ctx context.Context, key string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, proxySessionKeyContextKey{}, key)
+}
 
 // NewStaticProxySelector creates a selector that always returns the same proxy.
 //
@@ -42,6 +62,19 @@ func NewRoundRobinProxySelector(rawURLs ...string) (ProxySelector, error) {
 		return staticProxySelector{url: urls[0]}, nil
 	}
 	return &roundRobinProxySelector{urls: urls}, nil
+}
+
+// NewStickyProxySelector wraps a base selector and keeps one proxy choice per explicit session key.
+//
+// When no session key is attached to the request context, it falls back to the base selector behavior.
+func NewStickyProxySelector(base ProxySelector) ProxySelector {
+	if base == nil {
+		return nil
+	}
+	return &stickyProxySelector{
+		base:  base,
+		cache: make(map[string]*url.URL),
+	}
 }
 
 // ProxyRoute describes one host/path based proxy routing rule.
@@ -123,6 +156,41 @@ func (s *roundRobinProxySelector) Next(*http.Request) (*url.URL, error) {
 	return s.urls[current%uint64(len(s.urls))], nil
 }
 
+type stickyProxySelector struct {
+	base  ProxySelector
+	mu    sync.RWMutex
+	cache map[string]*url.URL
+}
+
+func (s *stickyProxySelector) Next(req *http.Request) (*url.URL, error) {
+	key := proxySessionKeyFromRequest(req)
+	if key == "" {
+		return s.base.Next(req)
+	}
+
+	s.mu.RLock()
+	cached, ok := s.cache[key]
+	s.mu.RUnlock()
+	if ok {
+		return cloneProxyURL(cached), nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cached, ok = s.cache[key]
+	if ok {
+		return cloneProxyURL(cached), nil
+	}
+
+	proxyURL, err := s.base.Next(req)
+	if err != nil {
+		return nil, err
+	}
+	s.cache[key] = cloneProxyURL(proxyURL)
+	return cloneProxyURL(proxyURL), nil
+}
+
 type compiledProxyRoute struct {
 	host       string
 	pathPrefix string
@@ -170,4 +238,20 @@ func parseProxyURLs(rawURLs ...string) ([]*url.URL, error) {
 		urls = append(urls, parsed)
 	}
 	return urls, nil
+}
+
+func proxySessionKeyFromRequest(req *http.Request) string {
+	if req == nil {
+		return ""
+	}
+	value, _ := req.Context().Value(proxySessionKeyContextKey{}).(string)
+	return strings.TrimSpace(value)
+}
+
+func cloneProxyURL(proxyURL *url.URL) *url.URL {
+	if proxyURL == nil {
+		return nil
+	}
+	cloned := *proxyURL
+	return &cloned
 }

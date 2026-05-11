@@ -102,8 +102,10 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 
 - `NewStaticProxySelector(...)` for one fixed proxy
 - `NewRoundRobinProxySelector(...)` for simple rotation
+- `NewStickyProxySelector(...)` for explicit session-key based sticky proxy selection
 - `NewRoutingProxySelector(...)` for host/path-based routing
 - `NewHTTPClientWithProxySelector(...)` for addon or standalone HTTP flows
+- `WithProxySessionKey(ctx, key)` for attaching one sticky session key to request context
 - no built-in health checks, circuit breaking, or heavy proxy-pool management
 
 Static example:
@@ -138,6 +140,32 @@ selector, err := steam.NewRoutingProxySelector(
 		ProxyURL:   "",
 	},
 )
+if err != nil {
+	panic(err)
+}
+```
+
+Sticky example:
+
+```go
+baseSelector, err := steam.NewRoundRobinProxySelector(
+	"http://127.0.0.1:7897",
+	"http://127.0.0.1:7898",
+)
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(steam.NewStickyProxySelector(baseSelector)),
+)
+if err != nil {
+	panic(err)
+}
+
+ctx := steam.WithProxySessionKey(context.Background(), "browser-session-1")
+_, err = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
 if err != nil {
 	panic(err)
 }
