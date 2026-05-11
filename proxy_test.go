@@ -583,6 +583,151 @@ func TestHealthCheckedRoundRobinProxySelectorResetsFailureScoreOnSuccess(t *test
 	}
 }
 
+func TestHealthCheckedRoundRobinProxySelectorExposesMetricsSnapshot(t *testing.T) {
+	t.Parallel()
+
+	selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{
+			FailureThreshold: 1,
+			Cooldown:         40 * time.Millisecond,
+		},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+
+	metricsProvider, ok := selector.(steam.ProxyMetricsProvider)
+	if !ok {
+		t.Fatal("expected selector to implement ProxyMetricsProvider")
+	}
+	reporter := selector.(interface {
+		ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error)
+	})
+
+	proxyURL, err := selector.Next(&http.Request{})
+	if err != nil {
+		t.Fatalf("selector.Next returned error: %v", err)
+	}
+	reporter.ReportProxyResult(nil, proxyURL, http.StatusTooManyRequests, nil)
+
+	snapshot := metricsProvider.ProxyMetricsSnapshot()
+	if snapshot.TotalProxies != 1 {
+		t.Fatalf("unexpected total proxies: %d", snapshot.TotalProxies)
+	}
+	if snapshot.HealthyProxies != 0 || snapshot.CoolingProxies != 1 {
+		t.Fatalf("unexpected pool status: healthy=%d cooling=%d", snapshot.HealthyProxies, snapshot.CoolingProxies)
+	}
+	if snapshot.GeneratedAt.IsZero() {
+		t.Fatal("expected generated timestamp")
+	}
+	if len(snapshot.Proxies) != 1 {
+		t.Fatalf("unexpected proxy metric count: %d", len(snapshot.Proxies))
+	}
+
+	metrics := snapshot.Proxies[0]
+	if metrics.ProxyURL != "http://127.0.0.1:7897" {
+		t.Fatalf("unexpected proxy url: %s", metrics.ProxyURL)
+	}
+	if metrics.SelectionCount != 1 {
+		t.Fatalf("unexpected selection count: %d", metrics.SelectionCount)
+	}
+	if metrics.SuccessCount != 0 {
+		t.Fatalf("unexpected success count: %d", metrics.SuccessCount)
+	}
+	if metrics.FailureCount != 1 {
+		t.Fatalf("unexpected failure count: %d", metrics.FailureCount)
+	}
+	if metrics.CooldownCount != 1 {
+		t.Fatalf("unexpected cooldown count: %d", metrics.CooldownCount)
+	}
+	if metrics.FailureScore != 0 {
+		t.Fatalf("expected failure score reset after cooldown, got %d", metrics.FailureScore)
+	}
+	if metrics.CooldownUntil.IsZero() {
+		t.Fatal("expected cooldown deadline")
+	}
+	if metrics.LastFailureAt.IsZero() {
+		t.Fatal("expected last failure timestamp")
+	}
+	if !metrics.LastSuccessAt.IsZero() {
+		t.Fatal("did not expect success timestamp")
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	recovered := metricsProvider.ProxyMetricsSnapshot()
+	if recovered.HealthyProxies != 1 || recovered.CoolingProxies != 0 {
+		t.Fatalf("expected cooled proxy to recover in snapshot, got healthy=%d cooling=%d", recovered.HealthyProxies, recovered.CoolingProxies)
+	}
+}
+
+func TestHealthCheckedRoundRobinProxySelectorSnapshotIsReadOnlyCopy(t *testing.T) {
+	t.Parallel()
+
+	selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+
+	metricsProvider := selector.(steam.ProxyMetricsProvider)
+	first := metricsProvider.ProxyMetricsSnapshot()
+	first.Proxies[0].ProxyURL = "mutated"
+	first.Proxies = nil
+
+	second := metricsProvider.ProxyMetricsSnapshot()
+	if len(second.Proxies) != 1 {
+		t.Fatalf("unexpected proxy metric count after mutation: %d", len(second.Proxies))
+	}
+	if second.Proxies[0].ProxyURL != "http://127.0.0.1:7897" {
+		t.Fatalf("unexpected proxy url after mutation: %s", second.Proxies[0].ProxyURL)
+	}
+}
+
+func TestHealthCheckedRoundRobinProxySelectorTracksSuccessMetrics(t *testing.T) {
+	t.Parallel()
+
+	selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+
+	metricsProvider := selector.(steam.ProxyMetricsProvider)
+	reporter := selector.(interface {
+		ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error)
+	})
+
+	proxyURL, err := selector.Next(&http.Request{})
+	if err != nil {
+		t.Fatalf("selector.Next returned error: %v", err)
+	}
+	reporter.ReportProxyResult(nil, proxyURL, http.StatusNotFound, nil)
+
+	snapshot := metricsProvider.ProxyMetricsSnapshot()
+	metrics := snapshot.Proxies[0]
+	if metrics.SelectionCount != 1 {
+		t.Fatalf("unexpected selection count: %d", metrics.SelectionCount)
+	}
+	if metrics.SuccessCount != 1 {
+		t.Fatalf("unexpected success count: %d", metrics.SuccessCount)
+	}
+	if metrics.FailureCount != 0 {
+		t.Fatalf("unexpected failure count: %d", metrics.FailureCount)
+	}
+	if metrics.FailureScore != 0 {
+		t.Fatalf("unexpected failure score: %d", metrics.FailureScore)
+	}
+	if metrics.LastSuccessAt.IsZero() {
+		t.Fatal("expected last success timestamp")
+	}
+}
+
 func TestStickyProxySelectorRebindsWhenHealthCheckedProxyCoolsDown(t *testing.T) {
 	t.Parallel()
 
@@ -616,6 +761,37 @@ func TestStickyProxySelectorRebindsWhenHealthCheckedProxyCoolsDown(t *testing.T)
 	}
 	if got := second.String(); got != "http://127.0.0.1:7898" {
 		t.Fatalf("expected sticky selector to rebind, got %s", got)
+	}
+}
+
+func TestStickyProxySelectorForwardsHealthMetricsSnapshot(t *testing.T) {
+	t.Parallel()
+
+	base, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+	selector := steam.NewStickyProxySelector(base)
+
+	metricsProvider, ok := selector.(steam.ProxyMetricsProvider)
+	if !ok {
+		t.Fatal("expected sticky selector to implement ProxyMetricsProvider")
+	}
+
+	req := mustRequestWithContext(t, steam.WithProxySessionKey(context.Background(), "session-a"), "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/")
+	if _, err := selector.Next(req); err != nil {
+		t.Fatalf("selector.Next returned error: %v", err)
+	}
+
+	snapshot := metricsProvider.ProxyMetricsSnapshot()
+	if len(snapshot.Proxies) != 1 {
+		t.Fatalf("unexpected proxy metric count: %d", len(snapshot.Proxies))
+	}
+	if snapshot.Proxies[0].SelectionCount != 1 {
+		t.Fatalf("unexpected forwarded selection count: %d", snapshot.Proxies[0].SelectionCount)
 	}
 }
 

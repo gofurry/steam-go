@@ -28,10 +28,37 @@ type proxyAvailabilityChecker interface {
 
 type proxySessionKeyContextKey struct{}
 
+// ProxyMetricsProvider exposes one read-only snapshot of proxy pool health metrics.
+type ProxyMetricsProvider interface {
+	ProxyMetricsSnapshot() ProxyMetricsSnapshot
+}
+
 // ProxyHealthConfig configures one health-checked proxy pool.
 type ProxyHealthConfig struct {
 	FailureThreshold int
 	Cooldown         time.Duration
+}
+
+// ProxyMetricsSnapshot is one immutable view of a proxy pool at one point in time.
+type ProxyMetricsSnapshot struct {
+	GeneratedAt    time.Time
+	TotalProxies   int
+	HealthyProxies int
+	CoolingProxies int
+	Proxies        []ProxyEndpointMetrics
+}
+
+// ProxyEndpointMetrics describes one proxy endpoint inside a health-checked pool.
+type ProxyEndpointMetrics struct {
+	ProxyURL       string
+	FailureScore   int
+	CooldownUntil  time.Time
+	SelectionCount uint64
+	SuccessCount   uint64
+	FailureCount   uint64
+	CooldownCount  uint64
+	LastFailureAt  time.Time
+	LastSuccessAt  time.Time
 }
 
 // DefaultProxyHealthConfig returns the default proxy health settings.
@@ -126,10 +153,17 @@ func NewStickyProxySelector(base ProxySelector) ProxySelector {
 	if base == nil {
 		return nil
 	}
-	return &stickyProxySelector{
+	sticky := &stickyProxySelector{
 		base:  base,
 		cache: make(map[string]*url.URL),
 	}
+	if metrics, ok := base.(ProxyMetricsProvider); ok {
+		return &stickyProxySelectorWithMetrics{
+			stickyProxySelector: sticky,
+			metrics:             metrics,
+		}
+	}
+	return sticky
 }
 
 // ProxyRoute describes one host/path based proxy routing rule.
@@ -217,6 +251,11 @@ type stickyProxySelector struct {
 	cache map[string]*url.URL
 }
 
+type stickyProxySelectorWithMetrics struct {
+	*stickyProxySelector
+	metrics ProxyMetricsProvider
+}
+
 func (s *stickyProxySelector) Next(req *http.Request) (*url.URL, error) {
 	key := proxySessionKeyFromRequest(req)
 	if key == "" {
@@ -262,9 +301,19 @@ func (s *stickyProxySelector) ReportProxyResult(req *http.Request, proxyURL *url
 	}
 }
 
+func (s *stickyProxySelectorWithMetrics) ProxyMetricsSnapshot() ProxyMetricsSnapshot {
+	return s.metrics.ProxyMetricsSnapshot()
+}
+
 type proxyHealthState struct {
-	failureScore  int
-	cooldownUntil time.Time
+	failureScore   int
+	cooldownUntil  time.Time
+	selectionCount uint64
+	successCount   uint64
+	failureCount   uint64
+	cooldownCount  uint64
+	lastFailureAt  time.Time
+	lastSuccessAt  time.Time
 }
 
 type healthCheckedRoundRobinProxySelector struct {
@@ -287,6 +336,7 @@ func (s *healthCheckedRoundRobinProxySelector) Next(*http.Request) (*url.URL, er
 		if !s.states[idx].cooldownUntil.IsZero() && now.Before(s.states[idx].cooldownUntil) {
 			continue
 		}
+		s.states[idx].selectionCount++
 		s.nextIndex = (idx + 1) % len(s.urls)
 		return cloneProxyURL(s.urls[idx]), nil
 	}
@@ -308,14 +358,19 @@ func (s *healthCheckedRoundRobinProxySelector) ReportProxyResult(_ *http.Request
 
 	state := &s.states[idx]
 	if proxyResultFailed(statusCode, err) {
+		state.failureCount++
+		state.lastFailureAt = time.Now()
 		state.failureScore++
 		if state.failureScore >= s.failureThresh {
 			state.failureScore = 0
 			state.cooldownUntil = time.Now().Add(s.cooldown)
+			state.cooldownCount++
 		}
 		return
 	}
 
+	state.successCount++
+	state.lastSuccessAt = time.Now()
 	state.failureScore = 0
 	state.cooldownUntil = time.Time{}
 }
@@ -333,6 +388,38 @@ func (s *healthCheckedRoundRobinProxySelector) proxyAvailable(proxyURL *url.URL,
 		return true
 	}
 	return s.states[idx].cooldownUntil.IsZero() || !now.Before(s.states[idx].cooldownUntil)
+}
+
+func (s *healthCheckedRoundRobinProxySelector) ProxyMetricsSnapshot() ProxyMetricsSnapshot {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	snapshot := ProxyMetricsSnapshot{
+		GeneratedAt:  now,
+		TotalProxies: len(s.urls),
+		Proxies:      make([]ProxyEndpointMetrics, 0, len(s.urls)),
+	}
+	for i, proxyURL := range s.urls {
+		state := s.states[i]
+		if state.cooldownUntil.IsZero() || !now.Before(state.cooldownUntil) {
+			snapshot.HealthyProxies++
+		} else {
+			snapshot.CoolingProxies++
+		}
+		snapshot.Proxies = append(snapshot.Proxies, ProxyEndpointMetrics{
+			ProxyURL:       proxyURL.String(),
+			FailureScore:   state.failureScore,
+			CooldownUntil:  state.cooldownUntil,
+			SelectionCount: state.selectionCount,
+			SuccessCount:   state.successCount,
+			FailureCount:   state.failureCount,
+			CooldownCount:  state.cooldownCount,
+			LastFailureAt:  state.lastFailureAt,
+			LastSuccessAt:  state.lastSuccessAt,
+		})
+	}
+	return snapshot
 }
 
 type compiledProxyRoute struct {

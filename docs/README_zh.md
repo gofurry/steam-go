@@ -99,7 +99,8 @@ func main() {
 - `NewRoutingProxySelector(...)`：按 `host/path` 路由代理
 - `NewHTTPClientWithProxySelector(...)`：给 addon 或独立 HTTP 流程复用
 - `WithProxySessionKey(ctx, key)`：把粘性代理的会话键挂到请求上下文里
-- 目前仍然不内建代理指标、熔断和重型代理池管理
+- `ProxyMetricsProvider`：读取健康代理池的内存快照指标
+- 目前仍然不内建外部指标上报和重型代理池管理
 
 固定代理示例：
 
@@ -163,6 +164,9 @@ client, err := steam.NewClient(
 if err != nil {
 	panic(err)
 }
+
+metrics := selector.(steam.ProxyMetricsProvider).ProxyMetricsSnapshot()
+fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingProxies)
 ```
 
 按 `host/path` 路由示例：

@@ -107,7 +107,8 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 - `NewRoutingProxySelector(...)` for host/path-based routing
 - `NewHTTPClientWithProxySelector(...)` for addon or standalone HTTP flows
 - `WithProxySessionKey(ctx, key)` for attaching one sticky session key to request context
-- no built-in proxy metrics, circuit breaking, or heavy proxy-pool management
+- `ProxyMetricsProvider` for one in-memory health snapshot of a health-checked proxy pool
+- no external metrics integration or heavy proxy-pool management
 
 Static example:
 
@@ -191,6 +192,9 @@ client, err := steam.NewClient(
 if err != nil {
 	panic(err)
 }
+
+metrics := selector.(steam.ProxyMetricsProvider).ProxyMetricsSnapshot()
+fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingProxies)
 ```
 
 On China-region networks, browser login may succeed while the server-side Steam OpenID `check_authentication` request still times out. The OpenID example supports `--proxy http://127.0.0.1:7897` for that case and also demonstrates cookie-backed `state` verification on the callback.

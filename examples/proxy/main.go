@@ -63,6 +63,7 @@ func main() {
 	fmt.Println("\n== health-checked round-robin selector ==")
 	printSelections(healthSelector, requests[:2])
 	printSelections(healthSelector, requests[:2])
+	printHealthMetrics(healthSelector)
 
 	fmt.Println("\n== routing selector ==")
 	printSelections(routingSelector, requests)
@@ -79,6 +80,27 @@ func printSelections(selector steam.ProxySelector, requests []*http.Request) {
 			continue
 		}
 		fmt.Printf("%s -> %s\n", req.URL.String(), proxyURL.String())
+	}
+}
+
+func printHealthMetrics(selector steam.ProxySelector) {
+	metricsProvider, ok := selector.(steam.ProxyMetricsProvider)
+	if !ok {
+		fmt.Println("metrics unavailable")
+		return
+	}
+
+	snapshot := metricsProvider.ProxyMetricsSnapshot()
+	fmt.Printf("healthy=%d cooling=%d total=%d\n", snapshot.HealthyProxies, snapshot.CoolingProxies, snapshot.TotalProxies)
+	for _, proxy := range snapshot.Proxies {
+		fmt.Printf(
+			"%s selected=%d success=%d failure=%d cooldowns=%d\n",
+			proxy.ProxyURL,
+			proxy.SelectionCount,
+			proxy.SuccessCount,
+			proxy.FailureCount,
+			proxy.CooldownCount,
+		)
 	}
 }
 
