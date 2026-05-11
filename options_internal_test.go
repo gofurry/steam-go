@@ -1,6 +1,8 @@
 package steam
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -8,6 +10,12 @@ import (
 	"github.com/GoFurry/steam-go/internal/transport"
 	"golang.org/x/time/rate"
 )
+
+type stubCookieJar struct{}
+
+func (stubCookieJar) SetCookies(*url.URL, []*http.Cookie) {}
+
+func (stubCookieJar) Cookies(*url.URL) []*http.Cookie { return nil }
 
 func TestWithRateLimitSetsRateLimiterConfig(t *testing.T) {
 	t.Parallel()
@@ -131,5 +139,78 @@ func TestWithRetryRespectRetryAfterOverridesDefault(t *testing.T) {
 	}
 	if cfg.retryBackoff.RespectRetryAfter {
 		t.Fatal("expected Retry-After handling to be disabled")
+	}
+}
+
+func TestWithCookieJarSetsConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	jar := stubCookieJar{}
+	if err := WithCookieJar(jar)(&cfg); err != nil {
+		t.Fatalf("WithCookieJar returned error: %v", err)
+	}
+	if !cfg.cookieJarConfigured {
+		t.Fatal("expected cookie jar to be marked as configured")
+	}
+	if cfg.cookieJar != jar {
+		t.Fatalf("cookieJar = %#v, want %#v", cfg.cookieJar, jar)
+	}
+}
+
+func TestWithCookieJarNilDisablesJar(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	cfg.cookieJar = stubCookieJar{}
+	if err := WithCookieJar(nil)(&cfg); err != nil {
+		t.Fatalf("WithCookieJar returned error: %v", err)
+	}
+	if !cfg.cookieJarConfigured {
+		t.Fatal("expected cookie jar to be marked as configured")
+	}
+	if cfg.cookieJar != nil {
+		t.Fatalf("expected cookie jar to be nil, got %#v", cfg.cookieJar)
+	}
+}
+
+func TestWithDefaultCookieJarCreatesJar(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	if err := WithDefaultCookieJar()(&cfg); err != nil {
+		t.Fatalf("WithDefaultCookieJar returned error: %v", err)
+	}
+	if !cfg.cookieJarConfigured {
+		t.Fatal("expected cookie jar to be marked as configured")
+	}
+	if cfg.cookieJar == nil {
+		t.Fatal("expected cookie jar to be created")
+	}
+}
+
+func TestLastCookieJarOptionWins(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	customJar := stubCookieJar{}
+	if err := WithCookieJar(customJar)(&cfg); err != nil {
+		t.Fatalf("WithCookieJar returned error: %v", err)
+	}
+	if err := WithDefaultCookieJar()(&cfg); err != nil {
+		t.Fatalf("WithDefaultCookieJar returned error: %v", err)
+	}
+	if cfg.cookieJar == nil {
+		t.Fatal("expected default cookie jar to override custom jar")
+	}
+	if cfg.cookieJar == customJar {
+		t.Fatal("expected default cookie jar to replace custom jar")
+	}
+
+	if err := WithCookieJar(nil)(&cfg); err != nil {
+		t.Fatalf("WithCookieJar returned error: %v", err)
+	}
+	if cfg.cookieJar != nil {
+		t.Fatalf("expected nil cookie jar to override prior config, got %#v", cfg.cookieJar)
 	}
 }

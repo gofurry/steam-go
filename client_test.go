@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -3213,6 +3214,103 @@ func TestProxySelectorErrorReturnsTransportError(t *testing.T) {
 	expectKind(t, err, steam.ErrorKindTransport)
 }
 
+func TestClientDoesNotPersistCookiesWithoutJar(t *testing.T) {
+	t.Parallel()
+
+	server, sawCookie := newCookiePersistenceServer(t)
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+
+	assertCookiePersistenceFlow(t, client)
+	if sawCookie.Load() {
+		t.Fatal("expected second request to omit cookie without jar")
+	}
+}
+
+func TestClientPersistsCookiesWithDefaultCookieJar(t *testing.T) {
+	t.Parallel()
+
+	server, sawCookie := newCookiePersistenceServer(t)
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithDefaultCookieJar(),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	assertCookiePersistenceFlow(t, client)
+	if !sawCookie.Load() {
+		t.Fatal("expected second request to include cookie with default jar")
+	}
+}
+
+func TestClientPersistsCookiesWithCustomCookieJar(t *testing.T) {
+	t.Parallel()
+
+	server, sawCookie := newCookiePersistenceServer(t)
+	defer server.Close()
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("cookiejar.New returned error: %v", err)
+	}
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithCookieJar(jar),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	assertCookiePersistenceFlow(t, client)
+	if !sawCookie.Load() {
+		t.Fatal("expected second request to include cookie with custom jar")
+	}
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("url.Parse returned error: %v", err)
+	}
+	cookies := jar.Cookies(serverURL)
+	if len(cookies) != 1 || cookies[0].Name != "session" || cookies[0].Value != "abc123" {
+		t.Fatalf("unexpected jar cookies: %#v", cookies)
+	}
+}
+
+func TestWithHTTPClientAndDefaultCookieJarUsesClonedJar(t *testing.T) {
+	t.Parallel()
+
+	server, sawCookie := newCookiePersistenceServer(t)
+	defer server.Close()
+
+	customClient := &http.Client{
+		Transport: server.Client().Transport,
+	}
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithHTTPClient(customClient),
+		steam.WithDefaultCookieJar(),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	assertCookiePersistenceFlow(t, client)
+	if !sawCookie.Load() {
+		t.Fatal("expected second request to include cookie with cloned default jar")
+	}
+	if customClient.Jar != nil {
+		t.Fatalf("expected original custom client jar to remain nil, got %#v", customClient.Jar)
+	}
+}
+
 func TestWithHTTPClientPreservesCustomRoundTripperWithoutProxy(t *testing.T) {
 	t.Parallel()
 
@@ -3263,6 +3361,50 @@ func TestWithMaxResponseBodyBytesValidation(t *testing.T) {
 	_, err := steam.NewClient(steam.WithMaxResponseBodyBytes(0))
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func newCookiePersistenceServer(t *testing.T) (*httptest.Server, *atomic.Bool) {
+	t.Helper()
+
+	var requestCount atomic.Int32
+	var sawCookie atomic.Bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/ISteamUser/GetPlayerSummaries/v2/" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+
+		switch requestCount.Add(1) {
+		case 1:
+			http.SetCookie(w, &http.Cookie{
+				Name:  "session",
+				Value: "abc123",
+				Path:  "/",
+			})
+		case 2:
+			cookie, err := r.Cookie("session")
+			if err == nil && cookie.Value == "abc123" {
+				sawCookie.Store(true)
+			}
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+
+		_, _ = w.Write([]byte(`{"response":{"players":[]}}`))
+	}))
+
+	return server, &sawCookie
+}
+
+func assertCookiePersistenceFlow(t *testing.T, client *steam.Client) {
+	t.Helper()
+
+	for range 2 {
+		_, err := client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"})
+		if err != nil {
+			t.Fatalf("GetPlayerSummaries returned error: %v", err)
+		}
 	}
 }
 

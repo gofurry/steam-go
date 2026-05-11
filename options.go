@@ -3,6 +3,7 @@ package steam
 import (
 	"fmt"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
@@ -38,6 +39,8 @@ type clientConfig struct {
 	retry                int
 	rateLimiter          transport.RateLimiterConfig
 	retryBackoff         request.RetryBackoffConfig
+	cookieJar            http.CookieJar
+	cookieJarConfigured  bool
 	maxResponseBodyBytes int64
 	proxySelector        ProxySelector
 }
@@ -136,6 +139,29 @@ func WithHTTPClient(client *http.Client) Option {
 			return fmt.Errorf("http client must not be nil")
 		}
 		cfg.httpClient = client
+		return nil
+	}
+}
+
+// WithCookieJar injects a caller-managed cookie jar.
+// Passing nil explicitly disables cookie persistence.
+func WithCookieJar(jar http.CookieJar) Option {
+	return func(cfg *clientConfig) error {
+		cfg.cookieJar = jar
+		cfg.cookieJarConfigured = true
+		return nil
+	}
+}
+
+// WithDefaultCookieJar enables session persistence with the standard library cookie jar.
+func WithDefaultCookieJar() Option {
+	return func(cfg *clientConfig) error {
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			return fmt.Errorf("create default cookie jar: %w", err)
+		}
+		cfg.cookieJar = jar
+		cfg.cookieJarConfigured = true
 		return nil
 	}
 }

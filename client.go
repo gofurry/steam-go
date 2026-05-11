@@ -149,6 +149,9 @@ func buildHTTPClient(cfg clientConfig) (*http.Client, error) {
 	if cfg.httpClient != nil {
 		cloned := *cfg.httpClient
 		cloned.Timeout = cfg.timeout
+		if cfg.cookieJarConfigured {
+			cloned.Jar = cfg.cookieJar
+		}
 		rt, err := transport.WrapRoundTripper(cloned.Transport, cfg.proxySelector)
 		if err != nil {
 			return nil, err
@@ -164,5 +167,6 @@ func buildHTTPClient(cfg clientConfig) (*http.Client, error) {
 	return &http.Client{
 		Timeout:   cfg.timeout,
 		Transport: rt,
+		Jar:       cfg.cookieJar,
 	}, nil
 }
