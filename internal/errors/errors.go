@@ -40,6 +40,17 @@ func (e *APIError) Unwrap() error {
 	return e.Err
 }
 
+// BodyPreview returns a bounded string preview of the response body.
+func (e *APIError) BodyPreview(max int) string {
+	if e == nil || max <= 0 || len(e.Body) == 0 {
+		return ""
+	}
+	if len(e.Body) <= max {
+		return string(e.Body)
+	}
+	return string(e.Body[:max])
+}
+
 // New constructs a typed SDK error.
 func New(kind Kind, statusCode int, message string, body []byte, err error) *APIError {
 	return &APIError{
