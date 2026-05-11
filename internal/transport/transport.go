@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/GoFurry/steam-go/internal/traffic"
 	"golang.org/x/time/rate"
 )
 
@@ -25,26 +26,71 @@ type RateLimiterConfig struct {
 	Burst int
 }
 
+// RequestControlConfig defines one host/session scoped control block.
+type RequestControlConfig struct {
+	RateLimiter   RateLimiterConfig
+	MaxConcurrent int
+}
+
+// ClientConfig defines one transport client behavior bundle.
+type ClientConfig struct {
+	RateLimiter    RateLimiterConfig
+	HostControl    RequestControlConfig
+	SessionControl RequestControlConfig
+}
+
 // Client applies retry and rate limiting on top of an http.Client.
 type Client struct {
-	httpClient *http.Client
-	limiter    *rate.Limiter
+	httpClient        *http.Client
+	limiter           *rate.Limiter
+	hostController    *requestControlManager
+	sessionController *requestControlManager
 }
 
 // New creates a transport client.
-func New(httpClient *http.Client, cfg RateLimiterConfig) *Client {
+func New(httpClient *http.Client, cfg ClientConfig) *Client {
 	var limiter *rate.Limiter
-	if cfg.Limit > 0 && cfg.Burst > 0 {
-		limiter = rate.NewLimiter(cfg.Limit, cfg.Burst)
+	if cfg.RateLimiter.Limit > 0 && cfg.RateLimiter.Burst > 0 {
+		limiter = rate.NewLimiter(cfg.RateLimiter.Limit, cfg.RateLimiter.Burst)
 	}
 	return &Client{
-		httpClient: httpClient,
-		limiter:    limiter,
+		httpClient:        httpClient,
+		limiter:           limiter,
+		hostController:    newRequestControlManager(cfg.HostControl),
+		sessionController: newRequestControlManager(cfg.SessionControl),
 	}
 }
 
 // Do executes a single request with optional rate limiting.
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
+	if c == nil || c.httpClient == nil {
+		return nil, fmt.Errorf("http client is required")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("request is required")
+	}
+
+	hostKey := requestHostKey(req)
+	sessionKey := requestSessionKey(ctx)
+
+	hostRelease, err := acquireRequestControl(ctx, c.hostController, hostKey)
+	if err != nil {
+		return nil, err
+	}
+	defer hostRelease()
+
+	sessionRelease, err := acquireRequestControl(ctx, c.sessionController, sessionKey)
+	if err != nil {
+		return nil, err
+	}
+	defer sessionRelease()
+
+	if err := waitRequestControl(ctx, c.hostController, hostKey); err != nil {
+		return nil, err
+	}
+	if err := waitRequestControl(ctx, c.sessionController, sessionKey); err != nil {
+		return nil, err
+	}
 	if c.limiter != nil {
 		if err := c.limiter.Wait(ctx); err != nil {
 			return nil, err
@@ -137,4 +183,19 @@ func cloneURL(proxyURL *url.URL) *url.URL {
 	}
 	cloned := *proxyURL
 	return &cloned
+}
+
+func requestHostKey(req *http.Request) string {
+	if req == nil || req.URL == nil {
+		return ""
+	}
+	return req.URL.Host
+}
+
+func requestSessionKey(ctx context.Context) string {
+	key, ok := traffic.RequestSessionKeyFromContext(ctx)
+	if !ok {
+		return ""
+	}
+	return key
 }

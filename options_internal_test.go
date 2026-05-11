@@ -1,12 +1,14 @@
 package steam
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/GoFurry/steam-go/internal/request"
+	"github.com/GoFurry/steam-go/internal/traffic"
 	"github.com/GoFurry/steam-go/internal/transport"
 	"golang.org/x/time/rate"
 )
@@ -231,6 +233,20 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 			Retry:   2,
 			Backoff: backoff,
 		},
+		HostControl: &TrafficHostControlPolicy{
+			RateLimiter: &TrafficRateLimiterPolicy{
+				Limit: rate.Limit(2),
+				Burst: 3,
+			},
+			MaxConcurrent: 4,
+		},
+		SessionControl: &TrafficSessionControlPolicy{
+			RateLimiter: &TrafficRateLimiterPolicy{
+				Limit: rate.Limit(1),
+				Burst: 2,
+			},
+			MaxConcurrent: 5,
+		},
 	})(&cfg); err != nil {
 		t.Fatalf("WithTrafficPolicy returned error: %v", err)
 	}
@@ -248,6 +264,18 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 	if policy.retry == nil || policy.retry.Retry != 2 || policy.retry.Backoff != backoff {
 		t.Fatalf("unexpected retry policy: %#v", policy.retry)
 	}
+	if policy.hostControl == nil || policy.hostControl.MaxConcurrent != 4 {
+		t.Fatalf("unexpected host control policy: %#v", policy.hostControl)
+	}
+	if policy.hostControl.RateLimiter == nil || policy.hostControl.RateLimiter.Limit != rate.Limit(2) || policy.hostControl.RateLimiter.Burst != 3 {
+		t.Fatalf("unexpected host control limiter: %#v", policy.hostControl)
+	}
+	if policy.sessionControl == nil || policy.sessionControl.MaxConcurrent != 5 {
+		t.Fatalf("unexpected session control policy: %#v", policy.sessionControl)
+	}
+	if policy.sessionControl.RateLimiter == nil || policy.sessionControl.RateLimiter.Limit != rate.Limit(1) || policy.sessionControl.RateLimiter.Burst != 2 {
+		t.Fatalf("unexpected session control limiter: %#v", policy.sessionControl)
+	}
 }
 
 func TestWithTrafficPolicyRejectsUnsupportedClass(t *testing.T) {
@@ -256,5 +284,102 @@ func TestWithTrafficPolicyRejectsUnsupportedClass(t *testing.T) {
 	cfg := defaultClientConfig()
 	if err := WithTrafficPolicy(TrafficClass("unknown"), TrafficPolicy{})(&cfg); err == nil {
 		t.Fatal("expected error for unsupported traffic class")
+	}
+}
+
+func TestWithTrafficPolicyRejectsNegativeHostMaxConcurrent(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	err := WithTrafficPolicy(TrafficClassPublicStorePage, TrafficPolicy{
+		HostControl: &TrafficHostControlPolicy{MaxConcurrent: -1},
+	})(&cfg)
+	if err == nil {
+		t.Fatal("expected error for negative host max concurrent")
+	}
+}
+
+func TestWithTrafficPolicyRejectsNegativeSessionMaxConcurrent(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	err := WithTrafficPolicy(TrafficClassPublicStorePage, TrafficPolicy{
+		SessionControl: &TrafficSessionControlPolicy{MaxConcurrent: -1},
+	})(&cfg)
+	if err == nil {
+		t.Fatal("expected error for negative session max concurrent")
+	}
+}
+
+func TestWithTrafficPolicyRejectsInvalidHostRateLimiter(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	err := WithTrafficPolicy(TrafficClassPublicStorePage, TrafficPolicy{
+		HostControl: &TrafficHostControlPolicy{
+			RateLimiter: &TrafficRateLimiterPolicy{Limit: rate.Limit(1), Burst: 0},
+		},
+	})(&cfg)
+	if err == nil {
+		t.Fatal("expected error for invalid host rate limiter")
+	}
+}
+
+func TestWithTrafficPolicyRejectsInvalidSessionRateLimiter(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	err := WithTrafficPolicy(TrafficClassPublicStorePage, TrafficPolicy{
+		SessionControl: &TrafficSessionControlPolicy{
+			RateLimiter: &TrafficRateLimiterPolicy{Limit: rate.Limit(1), Burst: 0},
+		},
+	})(&cfg)
+	if err == nil {
+		t.Fatal("expected error for invalid session rate limiter")
+	}
+}
+
+func TestWithRequestSessionKeyStoresTrimmedKey(t *testing.T) {
+	t.Parallel()
+
+	ctx := WithRequestSessionKey(nil, "  session-a  ")
+	key, ok := traffic.RequestSessionKeyFromContext(ctx)
+	if !ok {
+		t.Fatal("expected request session key")
+	}
+	if key != "session-a" {
+		t.Fatalf("unexpected request session key: %q", key)
+	}
+}
+
+func TestWithRequestSessionKeyTreatsBlankAsUnset(t *testing.T) {
+	t.Parallel()
+
+	base := context.Background()
+	ctx := WithRequestSessionKey(base, "   ")
+	if ctx != base {
+		t.Fatal("expected blank request session key to keep original context")
+	}
+	if _, ok := traffic.RequestSessionKeyFromContext(ctx); ok {
+		t.Fatal("did not expect request session key")
+	}
+}
+
+func TestWithRequestSessionKeyDoesNotAffectProxySessionKey(t *testing.T) {
+	t.Parallel()
+
+	ctx := WithProxySessionKey(context.Background(), "proxy-a")
+	ctx = WithRequestSessionKey(ctx, "request-a")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/", nil)
+	if err != nil {
+		t.Fatalf("http.NewRequestWithContext returned error: %v", err)
+	}
+
+	if got := proxySessionKeyFromRequest(req); got != "proxy-a" {
+		t.Fatalf("unexpected proxy session key: %q", got)
+	}
+	if key, ok := traffic.RequestSessionKeyFromContext(req.Context()); !ok || key != "request-a" {
+		t.Fatalf("unexpected request session key: %q / %v", key, ok)
 	}
 }

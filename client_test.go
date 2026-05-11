@@ -3509,6 +3509,129 @@ func TestTrafficPolicyOverridesRateLimiterByClass(t *testing.T) {
 	}
 }
 
+func TestTrafficPolicyIsolatesHostConcurrencyByClass(t *testing.T) {
+	t.Parallel()
+
+	officialStarted := make(chan struct{})
+	storeStarted := make(chan struct{})
+	release := make(chan struct{})
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL("https://api.steampowered.com"),
+		steam.WithHTTPClient(&http.Client{
+			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+				switch r.Context().Value(trafficClassProbeKey{}).(string) {
+				case "official":
+					close(officialStarted)
+				case "store":
+					close(storeStarted)
+				default:
+					t.Fatalf("unexpected traffic class probe: %#v", r.Context().Value(trafficClassProbeKey{}))
+				}
+				<-release
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"response":{"players":[]}}`)),
+					Header:     make(http.Header),
+				}, nil
+			}),
+		}),
+		steam.WithTrafficPolicy(steam.TrafficClassOfficialAPI, steam.TrafficPolicy{
+			HostControl: &steam.TrafficHostControlPolicy{MaxConcurrent: 1},
+		}),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			HostControl: &steam.TrafficHostControlPolicy{MaxConcurrent: 1},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	officialDone := make(chan error, 1)
+	go func() {
+		ctx := context.WithValue(context.Background(), trafficClassProbeKey{}, "official")
+		_, err := client.API.SteamUser.GetPlayerSummaries(ctx, []string{"1"})
+		officialDone <- err
+	}()
+	storeDone := make(chan error, 1)
+	go func() {
+		ctx := steam.WithTrafficClass(context.WithValue(context.Background(), trafficClassProbeKey{}, "store"), steam.TrafficClassPublicStorePage)
+		_, err := client.API.SteamUser.GetPlayerSummaries(ctx, []string{"1"})
+		storeDone <- err
+	}()
+
+	select {
+	case <-officialStarted:
+	case <-time.After(time.Second):
+		t.Fatal("expected official request to start")
+	}
+	select {
+	case <-storeStarted:
+	case <-time.After(time.Second):
+		t.Fatal("expected store request to start without sharing official host slot")
+	}
+
+	close(release)
+	if err := <-officialDone; err != nil {
+		t.Fatalf("official request returned error: %v", err)
+	}
+	if err := <-storeDone; err != nil {
+		t.Fatalf("store request returned error: %v", err)
+	}
+}
+
+func TestTrafficPolicyIsolatesSessionRateLimiterByClass(t *testing.T) {
+	t.Parallel()
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL("https://api.steampowered.com"),
+		steam.WithHTTPClient(&http.Client{
+			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"response":{"players":[]}}`)),
+					Header:     make(http.Header),
+				}, nil
+			}),
+		}),
+		steam.WithTrafficPolicy(steam.TrafficClassOfficialAPI, steam.TrafficPolicy{
+			SessionControl: &steam.TrafficSessionControlPolicy{
+				RateLimiter: &steam.TrafficRateLimiterPolicy{Limit: rate.Limit(1), Burst: 1},
+			},
+		}),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			SessionControl: &steam.TrafficSessionControlPolicy{
+				RateLimiter: &steam.TrafficRateLimiterPolicy{Limit: rate.Limit(1), Burst: 1},
+			},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	officialCtx := steam.WithRequestSessionKey(context.Background(), "session-a")
+	if _, err := client.API.SteamUser.GetPlayerSummaries(officialCtx, []string{"1"}); err != nil {
+		t.Fatalf("official request returned error: %v", err)
+	}
+
+	blockedOfficialCtx, cancelOfficial := context.WithTimeout(steam.WithRequestSessionKey(context.Background(), "session-a"), 50*time.Millisecond)
+	defer cancelOfficial()
+	_, err = client.API.SteamUser.GetPlayerSummaries(blockedOfficialCtx, []string{"1"})
+	expectKind(t, err, steam.ErrorKindTransport)
+
+	storeCtx, cancelStore := context.WithTimeout(
+		steam.WithRequestSessionKey(
+			steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage),
+			"session-a",
+		),
+		50*time.Millisecond,
+	)
+	defer cancelStore()
+	if _, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"}); err != nil {
+		t.Fatalf("store request should use isolated session limiter, got error: %v", err)
+	}
+}
+
 func TestWithHTTPClientAndDefaultCookieJarUsesClonedJar(t *testing.T) {
 	t.Parallel()
 
@@ -3654,6 +3777,8 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
+
+type trafficClassProbeKey struct{}
 
 func newTestClient(t *testing.T, baseURL string) *steam.Client {
 	t.Helper()

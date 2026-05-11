@@ -156,20 +156,24 @@ type trafficRuntimeSet struct {
 }
 
 type runtimePolicyConfig struct {
-	proxySelector ProxySelector
-	cookieJar     http.CookieJar
-	rateLimiter   transport.RateLimiterConfig
-	retry         int
-	retryBackoff  request.RetryBackoffConfig
+	proxySelector  ProxySelector
+	cookieJar      http.CookieJar
+	rateLimiter    transport.RateLimiterConfig
+	hostControl    transport.RequestControlConfig
+	sessionControl transport.RequestControlConfig
+	retry          int
+	retryBackoff   request.RetryBackoffConfig
 }
 
 func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 	defaultRuntime, err := buildRuntime(cfg, runtimePolicyConfig{
-		proxySelector: cfg.proxySelector,
-		cookieJar:     cfg.cookieJar,
-		rateLimiter:   cfg.rateLimiter,
-		retry:         cfg.retry,
-		retryBackoff:  cfg.retryBackoff,
+		proxySelector:  cfg.proxySelector,
+		cookieJar:      cfg.cookieJar,
+		rateLimiter:    cfg.rateLimiter,
+		hostControl:    transport.RequestControlConfig{},
+		sessionControl: transport.RequestControlConfig{},
+		retry:          cfg.retry,
+		retryBackoff:   cfg.retryBackoff,
 	}, cfg.cookieJarConfigured)
 	if err != nil {
 		return trafficRuntimeSet{}, err
@@ -183,11 +187,13 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 
 	for class, policy := range cfg.trafficPolicies {
 		resolved := runtimePolicyConfig{
-			proxySelector: cfg.proxySelector,
-			cookieJar:     cfg.cookieJar,
-			rateLimiter:   cfg.rateLimiter,
-			retry:         cfg.retry,
-			retryBackoff:  cfg.retryBackoff,
+			proxySelector:  cfg.proxySelector,
+			cookieJar:      cfg.cookieJar,
+			rateLimiter:    cfg.rateLimiter,
+			hostControl:    transport.RequestControlConfig{},
+			sessionControl: transport.RequestControlConfig{},
+			retry:          cfg.retry,
+			retryBackoff:   cfg.retryBackoff,
 		}
 		cookieJarConfigured := cfg.cookieJarConfigured
 		if policy.proxySelector != nil {
@@ -206,6 +212,28 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		if policy.retry != nil {
 			resolved.retry = policy.retry.Retry
 			resolved.retryBackoff = request.RetryBackoffConfig(policy.retry.Backoff)
+		}
+		if policy.hostControl != nil {
+			resolved.hostControl = transport.RequestControlConfig{
+				MaxConcurrent: policy.hostControl.MaxConcurrent,
+			}
+			if policy.hostControl.RateLimiter != nil {
+				resolved.hostControl.RateLimiter = transport.RateLimiterConfig{
+					Limit: policy.hostControl.RateLimiter.Limit,
+					Burst: policy.hostControl.RateLimiter.Burst,
+				}
+			}
+		}
+		if policy.sessionControl != nil {
+			resolved.sessionControl = transport.RequestControlConfig{
+				MaxConcurrent: policy.sessionControl.MaxConcurrent,
+			}
+			if policy.sessionControl.RateLimiter != nil {
+				resolved.sessionControl.RateLimiter = transport.RateLimiterConfig{
+					Limit: policy.sessionControl.RateLimiter.Limit,
+					Burst: policy.sessionControl.RateLimiter.Burst,
+				}
+			}
 		}
 
 		runtime, err := buildRuntime(cfg, resolved, cookieJarConfigured)
@@ -235,7 +263,11 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 		executionPolicy: request.ExecutionPolicy{
 			Retry:        policy.retry,
 			RetryBackoff: policy.retryBackoff,
-			Transport:    transport.New(httpClient, policy.rateLimiter),
+			Transport: transport.New(httpClient, transport.ClientConfig{
+				RateLimiter:    policy.rateLimiter,
+				HostControl:    policy.hostControl,
+				SessionControl: policy.sessionControl,
+			}),
 		},
 	}, nil
 }

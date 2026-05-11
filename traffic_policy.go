@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/GoFurry/steam-go/internal/request"
 	itraffic "github.com/GoFurry/steam-go/internal/traffic"
@@ -38,12 +39,26 @@ type TrafficRetryPolicy struct {
 	Backoff RetryBackoffConfig
 }
 
+// TrafficHostControlPolicy overrides per-class host-scoped request controls.
+type TrafficHostControlPolicy struct {
+	RateLimiter   *TrafficRateLimiterPolicy
+	MaxConcurrent int
+}
+
+// TrafficSessionControlPolicy overrides per-class session-scoped request controls.
+type TrafficSessionControlPolicy struct {
+	RateLimiter   *TrafficRateLimiterPolicy
+	MaxConcurrent int
+}
+
 // TrafficPolicy overrides selected request behavior for one traffic class.
 type TrafficPolicy struct {
-	ProxySelector ProxySelector
-	CookieJar     http.CookieJar
-	RateLimiter   *TrafficRateLimiterPolicy
-	Retry         *TrafficRetryPolicy
+	ProxySelector  ProxySelector
+	CookieJar      http.CookieJar
+	RateLimiter    *TrafficRateLimiterPolicy
+	Retry          *TrafficRetryPolicy
+	HostControl    *TrafficHostControlPolicy
+	SessionControl *TrafficSessionControlPolicy
 }
 
 // WithTrafficClass attaches one traffic class to a request context.
@@ -51,11 +66,25 @@ func WithTrafficClass(ctx context.Context, class TrafficClass) context.Context {
 	return itraffic.WithClass(ctx, class)
 }
 
+// WithRequestSessionKey attaches one explicit request-session key to a context.
+func WithRequestSessionKey(ctx context.Context, key string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return ctx
+	}
+	return itraffic.WithRequestSessionKey(ctx, key)
+}
+
 type trafficPolicyConfig struct {
 	proxySelector     ProxySelector
 	cookieJar         http.CookieJar
 	rateLimiter       *TrafficRateLimiterPolicy
 	retry             *TrafficRetryPolicy
+	hostControl       *TrafficHostControlPolicy
+	sessionControl    *TrafficSessionControlPolicy
 	cookieJarProvided bool
 }
 
@@ -66,18 +95,8 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 			return fmt.Errorf("unsupported traffic class")
 		}
 		class = normalizeTrafficClass(class)
-		if policy.RateLimiter != nil {
-			if policy.RateLimiter.Limit < 0 {
-				return fmt.Errorf("traffic policy rate limit must not be negative")
-			}
-			if policy.RateLimiter.Burst < 0 {
-				return fmt.Errorf("traffic policy rate limiter burst must not be negative")
-			}
-			if policy.RateLimiter.Limit == 0 || policy.RateLimiter.Burst == 0 {
-				if policy.RateLimiter.Limit != 0 || policy.RateLimiter.Burst != 0 {
-					return fmt.Errorf("traffic policy rate limiter limit and burst must both be zero to disable")
-				}
-			}
+		if err := validateTrafficRateLimiterPolicy(policy.RateLimiter); err != nil {
+			return err
 		}
 		if policy.Retry != nil {
 			if policy.Retry.Retry < 0 {
@@ -93,6 +112,12 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 				return fmt.Errorf("traffic policy retry max delay must be greater than or equal to base delay")
 			}
 		}
+		if err := validateTrafficHostControlPolicy(policy.HostControl); err != nil {
+			return err
+		}
+		if err := validateTrafficSessionControlPolicy(policy.SessionControl); err != nil {
+			return err
+		}
 		if cfg.trafficPolicies == nil {
 			cfg.trafficPolicies = make(map[TrafficClass]trafficPolicyConfig)
 		}
@@ -101,6 +126,8 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 			cookieJar:         policy.CookieJar,
 			rateLimiter:       policy.RateLimiter,
 			retry:             policy.Retry,
+			hostControl:       policy.HostControl,
+			sessionControl:    policy.SessionControl,
 			cookieJarProvided: policy.CookieJar != nil,
 		}
 		return nil
@@ -118,4 +145,48 @@ func supportedTrafficClass(class TrafficClass) bool {
 	default:
 		return false
 	}
+}
+
+func validateTrafficRateLimiterPolicy(policy *TrafficRateLimiterPolicy) error {
+	if policy == nil {
+		return nil
+	}
+	if policy.Limit < 0 {
+		return fmt.Errorf("traffic policy rate limit must not be negative")
+	}
+	if policy.Burst < 0 {
+		return fmt.Errorf("traffic policy rate limiter burst must not be negative")
+	}
+	if policy.Limit == 0 || policy.Burst == 0 {
+		if policy.Limit != 0 || policy.Burst != 0 {
+			return fmt.Errorf("traffic policy rate limiter limit and burst must both be zero to disable")
+		}
+	}
+	return nil
+}
+
+func validateTrafficHostControlPolicy(policy *TrafficHostControlPolicy) error {
+	if policy == nil {
+		return nil
+	}
+	if policy.MaxConcurrent < 0 {
+		return fmt.Errorf("traffic policy host max concurrent must not be negative")
+	}
+	if err := validateTrafficRateLimiterPolicy(policy.RateLimiter); err != nil {
+		return fmt.Errorf("traffic policy host control: %w", err)
+	}
+	return nil
+}
+
+func validateTrafficSessionControlPolicy(policy *TrafficSessionControlPolicy) error {
+	if policy == nil {
+		return nil
+	}
+	if policy.MaxConcurrent < 0 {
+		return fmt.Errorf("traffic policy session max concurrent must not be negative")
+	}
+	if err := validateTrafficRateLimiterPolicy(policy.RateLimiter); err != nil {
+		return fmt.Errorf("traffic policy session control: %w", err)
+	}
+	return nil
 }

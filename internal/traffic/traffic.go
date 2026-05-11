@@ -11,6 +11,7 @@ const (
 )
 
 type classContextKey struct{}
+type requestSessionContextKey struct{}
 
 // WithClass attaches one traffic class to a context.
 func WithClass(ctx context.Context, class Class) context.Context {
@@ -42,4 +43,24 @@ func NormalizeClass(class Class) Class {
 	default:
 		return ClassOfficialAPI
 	}
+}
+
+// WithRequestSessionKey attaches one explicit request-session key to a context.
+func WithRequestSessionKey(ctx context.Context, key string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, requestSessionContextKey{}, key)
+}
+
+// RequestSessionKeyFromContext resolves one request-session key from context.
+func RequestSessionKeyFromContext(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	key, ok := ctx.Value(requestSessionContextKey{}).(string)
+	if !ok || key == "" {
+		return "", false
+	}
+	return key, true
 }
