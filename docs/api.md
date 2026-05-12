@@ -186,6 +186,30 @@ Notes:
 - `GetWishlistItemsOnSale` accepts `accessToken`, `countryCode`, and optional `data_request` fields through `input_json`.
 - The `store_item` field in `GetWishlistItemsOnSale` is intentionally exposed as `json.RawMessage` because the payload is large and Steam changes it frequently.
 
+## Raw Payload Strategy
+
+`steam-go` defaults to typed responses whenever one Steam payload is stable, small enough to maintain, and useful as a Go-first API.
+
+Use `json.RawMessage` only when one payload or subtree is clearly volatile:
+
+- the field is very large or deeply nested
+- Steam changes the shape frequently
+- language, region, login state, or experiments can materially reshape the field
+- most callers do not need the whole subtree eagerly decoded
+
+Preferred modeling order:
+
+1. stable official payload: fully typed response
+2. stable outer response with volatile subtree: typed outer struct plus `json.RawMessage` on the unstable field
+3. highly volatile payload with unclear long-term shape: raw JSON first, then promote stable portions to typed fields later
+
+Additional rules:
+
+- Prefer `typed outer + raw subtree` over turning the entire response into `map[string]any`.
+- Document every exported `json.RawMessage` field with the reason it is raw.
+- Do not use `json.RawMessage` on stable official Web API fields just to avoid writing types.
+- If a future volatile subtree starts showing long-term stability, it can be promoted from raw JSON to typed fields in a later release.
+
 ## Credential Notes
 
 - `key` and `access_token` are treated as different credentials.
