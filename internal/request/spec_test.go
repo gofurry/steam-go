@@ -9,10 +9,12 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/GoFurry/steam-go/internal/auth"
 	sdkerrors "github.com/GoFurry/steam-go/internal/errors"
 	"github.com/GoFurry/steam-go/internal/request"
+	"github.com/GoFurry/steam-go/internal/traffic"
 )
 
 func TestExecutorSupportsRequestBody(t *testing.T) {
@@ -26,9 +28,13 @@ func TestExecutorSupportsRequestBody(t *testing.T) {
 		"https://api.steampowered.com",
 		nil,
 		nil,
-		0,
 		1024,
-		recorder,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
@@ -83,9 +89,13 @@ func TestExecutorReusesRequestBodyAcrossRetries(t *testing.T) {
 		"https://api.steampowered.com",
 		auth.NewStaticKeyProvider("demo-key"),
 		auth.NewStaticAccessTokenProvider("demo-token"),
-		1,
 		1024,
-		recorder,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
@@ -131,9 +141,13 @@ func TestExecutorRotatesAccessTokenOnUnauthorizedRetry(t *testing.T) {
 		"https://api.steampowered.com",
 		nil,
 		auth.NewRoundRobinAccessTokenProvider("token-a", "token-b"),
-		1,
 		1024,
-		recorder,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
@@ -160,6 +174,59 @@ func TestExecutorRotatesAccessTokenOnUnauthorizedRetry(t *testing.T) {
 	}
 }
 
+func TestExecutorSkipsCoolingAPIKeyOnUnauthorizedRetry(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusUnauthorized, http.StatusOK},
+	}
+
+	apiKeys, err := auth.NewHealthCheckedRoundRobinKeyProvider(
+		auth.KeyHealthConfig{FailureThreshold: 1, Cooldown: time.Second},
+		"key-a",
+		"key-b",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinKeyProvider returned error: %v", err)
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		apiKeys,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+	})
+	if err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if len(recorder.requests) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(recorder.requests))
+	}
+	if got := recorder.requests[0].query.Get("key"); got != "key-a" {
+		t.Fatalf("unexpected first api key: %s", got)
+	}
+	if got := recorder.requests[1].query.Get("key"); got != "key-b" {
+		t.Fatalf("unexpected second api key: %s", got)
+	}
+}
+
 func TestExecutorPreservesExplicitContentTypeHeader(t *testing.T) {
 	t.Parallel()
 
@@ -171,9 +238,13 @@ func TestExecutorPreservesExplicitContentTypeHeader(t *testing.T) {
 		"https://api.steampowered.com",
 		nil,
 		nil,
-		0,
 		1024,
-		recorder,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
@@ -208,9 +279,13 @@ func TestExecutorPreservesExplicitCredentialsFromQuery(t *testing.T) {
 		"https://api.steampowered.com",
 		auth.NewStaticKeyProvider("global-key"),
 		auth.NewStaticAccessTokenProvider("global-token"),
-		0,
 		1024,
-		recorder,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
@@ -323,9 +398,13 @@ func TestExecutorRejectsResponsesThatExceedBodyLimit(t *testing.T) {
 		"https://api.steampowered.com",
 		nil,
 		nil,
-		0,
 		8,
-		recorder,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
@@ -344,7 +423,18 @@ func TestExecutorRejectsResponsesThatExceedBodyLimit(t *testing.T) {
 func TestExecutorReportsRequestBuildErrorForInvalidMethod(t *testing.T) {
 	t.Parallel()
 
-	executor, err := request.NewExecutor("https://api.steampowered.com", nil, nil, 0, 1024, &recordingTransport{})
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    &recordingTransport{},
+		},
+		nil,
+	)
 	if err != nil {
 		t.Fatalf("NewExecutor returned error: %v", err)
 	}
@@ -359,7 +449,153 @@ func TestExecutorReportsRequestBuildErrorForInvalidMethod(t *testing.T) {
 func TestExecutorRejectsInvalidBodyLimit(t *testing.T) {
 	t.Parallel()
 
-	_, err := request.NewExecutor("https://api.steampowered.com", nil, nil, 0, 0, &recordingTransport{})
+	_, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		0,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    &recordingTransport{},
+		},
+		nil,
+	)
+	var apiErr *sdkerrors.APIError
+	if err == nil || !errors.As(err, &apiErr) || apiErr.Kind != sdkerrors.KindRequestBuild {
+		t.Fatalf("expected request_build error, got %v", err)
+	}
+}
+
+func TestExecutorRoutesTrafficClassPolicies(t *testing.T) {
+	t.Parallel()
+
+	officialTransport := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+	storeTransport := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    officialTransport,
+		},
+		map[traffic.Class]request.ExecutionPolicy{
+			traffic.ClassPublicStorePage: {
+				Retry:        0,
+				RetryBackoff: request.DefaultRetryBackoffConfig(),
+				Transport:    storeTransport,
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	if _, err := executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/Official/v1/",
+	}); err != nil {
+		t.Fatalf("official request returned error: %v", err)
+	}
+
+	storeCtx := traffic.WithClass(context.Background(), traffic.ClassPublicStorePage)
+	if _, err := executor.DoRaw(storeCtx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/Store/v1/",
+	}); err != nil {
+		t.Fatalf("store request returned error: %v", err)
+	}
+
+	officialTransport.mu.Lock()
+	officialCount := len(officialTransport.requests)
+	officialTransport.mu.Unlock()
+	storeTransport.mu.Lock()
+	storeCount := len(storeTransport.requests)
+	storeTransport.mu.Unlock()
+
+	if officialCount != 1 {
+		t.Fatalf("expected one official request, got %d", officialCount)
+	}
+	if storeCount != 1 {
+		t.Fatalf("expected one store request, got %d", storeCount)
+	}
+}
+
+func TestExecutorAppliesPrepareRequestHook(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			PrepareRequest: func(req *http.Request) error {
+				req.Header.Set("X-Prepared", "yes")
+				return nil
+			},
+			Transport: recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	if _, err := executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/Prepared/v1/",
+	}); err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if got := recorder.requests[0].header.Get("X-Prepared"); got != "yes" {
+		t.Fatalf("expected prepared header, got %q", got)
+	}
+}
+
+func TestExecutorReportsPrepareRequestErrorAsRequestBuild(t *testing.T) {
+	t.Parallel()
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			PrepareRequest: func(*http.Request) error {
+				return errors.New("prepare failed")
+			},
+			Transport: &recordingTransport{},
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/Prepared/v1/",
+	})
 	var apiErr *sdkerrors.APIError
 	if err == nil || !errors.As(err, &apiErr) || apiErr.Kind != sdkerrors.KindRequestBuild {
 		t.Fatalf("expected request_build error, got %v", err)

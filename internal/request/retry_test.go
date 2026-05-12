@@ -6,6 +6,21 @@ import (
 	"time"
 )
 
+func TestRetryDelayUsesConfiguredBaseDelayAndJitter(t *testing.T) {
+	t.Parallel()
+
+	cfg := RetryBackoffConfig{
+		BaseDelay:         250 * time.Millisecond,
+		MaxDelay:          2 * time.Second,
+		RespectRetryAfter: true,
+	}
+
+	delay := retryDelay(0, nil, time.Unix(0, 0), cfg)
+	if delay < 250*time.Millisecond || delay > 375*time.Millisecond {
+		t.Fatalf("unexpected jittered delay: %s", delay)
+	}
+}
+
 func TestRetryAfterDelayParsesSeconds(t *testing.T) {
 	t.Parallel()
 
@@ -75,8 +90,59 @@ func TestRetryAfterDelayRejectsInvalidHeader(t *testing.T) {
 func TestRetryDelayAddsBoundedJitterWithoutRetryAfter(t *testing.T) {
 	t.Parallel()
 
-	delay := retryDelay(0, nil, time.Unix(0, 0))
+	delay := retryDelay(0, nil, time.Unix(0, 0), DefaultRetryBackoffConfig())
 	if delay < 100*time.Millisecond || delay > 150*time.Millisecond {
 		t.Fatalf("unexpected jittered delay: %s", delay)
+	}
+}
+
+func TestRetryDelayCapsExponentialGrowthAtMaxDelay(t *testing.T) {
+	t.Parallel()
+
+	cfg := RetryBackoffConfig{
+		BaseDelay:         100 * time.Millisecond,
+		MaxDelay:          400 * time.Millisecond,
+		RespectRetryAfter: true,
+	}
+
+	delay := retryDelay(5, nil, time.Unix(0, 0), cfg)
+	if delay < 400*time.Millisecond || delay > 600*time.Millisecond {
+		t.Fatalf("unexpected capped jittered delay: %s", delay)
+	}
+}
+
+func TestRetryDelayPrefersRetryAfterWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	resp := &http.Response{
+		Header: http.Header{"Retry-After": []string{"3"}},
+	}
+	cfg := RetryBackoffConfig{
+		BaseDelay:         100 * time.Millisecond,
+		MaxDelay:          2 * time.Second,
+		RespectRetryAfter: true,
+	}
+
+	delay := retryDelay(2, resp, time.Unix(0, 0), cfg)
+	if delay != 3*time.Second {
+		t.Fatalf("unexpected delay: %s", delay)
+	}
+}
+
+func TestRetryDelayIgnoresRetryAfterWhenDisabled(t *testing.T) {
+	t.Parallel()
+
+	resp := &http.Response{
+		Header: http.Header{"Retry-After": []string{"3"}},
+	}
+	cfg := RetryBackoffConfig{
+		BaseDelay:         100 * time.Millisecond,
+		MaxDelay:          2 * time.Second,
+		RespectRetryAfter: false,
+	}
+
+	delay := retryDelay(0, resp, time.Unix(0, 0), cfg)
+	if delay < 100*time.Millisecond || delay > 150*time.Millisecond {
+		t.Fatalf("unexpected local backoff delay: %s", delay)
 	}
 }

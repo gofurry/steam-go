@@ -19,6 +19,8 @@
 - Buffered response bodies are capped by default and can be tuned with `WithMaxResponseBodyBytes(...)`
 - `key` and `access_token` are treated as different credentials and can be configured independently
 - API key is optional and can be supplied through a rotating key provider
+- `WithSafeDefaults()` enables a conservative retry + rate-limit preset for real external traffic
+- `WithHealthCheckedAPIKeys(...)` adds temporary cooldown for keys that repeatedly hit `401/429`
 - Typed responses by default with matching raw response methods
 - `401/429` can automatically retry with the next API key when `WithAPIKeys(...)` and `WithRetry(...)` are used together
 - Independent addons can extend the SDK without bloating the core Web API client
@@ -102,9 +104,13 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 
 - `NewStaticProxySelector(...)` for one fixed proxy
 - `NewRoundRobinProxySelector(...)` for simple rotation
+- `NewHealthCheckedRoundRobinProxySelector(...)` for failure-based cooldown in one proxy pool
+- `NewStickyProxySelector(...)` for explicit session-key based sticky proxy selection
 - `NewRoutingProxySelector(...)` for host/path-based routing
 - `NewHTTPClientWithProxySelector(...)` for addon or standalone HTTP flows
-- no built-in health checks, circuit breaking, or heavy proxy-pool management
+- `WithProxySessionKey(ctx, key)` for attaching one sticky session key to request context
+- `ProxyMetricsProvider` for one in-memory health snapshot of a health-checked proxy pool
+- no external metrics integration or heavy proxy-pool management
 
 Static example:
 
@@ -143,6 +149,139 @@ if err != nil {
 }
 ```
 
+Sticky example:
+
+```go
+baseSelector, err := steam.NewRoundRobinProxySelector(
+	"http://127.0.0.1:7897",
+	"http://127.0.0.1:7898",
+)
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(steam.NewStickyProxySelector(baseSelector)),
+)
+if err != nil {
+	panic(err)
+}
+
+ctx := steam.WithProxySessionKey(context.Background(), "browser-session-1")
+_, err = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
+if err != nil {
+	panic(err)
+}
+```
+
+Health-checked round-robin example:
+
+```go
+selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+	steam.DefaultProxyHealthConfig(),
+	"http://127.0.0.1:7897",
+	"http://127.0.0.1:7898",
+)
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(selector),
+)
+if err != nil {
+	panic(err)
+}
+
+metrics := selector.(steam.ProxyMetricsProvider).ProxyMetricsSnapshot()
+fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingProxies)
+```
+
+## Traffic Classes
+
+`steam-go` now supports per-class request policy routing so official Steam Web API traffic and future public store-page traffic can use different request strategies.
+
+- `TrafficClassOfficialAPI` is the default for existing typed `client.API.*` methods
+- `TrafficClassPublicStorePage` is reserved for future public store-page integrations
+- `WithTrafficPolicy(...)` overrides proxy, cookie jar, retry, rate limit, short-cache, block detection, header profile, and Referer strategy per class
+- `TransportHook` and `TransportHookFunc` reserve one per-class HTTP execution extension point for future TLS customization or browser-backed fallback
+- `WithTrafficClass(ctx, class)` lets one request opt into a non-default class
+- `DefaultPublicStoreHeaderProfileZH()` and `DefaultPublicStoreHeaderProfileEN()` provide stable browser-like header presets
+- `WithRefererSource(ctx, rawURL)` plus `NewStaticRefererSelector(...)`, `NewRoutingRefererSelector(...)`, and `NewContextRefererSelector(...)` support fixed, routed, and context-driven Referer policies
+- `TrafficCachePolicy{TTL: ...}` enables per-class in-memory short caching with `ETag` / `Last-Modified` revalidation for `GET` requests
+- `TrafficBlockPolicy{HTMLSniffBytes: ...}` enables public store-page block detection for `429`, `403`, and HTML challenge responses
+
+Example:
+
+```go
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		RateLimiter: &steam.TrafficRateLimiterPolicy{
+			Limit: 10,
+			Burst: 10,
+		},
+	}),
+)
+if err != nil {
+	panic(err)
+}
+
+// Keep typed Steam Web API calls on the default OfficialAPI class.
+_, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198370695025"})
+
+// Reserve TrafficClassPublicStorePage for future public store-page request entrypoints.
+storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+_ = storeCtx
+```
+
+Public store-page profile example:
+
+```go
+profile := steam.DefaultPublicStoreHeaderProfileZH()
+refererSelector, err := steam.NewStaticRefererSelector("https://store.steampowered.com/search/")
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		Cache:           &steam.TrafficCachePolicy{TTL: time.Minute},
+		BlockPolicy:     &steam.TrafficBlockPolicy{},
+		HeaderProfile:   &profile,
+		RefererSelector: refererSelector,
+	}),
+)
+if err != nil {
+	panic(err)
+}
+```
+
+Public store-page transport hook example:
+
+```go
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		TransportHook: steam.TransportHookFunc(func(class steam.TrafficClass, base *http.Client) (*http.Client, error) {
+			cloned := *base
+			if transport, ok := base.Transport.(*http.Transport); ok {
+				custom := transport.Clone()
+				custom.TLSHandshakeTimeout = 5 * time.Second
+				cloned.Transport = custom
+			}
+			return &cloned, nil
+		}),
+	}),
+)
+if err != nil {
+	panic(err)
+}
+```
+
 On China-region networks, browser login may succeed while the server-side Steam OpenID `check_authentication` request still times out. The OpenID example supports `--proxy http://127.0.0.1:7897` for that case and also demonstrates cookie-backed `state` verification on the callback.
 
 ## Examples
@@ -153,6 +292,7 @@ On China-region networks, browser login may succeed while the server-side Steam 
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
 - `go run ./examples/proxy`
+- `go run ./examples/traffic`
 - `go run ./test/steamuser`
 - `go run ./test/playerservice`
 - `go run ./test/wishlistservice`
@@ -168,3 +308,6 @@ SDK errors use `*steam.APIError` with these kinds:
 - `api_response`
 
 Use `errors.As(err, &apiErr)` to inspect kind, status code, and raw body.
+
+Steam Web API credentials are injected through query parameters by default because that matches Steam's HTTP interface.
+Avoid logging raw request URLs in production. Use `steam.RedactSensitiveURL(...)` before sending URLs to logs, traces, or monitoring systems.

@@ -14,4 +14,5 @@ const (
 )
 
 // APIError is the exported SDK error model.
+// Use BodyPreview to log a bounded body preview instead of the full raw body.
 type APIError = sdkerrors.APIError

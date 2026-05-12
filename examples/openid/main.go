@@ -114,9 +114,8 @@ func main() {
 
 		_, _ = fmt.Fprintf(
 			w,
-			"Steam login verified.\nSteamID: %s\nState: %s\nClaimedID: %s\n\nState cookie matched and was cleared.\n",
+			"Steam login verified.\nSteamID: %s\nClaimedID: %s\n\nState cookie matched and was cleared.\n",
 			identity.SteamID,
-			identity.State,
 			identity.ClaimedID,
 		)
 	})

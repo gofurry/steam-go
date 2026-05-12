@@ -15,6 +15,7 @@ import (
 
 	"github.com/GoFurry/steam-go/internal/auth"
 	sdkerrors "github.com/GoFurry/steam-go/internal/errors"
+	"github.com/GoFurry/steam-go/internal/traffic"
 )
 
 const defaultUserAgent = "steam-go/1"
@@ -26,12 +27,13 @@ type Transport interface {
 
 // RequestSpec describes a Steam API request.
 type RequestSpec struct {
-	Method      string
-	Path        string
-	Query       url.Values
-	Headers     http.Header
-	Body        []byte
-	ContentType string
+	Method       string
+	Path         string
+	Query        url.Values
+	Headers      http.Header
+	Body         []byte
+	ContentType  string
+	TrafficClass traffic.Class
 }
 
 // Executor performs request assembly and response reading.
@@ -39,9 +41,9 @@ type Executor struct {
 	baseURL              *url.URL
 	apiKeyProvider       auth.APIKeyProvider
 	accessTokenProvider  auth.AccessTokenProvider
-	retry                int
 	maxResponseBodyBytes int64
-	transport            Transport
+	defaultPolicy        ExecutionPolicy
+	classPolicies        map[traffic.Class]ExecutionPolicy
 }
 
 type requestCredentials struct {
@@ -49,8 +51,41 @@ type requestCredentials struct {
 	accessToken string
 }
 
+type apiKeyResultReporter interface {
+	ReportAPIKeyResult(req *http.Request, key string, statusCode int, err error)
+}
+
+// RequestPreparer mutates one fully-built request before transport execution.
+type RequestPreparer func(req *http.Request) error
+
+// RetryBackoffConfig controls local retry delay behavior.
+type RetryBackoffConfig struct {
+	BaseDelay         time.Duration
+	MaxDelay          time.Duration
+	RespectRetryAfter bool
+}
+
+// ExecutionPolicy routes one request to one transport and retry profile.
+type ExecutionPolicy struct {
+	Retry          int
+	RetryBackoff   RetryBackoffConfig
+	Transport      Transport
+	CacheRuntime   CacheRuntime
+	BlockRuntime   BlockRuntime
+	PrepareRequest RequestPreparer
+}
+
+// DefaultRetryBackoffConfig returns the SDK retry defaults.
+func DefaultRetryBackoffConfig() RetryBackoffConfig {
+	return RetryBackoffConfig{
+		BaseDelay:         100 * time.Millisecond,
+		MaxDelay:          2 * time.Second,
+		RespectRetryAfter: true,
+	}
+}
+
 // NewExecutor creates a request executor.
-func NewExecutor(baseURL string, apiKeyProvider auth.APIKeyProvider, accessTokenProvider auth.AccessTokenProvider, retry int, maxResponseBodyBytes int64, transport Transport) (*Executor, error) {
+func NewExecutor(baseURL string, apiKeyProvider auth.APIKeyProvider, accessTokenProvider auth.AccessTokenProvider, maxResponseBodyBytes int64, defaultPolicy ExecutionPolicy, classPolicies map[traffic.Class]ExecutionPolicy) (*Executor, error) {
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "invalid base url", nil, err)
@@ -58,13 +93,24 @@ func NewExecutor(baseURL string, apiKeyProvider auth.APIKeyProvider, accessToken
 	if maxResponseBodyBytes <= 0 {
 		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max response body bytes must be greater than zero", nil, nil)
 	}
+	if err := validateExecutionPolicy(defaultPolicy); err != nil {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, err.Error(), nil, nil)
+	}
+	resolvedClassPolicies := make(map[traffic.Class]ExecutionPolicy, len(classPolicies))
+	for class, policy := range classPolicies {
+		class = traffic.NormalizeClass(class)
+		if err := validateExecutionPolicy(policy); err != nil {
+			return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, err.Error(), nil, nil)
+		}
+		resolvedClassPolicies[class] = policy
+	}
 	return &Executor{
 		baseURL:              parsed,
 		apiKeyProvider:       apiKeyProvider,
 		accessTokenProvider:  accessTokenProvider,
-		retry:                retry,
 		maxResponseBodyBytes: maxResponseBodyBytes,
-		transport:            transport,
+		defaultPolicy:        defaultPolicy,
+		classPolicies:        resolvedClassPolicies,
 	}, nil
 }
 
@@ -84,36 +130,76 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
+	class := e.executionClass(ctx, spec.TrafficClass)
+	policy := e.executionPolicyForClass(class)
 
 	var lastErr error
-	for attempt := 0; attempt <= e.retry; attempt++ {
+	for attempt := 0; attempt <= policy.Retry; attempt++ {
 		req, err := e.buildRequest(ctx, resolved, spec, creds)
 		if err != nil {
 			return nil, err
 		}
+		req = req.WithContext(traffic.WithClass(req.Context(), class))
+		if policy.BlockRuntime != nil {
+			req = req.WithContext(traffic.WithBlockDetection(req.Context()))
+		}
+		if policy.PrepareRequest != nil {
+			if err := policy.PrepareRequest(req); err != nil {
+				return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
+			}
+		}
+		cacheLookup := cacheLookup{}
+		if policy.CacheRuntime != nil && requestCacheable(req) {
+			cacheLookup = policy.CacheRuntime.lookup(req, time.Now())
+			if cacheLookup.fresh {
+				return cloneBytes(cacheLookup.body), nil
+			}
+			if cacheLookupAllowsConditionalRequest(cacheLookup) {
+				applyConditionalCacheHeaders(req, cacheLookup)
+			}
+		}
 
-		resp, err := e.transport.Do(ctx, req)
+		resp, err := policy.Transport.Do(ctx, req)
 		if err != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, err)
-			if shouldRetryTransport(ctx, err) && attempt < e.retry {
-				if !sleepBeforeRetry(ctx, attempt, nil) {
+			if shouldRetryTransport(ctx, err) && attempt < policy.Retry {
+				if !sleepBeforeRetry(ctx, attempt, nil, policy.RetryBackoff) {
 					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 				}
 				continue
 			}
 			return nil, lastErr
+		}
+		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
+			if body, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
+				_ = resp.Body.Close()
+				return body, nil
+			}
 		}
 
 		body, readErr := readAndCloseBody(resp, e.maxResponseBodyBytes)
 		if readErr != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, resp.StatusCode, "read response body failed", nil, readErr)
-			if attempt < e.retry {
-				if !sleepBeforeRetry(ctx, attempt, resp) {
+			if attempt < policy.Retry {
+				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 				}
 				continue
 			}
 			return nil, lastErr
+		}
+		e.reportAPIKeyResult(req, creds, resp.StatusCode, nil)
+		if policy.BlockRuntime != nil {
+			if blockResult := policy.BlockRuntime.detect(req, resp, body); blockResult != nil {
+				lastErr = sdkerrors.New(blockResult.ErrorKind, resp.StatusCode, blockResult.Message, body, nil)
+				if blockResult.Retryable && attempt < policy.Retry {
+					if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
+						return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					}
+					continue
+				}
+				return nil, lastErr
+			}
 		}
 
 		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
@@ -124,17 +210,20 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 				body,
 				nil,
 			)
-			if shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil, e.accessTokenProvider != nil) && attempt < e.retry {
+			if shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil, e.accessTokenProvider != nil) && attempt < policy.Retry {
 				creds, err = e.rotateRetryCredentials(req, resp.StatusCode, creds)
 				if err != nil {
 					return nil, err
 				}
-				if !sleepBeforeRetry(ctx, attempt, resp) {
+				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 				}
 				continue
 			}
 			return nil, lastErr
+		}
+		if policy.CacheRuntime != nil && requestCacheable(req) {
+			policy.CacheRuntime.store(req, resp, body, time.Now())
 		}
 
 		return body, nil
@@ -213,6 +302,17 @@ func (e *Executor) rotateRetryCredentials(req *http.Request, statusCode int, cre
 	return creds, nil
 }
 
+func (e *Executor) reportAPIKeyResult(req *http.Request, creds requestCredentials, statusCode int, err error) {
+	if e.apiKeyProvider == nil || creds.apiKey == "" {
+		return
+	}
+	reporter, ok := e.apiKeyProvider.(apiKeyResultReporter)
+	if !ok {
+		return
+	}
+	reporter.ReportAPIKeyResult(req, creds.apiKey, statusCode, err)
+}
+
 func (e *Executor) buildRequest(ctx context.Context, resolved *url.URL, spec RequestSpec, creds requestCredentials) (*http.Request, error) {
 	var body io.Reader
 	if len(spec.Body) > 0 {
@@ -238,6 +338,44 @@ func (e *Executor) buildRequest(ctx context.Context, resolved *url.URL, spec Req
 	}
 
 	return req, nil
+}
+
+func (e *Executor) executionClass(ctx context.Context, specClass traffic.Class) traffic.Class {
+	class := traffic.NormalizeClass(specClass)
+	if ctxClass, ok := traffic.ClassFromContext(ctx); ok {
+		class = ctxClass
+	}
+	return class
+}
+
+func (e *Executor) executionPolicy(ctx context.Context, specClass traffic.Class) ExecutionPolicy {
+	return e.executionPolicyForClass(e.executionClass(ctx, specClass))
+}
+
+func (e *Executor) executionPolicyForClass(class traffic.Class) ExecutionPolicy {
+	if policy, ok := e.classPolicies[class]; ok {
+		return policy
+	}
+	return e.defaultPolicy
+}
+
+func validateExecutionPolicy(policy ExecutionPolicy) error {
+	if policy.Transport == nil {
+		return fmt.Errorf("transport is required")
+	}
+	if policy.Retry < 0 {
+		return fmt.Errorf("retry must not be negative")
+	}
+	if policy.RetryBackoff.BaseDelay <= 0 {
+		return fmt.Errorf("retry base delay must be greater than zero")
+	}
+	if policy.RetryBackoff.MaxDelay <= 0 {
+		return fmt.Errorf("retry max delay must be greater than zero")
+	}
+	if policy.RetryBackoff.MaxDelay < policy.RetryBackoff.BaseDelay {
+		return fmt.Errorf("retry max delay must be greater than or equal to base delay")
+	}
+	return nil
 }
 
 func readAndCloseBody(resp *http.Response, maxBytes int64) ([]byte, error) {
@@ -278,8 +416,8 @@ func shouldRotateCredentials(statusCode int) bool {
 	return statusCode == http.StatusUnauthorized || statusCode == http.StatusTooManyRequests
 }
 
-func sleepBeforeRetry(ctx context.Context, attempt int, resp *http.Response) bool {
-	delay := retryDelay(attempt, resp, time.Now())
+func sleepBeforeRetry(ctx context.Context, attempt int, resp *http.Response, cfg RetryBackoffConfig) bool {
+	delay := retryDelay(attempt, resp, time.Now(), cfg)
 	select {
 	case <-ctx.Done():
 		return false
@@ -288,17 +426,33 @@ func sleepBeforeRetry(ctx context.Context, attempt int, resp *http.Response) boo
 	}
 }
 
-func retryDelay(attempt int, resp *http.Response, now time.Time) time.Duration {
-	if delay, ok := retryAfterDelay(resp, now); ok {
-		return delay
+func retryDelay(attempt int, resp *http.Response, now time.Time, cfg RetryBackoffConfig) time.Duration {
+	if cfg.RespectRetryAfter {
+		if delay, ok := retryAfterDelay(resp, now); ok {
+			return delay
+		}
 	}
 
-	baseDelay := time.Duration(attempt+1) * 100 * time.Millisecond
-	jitterWindow := baseDelay / 2
-	if jitterWindow <= 0 {
-		return baseDelay
+	delay := cfg.BaseDelay
+	for i := 0; i < attempt; i++ {
+		if delay >= cfg.MaxDelay {
+			break
+		}
+		if delay > cfg.MaxDelay/2 {
+			delay = cfg.MaxDelay
+			break
+		}
+		delay *= 2
 	}
-	return baseDelay + time.Duration(rand.Int64N(int64(jitterWindow)+1))
+	if delay > cfg.MaxDelay {
+		delay = cfg.MaxDelay
+	}
+
+	jitterWindow := delay / 2
+	if jitterWindow <= 0 {
+		return delay
+	}
+	return delay + time.Duration(rand.Int64N(int64(jitterWindow)+1))
 }
 
 func retryAfterDelay(resp *http.Response, now time.Time) (time.Duration, bool) {

@@ -94,9 +94,13 @@ func main() {
 
 - `NewStaticProxySelector(...)`：固定代理
 - `NewRoundRobinProxySelector(...)`：简单轮转
+- `NewHealthCheckedRoundRobinProxySelector(...)`：基于失败评分和冷却时间的健康代理池
+- `NewStickyProxySelector(...)`：按显式 session key 复用同一个代理
 - `NewRoutingProxySelector(...)`：按 `host/path` 路由代理
 - `NewHTTPClientWithProxySelector(...)`：给 addon 或独立 HTTP 流程复用
-- 目前仍然不内建健康检查、熔断和重型代理池管理
+- `WithProxySessionKey(ctx, key)`：把粘性代理的会话键挂到请求上下文里
+- `ProxyMetricsProvider`：读取健康代理池的内存快照指标
+- 目前仍然不内建外部指标上报和重型代理池管理
 
 固定代理示例：
 
@@ -113,6 +117,139 @@ client, err := steam.NewClient(
 if err != nil {
 	panic(err)
 }
+```
+
+## 流量类别
+
+`steam-go` 现在支持按流量类别路由请求策略，让官方 Steam Web API 流量和后续公开商店页流量可以使用不同的请求配置。
+
+- `TrafficClassOfficialAPI`：现有 typed `client.API.*` 方法的默认类别
+- `TrafficClassPublicStorePage`：为后续公开商店页接入预留的类别
+- `WithTrafficPolicy(...)`：按类别覆盖 proxy、cookie jar、retry、rate limit、短缓存、block 检测、header profile 和 Referer 策略
+- `TransportHook` / `TransportHookFunc`：为某个流量类别预留 HTTP 执行栈扩展点，方便后续接自定义 TLS 或浏览器回退方案
+- `WithTrafficClass(ctx, class)`：让单次请求显式切到非默认类别
+- `DefaultPublicStoreHeaderProfileZH()` / `DefaultPublicStoreHeaderProfileEN()`：提供稳定的浏览器式请求头预设
+- `WithRefererSource(ctx, rawURL)`、`NewStaticRefererSelector(...)`、`NewRoutingRefererSelector(...)`、`NewContextRefererSelector(...)`：提供固定、路由式和上下文来源式 Referer 策略
+- `TrafficCachePolicy{TTL: ...}`：为某个流量类别启用进程内短 TTL 缓存，并在 `GET` 请求上自动使用 `ETag` / `Last-Modified` 做条件请求
+- `TrafficBlockPolicy{HTMLSniffBytes: ...}`：为公开商店页流量启用 `429`、`403` 与 HTML challenge 的 block 检测与恢复链路
+
+示例：
+
+```go
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		RateLimiter: &steam.TrafficRateLimiterPolicy{
+			Limit: 10,
+			Burst: 10,
+		},
+	}),
+)
+if err != nil {
+	panic(err)
+}
+
+// typed Steam Web API 调用仍然建议走默认的 OfficialAPI 类别。
+_, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198370695025"})
+
+// TrafficClassPublicStorePage 预留给后续公开商店页请求入口使用。
+storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+_ = storeCtx
+```
+
+公开商店页请求画像示例：
+
+```go
+profile := steam.DefaultPublicStoreHeaderProfileZH()
+refererSelector, err := steam.NewStaticRefererSelector("https://store.steampowered.com/search/")
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		Cache:           &steam.TrafficCachePolicy{TTL: time.Minute},
+		BlockPolicy:     &steam.TrafficBlockPolicy{},
+		HeaderProfile:   &profile,
+		RefererSelector: refererSelector,
+	}),
+)
+if err != nil {
+	panic(err)
+}
+```
+
+公开商店页 transport hook 示例：
+
+```go
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+		TransportHook: steam.TransportHookFunc(func(class steam.TrafficClass, base *http.Client) (*http.Client, error) {
+			cloned := *base
+			if transport, ok := base.Transport.(*http.Transport); ok {
+				custom := transport.Clone()
+				custom.TLSHandshakeTimeout = 5 * time.Second
+				cloned.Transport = custom
+			}
+			return &cloned, nil
+		}),
+	}),
+)
+if err != nil {
+	panic(err)
+}
+```
+
+粘性代理示例：
+
+```go
+baseSelector, err := steam.NewRoundRobinProxySelector(
+	"http://127.0.0.1:7897",
+	"http://127.0.0.1:7898",
+)
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(steam.NewStickyProxySelector(baseSelector)),
+)
+if err != nil {
+	panic(err)
+}
+
+ctx := steam.WithProxySessionKey(context.Background(), "browser-session-1")
+_, err = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
+if err != nil {
+	panic(err)
+}
+```
+
+健康代理池示例：
+
+```go
+selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+	steam.DefaultProxyHealthConfig(),
+	"http://127.0.0.1:7897",
+	"http://127.0.0.1:7898",
+)
+if err != nil {
+	panic(err)
+}
+
+client, err := steam.NewClient(
+	steam.WithAPIKey("your-key"),
+	steam.WithProxySelector(selector),
+)
+if err != nil {
+	panic(err)
+}
+
+metrics := selector.(steam.ProxyMetricsProvider).ProxyMetricsSnapshot()
+fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingProxies)
 ```
 
 按 `host/path` 路由示例：
