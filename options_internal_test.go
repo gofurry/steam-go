@@ -144,6 +144,25 @@ func TestWithRetryRespectRetryAfterOverridesDefault(t *testing.T) {
 	}
 }
 
+func TestWithSafeDefaultsAppliesConservativeRetryAndLimiter(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	if err := WithSafeDefaults()(&cfg); err != nil {
+		t.Fatalf("WithSafeDefaults returned error: %v", err)
+	}
+
+	if cfg.retry != safeDefaultRetry {
+		t.Fatalf("unexpected retry: got %d want %d", cfg.retry, safeDefaultRetry)
+	}
+	if cfg.rateLimiter.Limit != rate.Limit(safeDefaultRPS) {
+		t.Fatalf("unexpected rate limit: got %v want %v", cfg.rateLimiter.Limit, rate.Limit(safeDefaultRPS))
+	}
+	if cfg.rateLimiter.Burst != safeDefaultRPS {
+		t.Fatalf("unexpected burst: got %d want %d", cfg.rateLimiter.Burst, safeDefaultRPS)
+	}
+}
+
 func TestWithCookieJarSetsConfig(t *testing.T) {
 	t.Parallel()
 

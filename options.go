@@ -16,6 +16,11 @@ import (
 
 const defaultBaseURL = "https://api.steampowered.com"
 
+const (
+	safeDefaultRetry = 2
+	safeDefaultRPS   = 3
+)
+
 // ProxySelector chooses a proxy URL for a request.
 type ProxySelector interface {
 	Next(req *http.Request) (*url.URL, error)
@@ -185,6 +190,22 @@ func WithRetry(retry int) Option {
 			return fmt.Errorf("retry must not be negative")
 		}
 		cfg.retry = retry
+		return nil
+	}
+}
+
+// WithSafeDefaults enables a conservative retry and rate-limit profile for external Steam traffic.
+//
+// It is a convenience preset for callers who want safer defaults before tuning per-service behavior:
+//   - retry: 2
+//   - rate limit: 3 requests/second with burst 3
+func WithSafeDefaults() Option {
+	return func(cfg *clientConfig) error {
+		cfg.retry = safeDefaultRetry
+		cfg.rateLimiter = transport.RateLimiterConfig{
+			Limit: rate.Limit(safeDefaultRPS),
+			Burst: safeDefaultRPS,
+		}
 		return nil
 	}
 }
