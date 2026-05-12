@@ -67,6 +67,7 @@ type ExecutionPolicy struct {
 	RetryBackoff   RetryBackoffConfig
 	Transport      Transport
 	CacheRuntime   CacheRuntime
+	BlockRuntime   BlockRuntime
 	PrepareRequest RequestPreparer
 }
 
@@ -134,6 +135,10 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		if err != nil {
 			return nil, err
 		}
+		req = req.WithContext(traffic.WithClass(req.Context(), class))
+		if policy.BlockRuntime != nil {
+			req = req.WithContext(traffic.WithBlockDetection(req.Context()))
+		}
 		if policy.PrepareRequest != nil {
 			if err := policy.PrepareRequest(req); err != nil {
 				return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
@@ -178,6 +183,18 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 				continue
 			}
 			return nil, lastErr
+		}
+		if policy.BlockRuntime != nil {
+			if blockResult := policy.BlockRuntime.detect(req, resp, body); blockResult != nil {
+				lastErr = sdkerrors.New(blockResult.ErrorKind, resp.StatusCode, blockResult.Message, body, nil)
+				if blockResult.Retryable && attempt < policy.Retry {
+					if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
+						return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					}
+					continue
+				}
+				return nil, lastErr
+			}
 		}
 
 		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {

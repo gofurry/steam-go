@@ -12,6 +12,7 @@ const (
 
 type classContextKey struct{}
 type requestSessionContextKey struct{}
+type blockDetectionContextKey struct{}
 
 // WithClass attaches one traffic class to a context.
 func WithClass(ctx context.Context, class Class) context.Context {
@@ -63,4 +64,21 @@ func RequestSessionKeyFromContext(ctx context.Context) (string, bool) {
 		return "", false
 	}
 	return key, true
+}
+
+// WithBlockDetection attaches one block-detection enabled marker to a context.
+func WithBlockDetection(ctx context.Context) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, blockDetectionContextKey{}, true)
+}
+
+// BlockDetectionFromContext resolves whether block detection is enabled for this request.
+func BlockDetectionFromContext(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	enabled, _ := ctx.Value(blockDetectionContextKey{}).(bool)
+	return enabled
 }

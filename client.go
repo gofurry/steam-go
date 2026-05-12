@@ -163,6 +163,8 @@ type runtimePolicyConfig struct {
 	hostControl     transport.RequestControlConfig
 	sessionControl  transport.RequestControlConfig
 	cacheTTL        time.Duration
+	blockPolicy     *TrafficBlockPolicy
+	trafficClass    itraffic.Class
 	headerProfile   *HeaderProfile
 	refererSelector RefererSelector
 	retry           int
@@ -177,6 +179,8 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		hostControl:     transport.RequestControlConfig{},
 		sessionControl:  transport.RequestControlConfig{},
 		cacheTTL:        0,
+		blockPolicy:     nil,
+		trafficClass:    itraffic.ClassOfficialAPI,
 		headerProfile:   nil,
 		refererSelector: nil,
 		retry:           cfg.retry,
@@ -200,6 +204,8 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 			hostControl:     transport.RequestControlConfig{},
 			sessionControl:  transport.RequestControlConfig{},
 			cacheTTL:        0,
+			blockPolicy:     nil,
+			trafficClass:    itraffic.NormalizeClass(class),
 			headerProfile:   nil,
 			refererSelector: nil,
 			retry:           cfg.retry,
@@ -248,6 +254,9 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		if policy.cache != nil {
 			resolved.cacheTTL = policy.cache.TTL
 		}
+		if policy.blockPolicy != nil {
+			resolved.blockPolicy = policy.blockPolicy
+		}
 		if policy.headerProfile != nil {
 			resolved.headerProfile = cloneHeaderProfile(policy.headerProfile)
 		}
@@ -283,6 +292,7 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 			Retry:          policy.retry,
 			RetryBackoff:   policy.retryBackoff,
 			CacheRuntime:   request.NewMemoryCacheRuntime(policy.cacheTTL, policy.cookieJar),
+			BlockRuntime:   request.NewBlockRuntime(policy.trafficClass, request.BlockConfig{HTMLSniffBytes: blockSniffBytes(policy.blockPolicy)}),
 			PrepareRequest: buildRequestPreparer(policy.headerProfile, policy.refererSelector),
 			Transport: transport.New(httpClient, transport.ClientConfig{
 				RateLimiter:    policy.rateLimiter,
@@ -291,6 +301,13 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 			}),
 		},
 	}, nil
+}
+
+func blockSniffBytes(policy *TrafficBlockPolicy) int {
+	if policy == nil {
+		return 0
+	}
+	return policy.HTMLSniffBytes
 }
 
 func buildHTTPClient(cfg clientConfig, selector ProxySelector, jar http.CookieJar, cookieJarConfigured bool) (*http.Client, error) {

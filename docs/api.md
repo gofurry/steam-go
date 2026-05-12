@@ -238,6 +238,7 @@ Notes:
 - `RefererRoute`
 - `TrafficPolicy`
 - `TrafficCachePolicy`
+- `TrafficBlockPolicy`
 - `TrafficRateLimiterPolicy`
 - `TrafficRetryPolicy`
 - `WithTrafficPolicy(class TrafficClass, policy TrafficPolicy)`
@@ -252,6 +253,7 @@ Notes:
 - `TrafficClassPublicStorePage` is reserved for future public store-page integrations and can already carry isolated request policy overrides.
 - `WithTrafficPolicy(...)` only overrides the fields you set; unset fields continue to use the client-level defaults.
 - `TrafficCachePolicy` currently applies only to `GET` requests and uses in-memory short TTL caching with `ETag` / `Last-Modified` revalidation.
+- `TrafficBlockPolicy` is currently supported only on `TrafficClassPublicStorePage` and detects `429`, `403`, and HTML challenge responses.
 - `HeaderProfile` only fills missing request headers and does not override explicit values already set on the request.
 - Referer selectors run before transport execution; an explicit `Referer` header on the request still wins.
 

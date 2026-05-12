@@ -125,11 +125,12 @@ if err != nil {
 
 - `TrafficClassOfficialAPI`：现有 typed `client.API.*` 方法的默认类别
 - `TrafficClassPublicStorePage`：为后续公开商店页接入预留的类别
-- `WithTrafficPolicy(...)`：按类别覆盖 proxy、cookie jar、retry、rate limit、短缓存、header profile 和 Referer 策略
+- `WithTrafficPolicy(...)`：按类别覆盖 proxy、cookie jar、retry、rate limit、短缓存、block 检测、header profile 和 Referer 策略
 - `WithTrafficClass(ctx, class)`：让单次请求显式切到非默认类别
 - `DefaultPublicStoreHeaderProfileZH()` / `DefaultPublicStoreHeaderProfileEN()`：提供稳定的浏览器式请求头预设
 - `WithRefererSource(ctx, rawURL)`、`NewStaticRefererSelector(...)`、`NewRoutingRefererSelector(...)`、`NewContextRefererSelector(...)`：提供固定、路由式和上下文来源式 Referer 策略
 - `TrafficCachePolicy{TTL: ...}`：为某个流量类别启用进程内短 TTL 缓存，并在 `GET` 请求上自动使用 `ETag` / `Last-Modified` 做条件请求
+- `TrafficBlockPolicy{HTMLSniffBytes: ...}`：为公开商店页流量启用 `429`、`403` 与 HTML challenge 的 block 检测与恢复链路
 
 示例：
 
@@ -163,8 +164,9 @@ if err != nil {
 client, err := steam.NewClient(
 	steam.WithAPIKey("your-key"),
 	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
-		Cache:          &steam.TrafficCachePolicy{TTL: time.Minute},
-		HeaderProfile:  &profile,
+		Cache:           &steam.TrafficCachePolicy{TTL: time.Minute},
+		BlockPolicy:     &steam.TrafficBlockPolicy{},
+		HeaderProfile:   &profile,
 		RefererSelector: refererSelector,
 	}),
 )

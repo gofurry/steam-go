@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	itraffic "github.com/GoFurry/steam-go/internal/traffic"
 	itransport "github.com/GoFurry/steam-go/internal/transport"
 )
 
@@ -343,7 +344,7 @@ func (s *healthCheckedRoundRobinProxySelector) Next(*http.Request) (*url.URL, er
 	return nil, ErrAllProxiesCoolingDown
 }
 
-func (s *healthCheckedRoundRobinProxySelector) ReportProxyResult(_ *http.Request, proxyURL *url.URL, statusCode int, err error) {
+func (s *healthCheckedRoundRobinProxySelector) ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error) {
 	if proxyURL == nil {
 		return
 	}
@@ -357,7 +358,7 @@ func (s *healthCheckedRoundRobinProxySelector) ReportProxyResult(_ *http.Request
 	}
 
 	state := &s.states[idx]
-	if proxyResultFailed(statusCode, err) {
+	if proxyResultFailedForRequest(req, statusCode, err) {
 		state.failureCount++
 		state.lastFailureAt = time.Now()
 		state.failureScore++
@@ -512,4 +513,15 @@ func proxyResultFailed(statusCode int, err error) bool {
 		return true
 	}
 	return statusCode == http.StatusTooManyRequests || statusCode >= http.StatusInternalServerError
+}
+
+func proxyResultFailedForRequest(req *http.Request, statusCode int, err error) bool {
+	if proxyResultFailed(statusCode, err) {
+		return true
+	}
+	if statusCode != http.StatusForbidden || req == nil {
+		return false
+	}
+	class, ok := itraffic.ClassFromContext(req.Context())
+	return ok && class == itraffic.ClassPublicStorePage && itraffic.BlockDetectionFromContext(req.Context())
 }

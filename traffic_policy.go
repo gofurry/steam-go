@@ -57,6 +57,11 @@ type TrafficCachePolicy struct {
 	TTL time.Duration
 }
 
+// TrafficBlockPolicy overrides per-class block detection behavior.
+type TrafficBlockPolicy struct {
+	HTMLSniffBytes int
+}
+
 // TrafficPolicy overrides selected request behavior for one traffic class.
 type TrafficPolicy struct {
 	ProxySelector   ProxySelector
@@ -66,6 +71,7 @@ type TrafficPolicy struct {
 	HostControl     *TrafficHostControlPolicy
 	SessionControl  *TrafficSessionControlPolicy
 	Cache           *TrafficCachePolicy
+	BlockPolicy     *TrafficBlockPolicy
 	HeaderProfile   *HeaderProfile
 	RefererSelector RefererSelector
 }
@@ -95,6 +101,7 @@ type trafficPolicyConfig struct {
 	hostControl       *TrafficHostControlPolicy
 	sessionControl    *TrafficSessionControlPolicy
 	cache             *TrafficCachePolicy
+	blockPolicy       *TrafficBlockPolicy
 	headerProfile     *HeaderProfile
 	refererSelector   RefererSelector
 	cookieJarProvided bool
@@ -133,6 +140,9 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 		if err := validateTrafficCachePolicy(policy.Cache); err != nil {
 			return err
 		}
+		if err := validateTrafficBlockPolicy(class, policy.BlockPolicy); err != nil {
+			return err
+		}
 		if cfg.trafficPolicies == nil {
 			cfg.trafficPolicies = make(map[TrafficClass]trafficPolicyConfig)
 		}
@@ -144,6 +154,7 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 			hostControl:       policy.HostControl,
 			sessionControl:    policy.SessionControl,
 			cache:             policy.Cache,
+			blockPolicy:       policy.BlockPolicy,
 			headerProfile:     cloneHeaderProfile(policy.HeaderProfile),
 			refererSelector:   policy.RefererSelector,
 			cookieJarProvided: policy.CookieJar != nil,
@@ -215,6 +226,19 @@ func validateTrafficCachePolicy(policy *TrafficCachePolicy) error {
 	}
 	if policy.TTL <= 0 {
 		return fmt.Errorf("traffic policy cache ttl must be greater than zero")
+	}
+	return nil
+}
+
+func validateTrafficBlockPolicy(class TrafficClass, policy *TrafficBlockPolicy) error {
+	if policy == nil {
+		return nil
+	}
+	if normalizeTrafficClass(class) != TrafficClassPublicStorePage {
+		return fmt.Errorf("traffic policy block detection is only supported for public store page traffic")
+	}
+	if policy.HTMLSniffBytes < 0 {
+		return fmt.Errorf("traffic policy block html sniff bytes must not be negative")
 	}
 	return nil
 }

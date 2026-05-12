@@ -3914,6 +3914,141 @@ func TestTrafficPolicyCacheIsolatesByClassAndSession(t *testing.T) {
 	}
 }
 
+func TestTrafficPolicyDetectsPublicStoreForbiddenBlock(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "access denied", http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			BlockPolicy: &steam.TrafficBlockPolicy{},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+	_, err = client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"})
+	expectKind(t, err, steam.ErrorKindHTTPStatus)
+
+	var apiErr *steam.APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if !strings.Contains(apiErr.Message, "forbidden") {
+		t.Fatalf("unexpected error message: %q", apiErr.Message)
+	}
+}
+
+func TestTrafficPolicyDetectsPublicStoreHTMLChallenge(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("<html><body>verify you are human with g-recaptcha</body></html>"))
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			Cache:       &steam.TrafficCachePolicy{TTL: time.Minute},
+			BlockPolicy: &steam.TrafficBlockPolicy{},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+	for range 2 {
+		_, err = client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"})
+		expectKind(t, err, steam.ErrorKindAPIResponse)
+	}
+
+	if got := requestCount.Load(); got != 2 {
+		t.Fatalf("expected block responses to skip cache writes, got %d requests", got)
+	}
+}
+
+func TestTrafficPolicyRetriesForbiddenBlockForPublicStore(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch requestCount.Add(1) {
+		case 1:
+			http.Error(w, "access denied", http.StatusForbidden)
+		case 2:
+			_, _ = w.Write([]byte(`{"response":{"players":[{"steamid":"1","personaname":"recovered"}]}}`))
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithRetry(1),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			BlockPolicy: &steam.TrafficBlockPolicy{},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+	resp, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"})
+	if err != nil {
+		t.Fatalf("expected retry recovery, got error: %v", err)
+	}
+	if got := resp.Response.Players[0].PersonaName; got != "recovered" {
+		t.Fatalf("unexpected recovered body: %q", got)
+	}
+	if got := requestCount.Load(); got != 2 {
+		t.Fatalf("expected one retry after forbidden block, got %d requests", got)
+	}
+}
+
+func TestTrafficPolicyOfficialAPIKeepsGenericForbiddenHandling(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"})
+	expectKind(t, err, steam.ErrorKindHTTPStatus)
+
+	var apiErr *steam.APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if strings.Contains(apiErr.Message, "block detected") {
+		t.Fatalf("did not expect generic official-api 403 to use block message: %q", apiErr.Message)
+	}
+}
+
 func TestWithHTTPClientAndDefaultCookieJarUsesClonedJar(t *testing.T) {
 	t.Parallel()
 

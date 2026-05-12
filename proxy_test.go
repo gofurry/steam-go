@@ -12,6 +12,7 @@ import (
 	"time"
 
 	steam "github.com/GoFurry/steam-go"
+	"github.com/GoFurry/steam-go/internal/traffic"
 )
 
 func TestNewStaticProxySelector(t *testing.T) {
@@ -725,6 +726,104 @@ func TestHealthCheckedRoundRobinProxySelectorTracksSuccessMetrics(t *testing.T) 
 	}
 	if metrics.LastSuccessAt.IsZero() {
 		t.Fatal("expected last success timestamp")
+	}
+}
+
+func TestHealthCheckedRoundRobinProxySelectorTreatsPublicStoreForbiddenAsFailure(t *testing.T) {
+	t.Parallel()
+
+	selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{
+			FailureThreshold: 1,
+			Cooldown:         time.Second,
+		},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+
+	reporter := selector.(interface {
+		ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error)
+	})
+	req := mustRequestWithContext(t, traffic.WithBlockDetection(steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)), "https://store.steampowered.com/app/10")
+
+	proxyURL, err := selector.Next(req)
+	if err != nil {
+		t.Fatalf("selector.Next returned error: %v", err)
+	}
+	reporter.ReportProxyResult(req, proxyURL, http.StatusForbidden, nil)
+
+	if _, err := selector.Next(req); !errors.Is(err, steam.ErrAllProxiesCoolingDown) {
+		t.Fatalf("expected ErrAllProxiesCoolingDown after public-store 403, got %v", err)
+	}
+}
+
+func TestHealthCheckedRoundRobinProxySelectorIgnoresOfficialAPICode403ForCooling(t *testing.T) {
+	t.Parallel()
+
+	selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{
+			FailureThreshold: 1,
+			Cooldown:         time.Second,
+		},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+
+	reporter := selector.(interface {
+		ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error)
+	})
+	req := mustRequestWithContext(t, context.Background(), "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/")
+
+	proxyURL, err := selector.Next(req)
+	if err != nil {
+		t.Fatalf("selector.Next returned error: %v", err)
+	}
+	reporter.ReportProxyResult(req, proxyURL, http.StatusForbidden, nil)
+
+	next, err := selector.Next(req)
+	if err != nil {
+		t.Fatalf("expected proxy to remain available, got %v", err)
+	}
+	if next == nil {
+		t.Fatal("expected proxy url")
+	}
+}
+
+func TestHealthCheckedRoundRobinProxySelectorRequiresBlockDetectionFlagForPublicStore403(t *testing.T) {
+	t.Parallel()
+
+	selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
+		steam.ProxyHealthConfig{
+			FailureThreshold: 1,
+			Cooldown:         time.Second,
+		},
+		"http://127.0.0.1:7897",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinProxySelector returned error: %v", err)
+	}
+
+	reporter := selector.(interface {
+		ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error)
+	})
+	req := mustRequestWithContext(t, steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage), "https://store.steampowered.com/app/10")
+
+	proxyURL, err := selector.Next(req)
+	if err != nil {
+		t.Fatalf("selector.Next returned error: %v", err)
+	}
+	reporter.ReportProxyResult(req, proxyURL, http.StatusForbidden, nil)
+
+	next, err := selector.Next(req)
+	if err != nil {
+		t.Fatalf("expected proxy to remain available without block flag, got %v", err)
+	}
+	if next == nil {
+		t.Fatal("expected proxy url")
 	}
 }
 

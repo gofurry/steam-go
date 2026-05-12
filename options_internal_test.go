@@ -253,6 +253,7 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 			MaxConcurrent: 5,
 		},
 		Cache:           &TrafficCachePolicy{TTL: time.Minute},
+		BlockPolicy:     &TrafficBlockPolicy{HTMLSniffBytes: 4096},
 		HeaderProfile:   &profile,
 		RefererSelector: selector,
 	})(&cfg); err != nil {
@@ -286,6 +287,9 @@ func TestWithTrafficPolicyStoresPerClassPolicy(t *testing.T) {
 	}
 	if policy.cache == nil || policy.cache.TTL != time.Minute {
 		t.Fatalf("unexpected cache policy: %#v", policy.cache)
+	}
+	if policy.blockPolicy == nil || policy.blockPolicy.HTMLSniffBytes != 4096 {
+		t.Fatalf("unexpected block policy: %#v", policy.blockPolicy)
 	}
 	if policy.headerProfile == nil || policy.headerProfile.AcceptLanguage != profile.AcceptLanguage {
 		t.Fatalf("unexpected header profile: %#v", policy.headerProfile)
@@ -365,6 +369,30 @@ func TestWithTrafficPolicyRejectsInvalidCacheTTL(t *testing.T) {
 	})(&cfg)
 	if err == nil {
 		t.Fatal("expected error for zero cache ttl")
+	}
+}
+
+func TestWithTrafficPolicyRejectsBlockPolicyForOfficialAPI(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	err := WithTrafficPolicy(TrafficClassOfficialAPI, TrafficPolicy{
+		BlockPolicy: &TrafficBlockPolicy{},
+	})(&cfg)
+	if err == nil {
+		t.Fatal("expected error for official api block policy")
+	}
+}
+
+func TestWithTrafficPolicyRejectsNegativeBlockHTMLSniffBytes(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	err := WithTrafficPolicy(TrafficClassPublicStorePage, TrafficPolicy{
+		BlockPolicy: &TrafficBlockPolicy{HTMLSniffBytes: -1},
+	})(&cfg)
+	if err == nil {
+		t.Fatal("expected error for negative html sniff bytes")
 	}
 }
 
