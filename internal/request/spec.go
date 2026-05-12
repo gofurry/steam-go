@@ -348,10 +348,6 @@ func (e *Executor) executionClass(ctx context.Context, specClass traffic.Class) 
 	return class
 }
 
-func (e *Executor) executionPolicy(ctx context.Context, specClass traffic.Class) ExecutionPolicy {
-	return e.executionPolicyForClass(e.executionClass(ctx, specClass))
-}
-
 func (e *Executor) executionPolicyForClass(class traffic.Class) ExecutionPolicy {
 	if policy, ok := e.classPolicies[class]; ok {
 		return policy

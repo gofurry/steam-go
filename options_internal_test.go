@@ -482,7 +482,7 @@ func TestWithTrafficPolicyRejectsNegativeBlockHTMLSniffBytes(t *testing.T) {
 func TestWithRequestSessionKeyStoresTrimmedKey(t *testing.T) {
 	t.Parallel()
 
-	ctx := WithRequestSessionKey(nil, "  session-a  ")
+	ctx := WithRequestSessionKey(nilContext(), "  session-a  ")
 	key, ok := traffic.RequestSessionKeyFromContext(ctx)
 	if !ok {
 		t.Fatal("expected request session key")
@@ -490,6 +490,10 @@ func TestWithRequestSessionKeyStoresTrimmedKey(t *testing.T) {
 	if key != "session-a" {
 		t.Fatalf("unexpected request session key: %q", key)
 	}
+}
+
+func nilContext() context.Context {
+	return nil
 }
 
 func TestWithRequestSessionKeyTreatsBlankAsUnset(t *testing.T) {
