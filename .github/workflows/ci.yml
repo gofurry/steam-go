@@ -16,6 +16,7 @@ jobs:
         go-version:
           - "1.24"
           - "1.25"
+          - "1.26"
 
     steps:
       - name: Checkout
@@ -25,7 +26,11 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
+          check-latest: true
           cache: true
+
+      - name: Show Go version
+        run: go version
 
       - name: Run tests
         run: go test ./...
@@ -40,8 +45,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version: "1.26"
+          check-latest: true
           cache: true
+
+      - name: Show Go version
+        run: go version
 
       - name: Run go vet
         run: go vet ./...
@@ -68,8 +77,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version: "1.26"
+          check-latest: true
           cache: true
+
+      - name: Show Go version
+        run: go version
 
       - name: Run race tests
         run: go test -race ./...
