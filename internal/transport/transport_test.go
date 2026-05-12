@@ -368,6 +368,51 @@ func TestClientHostRateLimiterThrottlesSameHost(t *testing.T) {
 	}
 }
 
+func TestClientHostRateLimiterDoesNotHoldConcurrencySlotWhileWaiting(t *testing.T) {
+	t.Parallel()
+
+	client := New(&http.Client{
+		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			return okResponse(), nil
+		}),
+	}, ClientConfig{
+		HostControl: RequestControlConfig{
+			RateLimiter:   RateLimiterConfig{Limit: 1, Burst: 1},
+			MaxConcurrent: 1,
+		},
+	})
+
+	if err := doTransportRequest(client, context.Background(), "https://api.steampowered.com/one"); err != nil {
+		t.Fatalf("first request returned error: %v", err)
+	}
+
+	waitCtx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- doTransportRequest(client, waitCtx, "https://api.steampowered.com/two")
+	}()
+
+	time.Sleep(20 * time.Millisecond)
+
+	client.hostController.mu.Lock()
+	entry, ok := client.hostController.semaphores["api.steampowered.com"]
+	held := 0
+	if ok && entry != nil {
+		held = len(entry.semaphore)
+	}
+	client.hostController.mu.Unlock()
+
+	if held != 0 {
+		t.Fatalf("expected waiting request not to hold host semaphore slot, got %d", held)
+	}
+
+	if err := <-done; err == nil || !strings.Contains(err.Error(), "would exceed context deadline") {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
 func TestClientSessionConcurrencySerializesSameSession(t *testing.T) {
 	t.Parallel()
 

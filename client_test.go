@@ -4149,6 +4149,57 @@ func TestTrafficPolicyTransportHookSeesAssembledBaseClient(t *testing.T) {
 	client.Close()
 }
 
+func TestTrafficPolicyProxyAwareTransportHookCanCustomizeBeforeProxyWrapping(t *testing.T) {
+	t.Parallel()
+
+	var hookCalls atomic.Int32
+	selector := &stubProxySelector{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"response":{"players":[]}}`))
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("test-key"),
+		steam.WithBaseURL(server.URL),
+		steam.WithProxySelector(selector),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			TransportHook: steam.ProxyAwareTransportHookFunc(func(class steam.TrafficClass, base *http.Client, proxySelector steam.ProxySelector) (*http.Client, error) {
+				hookCalls.Add(1)
+				if class != steam.TrafficClassPublicStorePage {
+					t.Fatalf("unexpected traffic class: %s", class)
+				}
+				if proxySelector == nil {
+					t.Fatal("expected proxy selector")
+				}
+				if _, ok := base.Transport.(*http.Transport); !ok {
+					t.Fatalf("expected unwrapped *http.Transport, got %T", base.Transport)
+				}
+
+				cloned := *base
+				transport := cloned.Transport.(*http.Transport).Clone()
+				transport.ResponseHeaderTimeout = 2 * time.Second
+				cloned.Transport = transport
+				return steam.WrapHTTPClientWithProxySelector(&cloned, proxySelector)
+			}),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
+	if _, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"}); err != nil {
+		t.Fatalf("store request returned error: %v", err)
+	}
+	if got := hookCalls.Load(); got != 1 {
+		t.Fatalf("expected one proxy-aware hook call, got %d", got)
+	}
+	if got := selector.calls.Load(); got == 0 {
+		t.Fatal("expected proxy selector to remain active after proxy-aware hook")
+	}
+}
+
 func TestTrafficPolicyTransportHookRejectsNilClient(t *testing.T) {
 	t.Parallel()
 
@@ -4176,6 +4227,14 @@ func TestTrafficPolicyTransportHookPropagatesBuildError(t *testing.T) {
 	)
 	if err == nil || !strings.Contains(err.Error(), "hook failed") {
 		t.Fatalf("expected hook error, got %v", err)
+	}
+}
+
+func TestWrapHTTPClientWithProxySelectorRejectsNilClient(t *testing.T) {
+	t.Parallel()
+
+	if _, err := steam.WrapHTTPClientWithProxySelector(nil, nil); err == nil {
+		t.Fatal("expected error")
 	}
 }
 

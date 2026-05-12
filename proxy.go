@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,6 +19,12 @@ import (
 const defaultProxyClientTimeout = 10 * time.Second
 
 var ErrAllProxiesCoolingDown = errors.New("all proxies are cooling down")
+
+const (
+	stickyProxyMaxEntries       = 512
+	stickyProxyIdleTTL          = 10 * time.Minute
+	stickyProxySweepIntervalOps = 128
+)
 
 type proxyHealthStatusReporter interface {
 	ReportProxyResult(req *http.Request, proxyURL *url.URL, statusCode int, err error)
@@ -156,7 +163,7 @@ func NewStickyProxySelector(base ProxySelector) ProxySelector {
 	}
 	sticky := &stickyProxySelector{
 		base:  base,
-		cache: make(map[string]*url.URL),
+		cache: make(map[string]stickyProxyEntry),
 	}
 	if metrics, ok := base.(ProxyMetricsProvider); ok {
 		return &stickyProxySelectorWithMetrics{
@@ -217,15 +224,33 @@ func NewHTTPClientWithProxySelector(selector ProxySelector, timeout time.Duratio
 		timeout = defaultProxyClientTimeout
 	}
 
-	rt, err := itransport.WrapRoundTripper(http.DefaultTransport, selector)
+	client, err := WrapHTTPClientWithProxySelector(&http.Client{
+		Timeout:   timeout,
+		Transport: http.DefaultTransport,
+	}, selector)
 	if err != nil {
 		return nil, err
 	}
+	client.Timeout = timeout
+	return client, nil
+}
 
-	return &http.Client{
-		Timeout:   timeout,
-		Transport: rt,
-	}, nil
+// WrapHTTPClientWithProxySelector clones one base client and applies proxy selection to the clone.
+//
+// This helper is useful inside ProxyAwareTransportHook implementations that need to customize the base client
+// and then re-attach the SDK proxy selection wrapper.
+func WrapHTTPClientWithProxySelector(base *http.Client, selector ProxySelector) (*http.Client, error) {
+	if base == nil {
+		return nil, fmt.Errorf("http client is required")
+	}
+
+	cloned := cloneHTTPClient(base)
+	rt, err := itransport.WrapRoundTripper(cloned.Transport, selector)
+	if err != nil {
+		return nil, err
+	}
+	cloned.Transport = rt
+	return cloned, nil
 }
 
 type staticProxySelector struct {
@@ -249,12 +274,20 @@ func (s *roundRobinProxySelector) Next(*http.Request) (*url.URL, error) {
 type stickyProxySelector struct {
 	base  ProxySelector
 	mu    sync.RWMutex
-	cache map[string]*url.URL
+	cache map[string]stickyProxyEntry
+
+	opCount   atomic.Uint64
+	lastSweep atomic.Int64
 }
 
 type stickyProxySelectorWithMetrics struct {
 	*stickyProxySelector
 	metrics ProxyMetricsProvider
+}
+
+type stickyProxyEntry struct {
+	proxyURL *url.URL
+	lastUsed time.Time
 }
 
 func (s *stickyProxySelector) Next(req *http.Request) (*url.URL, error) {
@@ -263,16 +296,20 @@ func (s *stickyProxySelector) Next(req *http.Request) (*url.URL, error) {
 		return s.base.Next(req)
 	}
 
+	now := time.Now()
+	s.maybePrune(now)
+
 	s.mu.RLock()
 	cached, ok := s.cache[key]
 	s.mu.RUnlock()
 	if ok {
-		if checker, ok := s.base.(proxyAvailabilityChecker); ok && !checker.proxyAvailable(cached, time.Now()) {
+		if checker, ok := s.base.(proxyAvailabilityChecker); ok && !checker.proxyAvailable(cached.proxyURL, now) {
 			s.mu.Lock()
 			delete(s.cache, key)
 			s.mu.Unlock()
 		} else {
-			return cloneProxyURL(cached), nil
+			s.markUsed(key, now)
+			return cloneProxyURL(cached.proxyURL), nil
 		}
 	}
 
@@ -281,10 +318,12 @@ func (s *stickyProxySelector) Next(req *http.Request) (*url.URL, error) {
 
 	cached, ok = s.cache[key]
 	if ok {
-		if checker, ok := s.base.(proxyAvailabilityChecker); ok && !checker.proxyAvailable(cached, time.Now()) {
+		if checker, ok := s.base.(proxyAvailabilityChecker); ok && !checker.proxyAvailable(cached.proxyURL, now) {
 			delete(s.cache, key)
 		} else {
-			return cloneProxyURL(cached), nil
+			cached.lastUsed = now
+			s.cache[key] = cached
+			return cloneProxyURL(cached.proxyURL), nil
 		}
 	}
 
@@ -292,7 +331,13 @@ func (s *stickyProxySelector) Next(req *http.Request) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.cache[key] = cloneProxyURL(proxyURL)
+	s.cache[key] = stickyProxyEntry{
+		proxyURL: cloneProxyURL(proxyURL),
+		lastUsed: now,
+	}
+	if len(s.cache) > stickyProxyMaxEntries {
+		s.pruneLocked(now, len(s.cache)-stickyProxyMaxEntries)
+	}
 	return cloneProxyURL(proxyURL), nil
 }
 
@@ -304,6 +349,75 @@ func (s *stickyProxySelector) ReportProxyResult(req *http.Request, proxyURL *url
 
 func (s *stickyProxySelectorWithMetrics) ProxyMetricsSnapshot() ProxyMetricsSnapshot {
 	return s.metrics.ProxyMetricsSnapshot()
+}
+
+func (s *stickyProxySelector) markUsed(key string, now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	entry, ok := s.cache[key]
+	if !ok {
+		return
+	}
+	entry.lastUsed = now
+	s.cache[key] = entry
+}
+
+func (s *stickyProxySelector) maybePrune(now time.Time) {
+	if s == nil {
+		return
+	}
+	count := s.opCount.Add(1)
+	if count%stickyProxySweepIntervalOps != 0 {
+		return
+	}
+	last := s.lastSweep.Load()
+	if last != 0 && now.UnixNano()-last < int64(time.Second) {
+		return
+	}
+
+	s.mu.Lock()
+	s.pruneLocked(now, 0)
+	s.mu.Unlock()
+	s.lastSweep.Store(now.UnixNano())
+}
+
+func (s *stickyProxySelector) pruneLocked(now time.Time, targetExtra int) {
+	if len(s.cache) == 0 {
+		return
+	}
+
+	idleBefore := now.Add(-stickyProxyIdleTTL)
+	type candidate struct {
+		key      string
+		lastUsed time.Time
+	}
+
+	candidates := make([]candidate, 0, len(s.cache))
+	for key, entry := range s.cache {
+		if entry.lastUsed.Before(idleBefore) {
+			delete(s.cache, key)
+			continue
+		}
+		candidates = append(candidates, candidate{
+			key:      key,
+			lastUsed: entry.lastUsed,
+		})
+	}
+
+	if targetExtra <= 0 || len(s.cache) <= stickyProxyMaxEntries {
+		return
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].lastUsed.Before(candidates[j].lastUsed)
+	})
+	for _, candidate := range candidates {
+		if targetExtra <= 0 {
+			break
+		}
+		delete(s.cache, candidate.key)
+		targetExtra--
+	}
 }
 
 type proxyHealthState struct {

@@ -73,6 +73,18 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 	hostKey := requestHostKey(req)
 	sessionKey := requestSessionKey(ctx)
 
+	if err := waitRequestControl(ctx, c.hostController, hostKey); err != nil {
+		return nil, err
+	}
+	if err := waitRequestControl(ctx, c.sessionController, sessionKey); err != nil {
+		return nil, err
+	}
+	if c.limiter != nil {
+		if err := c.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	hostRelease, err := acquireRequestControl(ctx, c.hostController, hostKey)
 	if err != nil {
 		return nil, err
@@ -85,17 +97,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 	}
 	defer sessionRelease()
 
-	if err := waitRequestControl(ctx, c.hostController, hostKey); err != nil {
-		return nil, err
-	}
-	if err := waitRequestControl(ctx, c.sessionController, sessionKey); err != nil {
-		return nil, err
-	}
-	if c.limiter != nil {
-		if err := c.limiter.Wait(ctx); err != nil {
-			return nil, err
-		}
-	}
 	return c.httpClient.Do(req.Clone(ctx))
 }
 

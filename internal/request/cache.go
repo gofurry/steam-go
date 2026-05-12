@@ -1,11 +1,11 @@
 package request
 
 import (
-	"encoding/json"
 	"net/http"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GoFurry/steam-go/internal/traffic"
@@ -32,6 +32,9 @@ type memoryCacheRuntime struct {
 
 	mu      sync.RWMutex
 	entries map[string]cacheEntry
+
+	opCount   atomic.Uint64
+	lastSweep atomic.Int64
 }
 
 type cacheEntry struct {
@@ -42,14 +45,10 @@ type cacheEntry struct {
 	expiresAt    time.Time
 }
 
-type cacheKeyPayload struct {
-	Method         string   `json:"method"`
-	URL            string   `json:"url"`
-	SessionKey     string   `json:"session_key,omitempty"`
-	AcceptLanguage string   `json:"accept_language,omitempty"`
-	ExplicitCookie string   `json:"explicit_cookie,omitempty"`
-	JarCookies     []string `json:"jar_cookies,omitempty"`
-}
+const (
+	memoryCacheMaxEntries       = 512
+	memoryCacheSweepIntervalOps = 64
+)
 
 func NewMemoryCacheRuntime(ttl time.Duration, jar http.CookieJar) CacheRuntime {
 	if ttl <= 0 {
@@ -66,6 +65,7 @@ func (c *memoryCacheRuntime) lookup(req *http.Request, now time.Time) cacheLooku
 	if c == nil {
 		return cacheLookup{}
 	}
+	c.maybeSweep(now)
 	key, ok := c.cacheKey(req)
 	if !ok {
 		return cacheLookup{}
@@ -75,6 +75,15 @@ func (c *memoryCacheRuntime) lookup(req *http.Request, now time.Time) cacheLooku
 	entry, ok := c.entries[key]
 	c.mu.RUnlock()
 	if !ok {
+		return cacheLookup{}
+	}
+	if entry.expiresAt.Before(now) && entry.etag == "" && entry.lastModified == "" {
+		c.mu.Lock()
+		current, ok := c.entries[key]
+		if ok && current.expiresAt.Before(now) && current.etag == "" && current.lastModified == "" {
+			delete(c.entries, key)
+		}
+		c.mu.Unlock()
 		return cacheLookup{}
 	}
 
@@ -92,6 +101,7 @@ func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, body 
 	if c == nil || req == nil || resp == nil || req.Method != http.MethodGet {
 		return
 	}
+	c.maybeSweep(now)
 	key, ok := c.cacheKey(req)
 	if !ok {
 		return
@@ -104,6 +114,9 @@ func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, body 
 		lastModified: strings.TrimSpace(resp.Header.Get("Last-Modified")),
 		storedAt:     now,
 		expiresAt:    now.Add(c.ttl),
+	}
+	if len(c.entries) > memoryCacheMaxEntries {
+		c.pruneLocked(now, len(c.entries)-memoryCacheMaxEntries)
 	}
 	c.mu.Unlock()
 }
@@ -140,29 +153,38 @@ func (c *memoryCacheRuntime) cacheKey(req *http.Request) (string, bool) {
 		return "", false
 	}
 
-	payload := cacheKeyPayload{
-		Method:         req.Method,
-		URL:            req.URL.String(),
-		AcceptLanguage: req.Header.Get("Accept-Language"),
-		ExplicitCookie: req.Header.Get("Cookie"),
+	var sessionKey string
+	if value, ok := traffic.RequestSessionKeyFromContext(req.Context()); ok {
+		sessionKey = value
 	}
-	if sessionKey, ok := traffic.RequestSessionKeyFromContext(req.Context()); ok {
-		payload.SessionKey = sessionKey
-	}
+	var jarCookies string
 	if c.cookieJar != nil {
-		payload.JarCookies = normalizedCookies(c.cookieJar.Cookies(req.URL))
+		jarCookies = normalizedCookieKey(c.cookieJar.Cookies(req.URL))
 	}
 
-	encoded, err := json.Marshal(payload)
-	if err != nil {
-		return "", false
-	}
-	return string(encoded), true
+	acceptLanguage := req.Header.Get("Accept-Language")
+	explicitCookie := req.Header.Get("Cookie")
+	rawURL := req.URL.String()
+
+	var builder strings.Builder
+	builder.Grow(len(req.Method) + len(rawURL) + len(sessionKey) + len(acceptLanguage) + len(explicitCookie) + len(jarCookies) + 8)
+	builder.WriteString(req.Method)
+	builder.WriteByte('\x1f')
+	builder.WriteString(rawURL)
+	builder.WriteByte('\x1f')
+	builder.WriteString(sessionKey)
+	builder.WriteByte('\x1f')
+	builder.WriteString(acceptLanguage)
+	builder.WriteByte('\x1f')
+	builder.WriteString(explicitCookie)
+	builder.WriteByte('\x1f')
+	builder.WriteString(jarCookies)
+	return builder.String(), true
 }
 
-func normalizedCookies(cookies []*http.Cookie) []string {
+func normalizedCookieKey(cookies []*http.Cookie) string {
 	if len(cookies) == 0 {
-		return nil
+		return ""
 	}
 
 	normalized := make([]string, 0, len(cookies))
@@ -174,9 +196,17 @@ func normalizedCookies(cookies []*http.Cookie) []string {
 	}
 	sort.Strings(normalized)
 	if len(normalized) == 0 {
-		return nil
+		return ""
 	}
-	return normalized
+
+	var builder strings.Builder
+	for i, value := range normalized {
+		if i > 0 {
+			builder.WriteByte('\x1e')
+		}
+		builder.WriteString(value)
+	}
+	return builder.String()
 }
 
 func cloneBytes(src []byte) []byte {
@@ -206,4 +236,69 @@ func cacheLookupAllowsConditionalRequest(lookup cacheLookup) bool {
 
 func requestCacheable(req *http.Request) bool {
 	return req != nil && req.Method == http.MethodGet && req.URL != nil
+}
+
+func (c *memoryCacheRuntime) maybeSweep(now time.Time) {
+	if c == nil {
+		return
+	}
+	count := c.opCount.Add(1)
+	if count%memoryCacheSweepIntervalOps != 0 {
+		return
+	}
+	last := c.lastSweep.Load()
+	if last != 0 && now.UnixNano()-last < int64(time.Second) {
+		return
+	}
+
+	c.mu.Lock()
+	c.pruneLocked(now, 0)
+	c.mu.Unlock()
+	c.lastSweep.Store(now.UnixNano())
+}
+
+func (c *memoryCacheRuntime) pruneLocked(now time.Time, targetExtra int) {
+	if len(c.entries) == 0 {
+		return
+	}
+
+	type candidate struct {
+		key       string
+		expires   time.Time
+		removable bool
+	}
+
+	candidates := make([]candidate, 0, len(c.entries))
+	for key, entry := range c.entries {
+		expiredNoValidators := entry.expiresAt.Before(now) && entry.etag == "" && entry.lastModified == ""
+		if expiredNoValidators {
+			delete(c.entries, key)
+			continue
+		}
+		candidates = append(candidates, candidate{
+			key:       key,
+			expires:   entry.expiresAt,
+			removable: entry.expiresAt.Before(now),
+		})
+	}
+
+	if targetExtra <= 0 || len(c.entries) <= memoryCacheMaxEntries {
+		return
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].removable != candidates[j].removable {
+			return candidates[i].removable
+		}
+		return candidates[i].expires.Before(candidates[j].expires)
+	})
+
+	toRemove := targetExtra
+	for _, candidate := range candidates {
+		if toRemove <= 0 {
+			break
+		}
+		delete(c.entries, candidate.key)
+		toRemove--
+	}
 }

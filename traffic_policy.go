@@ -67,12 +67,36 @@ type TransportHook interface {
 	WrapHTTPClient(class TrafficClass, base *http.Client) (*http.Client, error)
 }
 
+// ProxyAwareTransportHook customizes one class-specific HTTP client before proxy selection is wrapped.
+//
+// The hook receives the current traffic class, one assembled base client, and the class-specific proxy selector.
+// It is responsible for returning the final http.Client that should be used for this traffic class.
+type ProxyAwareTransportHook interface {
+	TransportHook
+	WrapHTTPClientWithProxy(class TrafficClass, base *http.Client, selector ProxySelector) (*http.Client, error)
+}
+
 // TransportHookFunc adapts one function into a TransportHook.
 type TransportHookFunc func(class TrafficClass, base *http.Client) (*http.Client, error)
 
 // WrapHTTPClient implements TransportHook.
 func (f TransportHookFunc) WrapHTTPClient(class TrafficClass, base *http.Client) (*http.Client, error) {
 	return f(class, base)
+}
+
+// ProxyAwareTransportHookFunc adapts one function into a ProxyAwareTransportHook.
+type ProxyAwareTransportHookFunc func(class TrafficClass, base *http.Client, selector ProxySelector) (*http.Client, error)
+
+// WrapHTTPClientWithProxy implements ProxyAwareTransportHook.
+func (f ProxyAwareTransportHookFunc) WrapHTTPClientWithProxy(class TrafficClass, base *http.Client, selector ProxySelector) (*http.Client, error) {
+	return f(class, base, selector)
+}
+
+// WrapHTTPClient implements TransportHook.
+//
+// When used through the narrower TransportHook interface, no proxy selector is provided.
+func (f ProxyAwareTransportHookFunc) WrapHTTPClient(class TrafficClass, base *http.Client) (*http.Client, error) {
+	return f(class, base, nil)
 }
 
 // TrafficPolicy overrides selected request behavior for one traffic class.

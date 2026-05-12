@@ -148,6 +148,48 @@ func TestMemoryCacheRuntimeSeparatesKeysBySessionLanguageAndCookies(t *testing.T
 	}
 }
 
+func TestMemoryCacheRuntimePrunesExpiredEntriesWithoutValidators(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntime(time.Second, nil).(*memoryCacheRuntime)
+	now := time.Unix(10, 0)
+
+	reqExpiring := newCacheTestRequest(t, "https://store.steampowered.com/app/10")
+	runtime.store(reqExpiring, &http.Response{StatusCode: http.StatusOK, Header: make(http.Header)}, []byte("body-a"), now)
+
+	reqValidated := newCacheTestRequest(t, "https://store.steampowered.com/app/20")
+	respValidated := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header)}
+	respValidated.Header.Set("ETag", `"etag-a"`)
+	runtime.store(reqValidated, respValidated, []byte("body-b"), now)
+
+	_ = runtime.lookup(reqExpiring, now.Add(2*time.Second))
+
+	runtime.mu.RLock()
+	defer runtime.mu.RUnlock()
+	if len(runtime.entries) != 1 {
+		t.Fatalf("expected one retained cache entry, got %d", len(runtime.entries))
+	}
+}
+
+func TestMemoryCacheRuntimeCapsEntryCount(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntime(time.Minute, nil).(*memoryCacheRuntime)
+	now := time.Unix(20, 0)
+	resp := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header)}
+
+	for i := 0; i < memoryCacheMaxEntries+32; i++ {
+		req := newCacheTestRequest(t, "https://store.steampowered.com/app/"+time.Unix(int64(i), 0).Format("150405"))
+		runtime.store(req, resp, []byte("body"), now.Add(time.Duration(i)*time.Second))
+	}
+
+	runtime.mu.RLock()
+	defer runtime.mu.RUnlock()
+	if len(runtime.entries) > memoryCacheMaxEntries {
+		t.Fatalf("expected cache size <= %d, got %d", memoryCacheMaxEntries, len(runtime.entries))
+	}
+}
+
 func newCacheTestRequest(t *testing.T, rawURL string) *http.Request {
 	t.Helper()
 

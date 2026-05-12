@@ -13,12 +13,19 @@ import (
 const defaultBlockHTMLSniffBytes = 8 * 1024
 
 var blockChallengeMarkers = []string{
+	"cf-browser-verification",
+	"g-recaptcha",
+	"hcaptcha",
+	"cf-chl-",
+	"/cdn-cgi/challenge-platform/",
+	"turnstile",
+}
+
+var blockChallengeWeakMarkers = []string{
 	"captcha",
 	"verify you are human",
 	"access denied",
-	"cf-browser-verification",
-	"cloudflare",
-	"g-recaptcha",
+	"attention required",
 }
 
 type BlockRuntime interface {
@@ -126,5 +133,12 @@ func blockLikeHTMLResponse(resp *http.Response, body []byte, sniffBytes int) boo
 			return true
 		}
 	}
-	return false
+
+	weakMatches := 0
+	for _, marker := range blockChallengeWeakMarkers {
+		if strings.Contains(sniffLower, marker) {
+			weakMatches++
+		}
+	}
+	return weakMatches >= 2
 }

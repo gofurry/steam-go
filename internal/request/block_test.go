@@ -88,10 +88,25 @@ func TestBlockRuntimeUsesDefaultSniffBytes(t *testing.T) {
 		StatusCode: http.StatusOK,
 		Header:     http.Header{"Content-Type": []string{"text/html"}},
 	}
-	body := strings.Repeat(" ", defaultBlockHTMLSniffBytes-32) + "<html>cloudflare captcha</html>"
+	body := strings.Repeat(" ", defaultBlockHTMLSniffBytes-48) + "<html>verify you are human with g-recaptcha</html>"
 
 	result := runtime.detect(nil, resp, []byte(body))
 	if result == nil {
 		t.Fatal("expected block result with default sniff size")
+	}
+}
+
+func TestBlockRuntimeIgnoresGenericHTMLMentionsWithoutStrongChallengeMarkers(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewBlockRuntime(traffic.ClassPublicStorePage, BlockConfig{})
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
+	}
+
+	result := runtime.detect(nil, resp, []byte("<html><body>Cloudflare status page: access denied to maintenance docs</body></html>"))
+	if result != nil {
+		t.Fatalf("did not expect block result, got %#v", result)
 	}
 }

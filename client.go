@@ -289,12 +289,13 @@ type builtRuntime struct {
 }
 
 func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigured bool) (builtRuntime, error) {
-	httpClient, err := buildHTTPClient(cfg, policy.proxySelector, policy.cookieJar, cookieJarConfigured)
+	httpClient, err := buildHTTPClient(cfg, policy.cookieJar, cookieJarConfigured)
 	if err != nil {
 		return builtRuntime{}, err
 	}
-	if policy.transportHook != nil {
-		hookedClient, err := policy.transportHook.WrapHTTPClient(policy.trafficClass, cloneHTTPClient(httpClient))
+
+	if proxyAwareHook, ok := policy.transportHook.(ProxyAwareTransportHook); ok {
+		hookedClient, err := proxyAwareHook.WrapHTTPClientWithProxy(policy.trafficClass, cloneHTTPClient(httpClient), policy.proxySelector)
 		if err != nil {
 			return builtRuntime{}, err
 		}
@@ -302,6 +303,21 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 			return builtRuntime{}, fmt.Errorf("transport hook returned a nil http client")
 		}
 		httpClient = hookedClient
+	} else {
+		httpClient, err = WrapHTTPClientWithProxySelector(httpClient, policy.proxySelector)
+		if err != nil {
+			return builtRuntime{}, err
+		}
+		if policy.transportHook != nil {
+			hookedClient, err := policy.transportHook.WrapHTTPClient(policy.trafficClass, cloneHTTPClient(httpClient))
+			if err != nil {
+				return builtRuntime{}, err
+			}
+			if hookedClient == nil {
+				return builtRuntime{}, fmt.Errorf("transport hook returned a nil http client")
+			}
+			httpClient = hookedClient
+		}
 	}
 	return builtRuntime{
 		httpClient: httpClient,
@@ -327,28 +343,19 @@ func blockSniffBytes(policy *TrafficBlockPolicy) int {
 	return policy.HTMLSniffBytes
 }
 
-func buildHTTPClient(cfg clientConfig, selector ProxySelector, jar http.CookieJar, cookieJarConfigured bool) (*http.Client, error) {
+func buildHTTPClient(cfg clientConfig, jar http.CookieJar, cookieJarConfigured bool) (*http.Client, error) {
 	if cfg.httpClient != nil {
 		cloned := cloneHTTPClient(cfg.httpClient)
 		cloned.Timeout = cfg.timeout
 		if cookieJarConfigured {
 			cloned.Jar = jar
 		}
-		rt, err := transport.WrapRoundTripper(cloned.Transport, selector)
-		if err != nil {
-			return nil, err
-		}
-		cloned.Transport = rt
 		return cloned, nil
 	}
 
-	rt, err := transport.WrapRoundTripper(nil, selector)
-	if err != nil {
-		return nil, err
-	}
 	return &http.Client{
 		Timeout:   cfg.timeout,
-		Transport: rt,
+		Transport: http.DefaultTransport,
 		Jar:       jar,
 	}, nil
 }
