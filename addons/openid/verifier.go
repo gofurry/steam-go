@@ -284,7 +284,7 @@ func parseSteamID(claimedID string) (string, error) {
 		}
 	}
 
-	if (parsed.Scheme != "https" && parsed.Scheme != "http") || !strings.EqualFold(parsed.Host, claimedIDHost) {
+	if parsed.Scheme != "https" || !strings.EqualFold(parsed.Host, claimedIDHost) {
 		return "", &Error{
 			Code:    ErrorCodeIdentity,
 			Op:      "verify_values",
