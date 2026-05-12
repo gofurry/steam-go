@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/GoFurry/steam-go/internal/auth"
 	sdkerrors "github.com/GoFurry/steam-go/internal/errors"
@@ -170,6 +171,59 @@ func TestExecutorRotatesAccessTokenOnUnauthorizedRetry(t *testing.T) {
 	}
 	if got := recorder.requests[1].query.Get("access_token"); got != "token-b" {
 		t.Fatalf("unexpected second access token: %s", got)
+	}
+}
+
+func TestExecutorSkipsCoolingAPIKeyOnUnauthorizedRetry(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusUnauthorized, http.StatusOK},
+	}
+
+	apiKeys, err := auth.NewHealthCheckedRoundRobinKeyProvider(
+		auth.KeyHealthConfig{FailureThreshold: 1, Cooldown: time.Second},
+		"key-a",
+		"key-b",
+	)
+	if err != nil {
+		t.Fatalf("NewHealthCheckedRoundRobinKeyProvider returned error: %v", err)
+	}
+
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		apiKeys,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+	})
+	if err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if len(recorder.requests) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(recorder.requests))
+	}
+	if got := recorder.requests[0].query.Get("key"); got != "key-a" {
+		t.Fatalf("unexpected first api key: %s", got)
+	}
+	if got := recorder.requests[1].query.Get("key"); got != "key-b" {
+		t.Fatalf("unexpected second api key: %s", got)
 	}
 }
 

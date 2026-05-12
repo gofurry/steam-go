@@ -163,6 +163,42 @@ func TestWithSafeDefaultsAppliesConservativeRetryAndLimiter(t *testing.T) {
 	}
 }
 
+func TestDefaultAPIKeyHealthConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg := DefaultAPIKeyHealthConfig()
+	if cfg.FailureThreshold != 2 {
+		t.Fatalf("unexpected failure threshold: %d", cfg.FailureThreshold)
+	}
+	if cfg.Cooldown != 30*time.Second {
+		t.Fatalf("unexpected cooldown: %s", cfg.Cooldown)
+	}
+}
+
+func TestWithHealthCheckedAPIKeysSetsProvider(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	if err := WithHealthCheckedAPIKeys(APIKeyHealthConfig{FailureThreshold: 1, Cooldown: time.Second}, "key-a", "key-b")(&cfg); err != nil {
+		t.Fatalf("WithHealthCheckedAPIKeys returned error: %v", err)
+	}
+	if cfg.apiKeyProvider == nil {
+		t.Fatal("expected api key provider")
+	}
+}
+
+func TestWithHealthCheckedAPIKeysRejectsNegativeConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg := defaultClientConfig()
+	if err := WithHealthCheckedAPIKeys(APIKeyHealthConfig{FailureThreshold: -1}, "key-a")(&cfg); err == nil {
+		t.Fatal("expected error for negative failure threshold")
+	}
+	if err := WithHealthCheckedAPIKeys(APIKeyHealthConfig{Cooldown: -time.Second}, "key-a")(&cfg); err == nil {
+		t.Fatal("expected error for negative cooldown")
+	}
+}
+
 func TestWithCookieJarSetsConfig(t *testing.T) {
 	t.Parallel()
 

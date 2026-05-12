@@ -20,6 +20,7 @@
 - `key` and `access_token` are treated as different credentials and can be configured independently
 - API key is optional and can be supplied through a rotating key provider
 - `WithSafeDefaults()` enables a conservative retry + rate-limit preset for real external traffic
+- `WithHealthCheckedAPIKeys(...)` adds temporary cooldown for keys that repeatedly hit `401/429`
 - Typed responses by default with matching raw response methods
 - `401/429` can automatically retry with the next API key when `WithAPIKeys(...)` and `WithRetry(...)` are used together
 - Independent addons can extend the SDK without bloating the core Web API client

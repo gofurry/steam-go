@@ -51,6 +51,10 @@ type requestCredentials struct {
 	accessToken string
 }
 
+type apiKeyResultReporter interface {
+	ReportAPIKeyResult(req *http.Request, key string, statusCode int, err error)
+}
+
 // RequestPreparer mutates one fully-built request before transport execution.
 type RequestPreparer func(req *http.Request) error
 
@@ -184,6 +188,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			}
 			return nil, lastErr
 		}
+		e.reportAPIKeyResult(req, creds, resp.StatusCode, nil)
 		if policy.BlockRuntime != nil {
 			if blockResult := policy.BlockRuntime.detect(req, resp, body); blockResult != nil {
 				lastErr = sdkerrors.New(blockResult.ErrorKind, resp.StatusCode, blockResult.Message, body, nil)
@@ -295,6 +300,17 @@ func (e *Executor) rotateRetryCredentials(req *http.Request, statusCode int, cre
 	}
 
 	return creds, nil
+}
+
+func (e *Executor) reportAPIKeyResult(req *http.Request, creds requestCredentials, statusCode int, err error) {
+	if e.apiKeyProvider == nil || creds.apiKey == "" {
+		return
+	}
+	reporter, ok := e.apiKeyProvider.(apiKeyResultReporter)
+	if !ok {
+		return
+	}
+	reporter.ReportAPIKeyResult(req, creds.apiKey, statusCode, err)
 }
 
 func (e *Executor) buildRequest(ctx context.Context, resolved *url.URL, spec RequestSpec, creds requestCredentials) (*http.Request, error) {

@@ -21,6 +21,12 @@ const (
 	safeDefaultRPS   = 3
 )
 
+// APIKeyHealthConfig configures temporary cooldown behavior for rotating API keys.
+type APIKeyHealthConfig struct {
+	FailureThreshold int
+	Cooldown         time.Duration
+}
+
 // ProxySelector chooses a proxy URL for a request.
 type ProxySelector interface {
 	Next(req *http.Request) (*url.URL, error)
@@ -49,6 +55,14 @@ type clientConfig struct {
 	maxResponseBodyBytes int64
 	proxySelector        ProxySelector
 	trafficPolicies      map[TrafficClass]trafficPolicyConfig
+}
+
+// DefaultAPIKeyHealthConfig returns the default health settings for rotating API keys.
+func DefaultAPIKeyHealthConfig() APIKeyHealthConfig {
+	return APIKeyHealthConfig{
+		FailureThreshold: 2,
+		Cooldown:         30 * time.Second,
+	}
 }
 
 func defaultClientConfig() clientConfig {
@@ -80,6 +94,24 @@ func WithAPIKey(key string) Option {
 func WithAPIKeys(keys ...string) Option {
 	return func(cfg *clientConfig) error {
 		cfg.apiKeyProvider = auth.NewRoundRobinKeyProvider(keys...)
+		return nil
+	}
+}
+
+// WithHealthCheckedAPIKeys configures a round-robin key provider with temporary cooldown on repeated 401/429 failures.
+func WithHealthCheckedAPIKeys(cfg APIKeyHealthConfig, keys ...string) Option {
+	return func(clientCfg *clientConfig) error {
+		provider, err := auth.NewHealthCheckedRoundRobinKeyProvider(
+			auth.KeyHealthConfig{
+				FailureThreshold: cfg.FailureThreshold,
+				Cooldown:         cfg.Cooldown,
+			},
+			keys...,
+		)
+		if err != nil {
+			return err
+		}
+		clientCfg.apiKeyProvider = provider
 		return nil
 	}
 }
