@@ -49,7 +49,7 @@ The repository currently exposes these grouped services under `client.API.*`:
 
 ## Current release interpretation
 
-For `v1.0.0-rc.1`, the important point is not to claim “complete Steam coverage”.
+For `v1.0.0`, the important point is not to claim "complete Steam coverage".
 
 The practical interpretation is:
 

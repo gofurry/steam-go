@@ -1,7 +1,7 @@
 # steam-go
 
 [中文Wiki](https://github.com/GoFurry/steam-go/wiki/%E9%A6%96%E9%A1%B5) | 
-[English](../README.md)
+[English](../../README.md)
 
 `steam-go` 是一个专注于官方 Steam Web API 的轻量级 Go SDK。
 
@@ -61,14 +61,14 @@ func main() {
 }
 ```
 
-更详细的 API 分组说明请看 [api.md](api.md)。
+更详细的 API 分组说明请看 [api/reference.md](api/reference.md)。
 
-RC 阶段的发布治理文档：
+项目治理文档：
 
-- [compatibility.md](compatibility.md)
-- [endpoint-stability.md](endpoint-stability.md)
-- [endpoint-coverage.md](endpoint-coverage.md)
-- [release-v1.md](release-v1.md)
+- [兼容性策略](governance/compatibility.md)
+- [Endpoint 稳定性](governance/endpoint-stability.md)
+- [Endpoint 覆盖范围](governance/endpoint-coverage.md)
+- [v1.0.0 Release Notes](releases/v1.0.0.md)
 
 ## WishlistService 覆盖范围
 
@@ -96,7 +96,7 @@ RC 阶段的发布治理文档：
 - `addons/a2s`：桥接到独立发布的 [`github.com/GoFurry/a2s-go`](https://github.com/GoFurry/a2s-go) `v1.0.1`
 - `addons/openid`：用于 Steam OpenID 登录识别
 - OpenID 只负责确认 Steam 身份并返回 `SteamID64`，不会替代 Web API 凭证
-- 更详细的 addon 说明见 [addons.md](addons.md)
+- 更详细的 addon 说明见 [addons/reference.md](addons/reference.md)
 
 ## Proxy
 
@@ -301,7 +301,7 @@ if err != nil {
 - `go run ./examples/live/steamuser`
 - `go run ./examples/live/playerservice`
 - `go run ./examples/live/wishlistservice`
-- 完整 live smoke 列表见 [../examples/live/README.md](../examples/live/README.md)
+- 完整 live smoke 列表见 [../../examples/live/README.md](../../examples/live/README.md)
 
 ## 错误处理
 

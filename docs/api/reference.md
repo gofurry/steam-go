@@ -225,7 +225,7 @@ Additional rules:
 - `addons/a2s/master`
 - `addons/a2s/scanner`
 - `addons/openid`
-- [Addon usage notes](addons.md)
+- [Addon usage notes](../addons/reference.md)
 
 ## Proxy Helpers
 
