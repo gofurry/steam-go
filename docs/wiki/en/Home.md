@@ -28,6 +28,7 @@ This Wiki focuses on helping developers quickly understand how the SDK is organi
 - [Partner API Notes](https://github.com/GoFurry/steam-go/wiki/Partner-API-Notes)
 - [OpenID Notes](https://github.com/GoFurry/steam-go/wiki/OpenID-Notes)
 - [A2S Notes](https://github.com/GoFurry/steam-go/wiki/A2S-Notes)
+- [Steam Keys and Access Tokens](https://github.com/GoFurry/steam-go/wiki/Steam-Keys-and-Access-Tokens)
 
 ## Design Notes
 

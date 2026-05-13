@@ -9,7 +9,9 @@
 ![Made with Love](https://img.shields.io/badge/made%20with-%E2%9D%A4-E11D48?style=flat&color=orange)
 
 [steam-go Wiki](https://github.com/GoFurry/steam-go/wiki) | 
-[中文文档](docs/zh/README.md)
+[Steam Keys and Access Tokens](https://github.com/GoFurry/steam-go/wiki/Steam-Keys-and-Access-Tokens) | 
+[中文文档](docs/zh/README.md) | 
+[Steam Key 与 Access Token](https://github.com/GoFurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token)
 
 `steam-go` is a lightweight Go SDK focused on the official Steam Web API.
 
