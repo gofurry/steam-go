@@ -10,7 +10,9 @@
 
 [中文文档](docs/README_zh.md)
 
-`steam-go` is a lightweight Go SDK focused on the Steam Web API.
+`steam-go` is a lightweight Go SDK focused on the official Steam Web API.
+
+`v1.0.0-rc.1` freezes the stable surface and release boundaries. Before `v1.0.0`, the project is not planning to expand new API coverage.
 
 ## Features
 
@@ -69,6 +71,12 @@ func main() {
 ```
 
 Detailed API group references live in [docs/api.md](docs/api.md).
+Release-candidate governance documents:
+
+- [Compatibility Policy](docs/compatibility.md)
+- [Endpoint Stability](docs/endpoint-stability.md)
+- [Endpoint Coverage](docs/endpoint-coverage.md)
+- [v1 Release Plan](docs/release-v1.md)
 
 ## WishlistService Coverage
 
@@ -236,6 +244,8 @@ _, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"7
 storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
 _ = storeCtx
 ```
+
+`TrafficClassPublicStorePage` and its related helpers are release-candidate infrastructure for future public store-page integrations. They are not built-in public store-page fetch APIs in `v1.0.0-rc.1`.
 
 Public store-page profile example:
 

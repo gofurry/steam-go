@@ -2,7 +2,9 @@
 
 [English](../README.md)
 
-`steam-go` 是一个专注于 Steam Web API 的轻量级 Go SDK。
+`steam-go` 是一个专注于官方 Steam Web API 的轻量级 Go SDK。
+
+`v1.0.0-rc.1` 的重点是冻结稳定面和发布边界。在 `v1.0.0` 正式版之前，项目暂时不再扩充新的 API 覆盖。
 
 ## 特性
 
@@ -59,6 +61,13 @@ func main() {
 ```
 
 更详细的 API 分组说明请看 [api.md](api.md)。
+
+RC 阶段的发布治理文档：
+
+- [compatibility.md](compatibility.md)
+- [endpoint-stability.md](endpoint-stability.md)
+- [endpoint-coverage.md](endpoint-coverage.md)
+- [release-v1.md](release-v1.md)
 
 ## WishlistService 覆盖范围
 
@@ -156,6 +165,8 @@ _, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"7
 storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
 _ = storeCtx
 ```
+
+`TrafficClassPublicStorePage` 以及相关的 header / Referer / cache / block / transport hook 能力，目前的定位是“策略隔离与基础设施”，并不代表 `v1.0.0-rc.1` 已经内置公开商店页抓取 API。
 
 公开商店页请求画像示例：
 
