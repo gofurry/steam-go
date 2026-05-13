@@ -39,6 +39,7 @@ import (
 
 func main() {
 	client, err := steam.NewClient(
+		steam.WithAPIKey("your-key"),
 		steam.WithTimeout(10*time.Second),
 		steam.WithRetry(2),
 	)
