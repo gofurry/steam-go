@@ -8,6 +8,7 @@
 ![Weekend Project](https://img.shields.io/badge/weekend-project-8B5CF6?style=flat)
 ![Made with Love](https://img.shields.io/badge/made%20with-%E2%9D%A4-E11D48?style=flat&color=orange)
 
+[steam-go Wiki](https://github.com/GoFurry/steam-go/wiki) | 
 [中文文档](docs/README_zh.md)
 
 `steam-go` is a lightweight Go SDK focused on the official Steam Web API.

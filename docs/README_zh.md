@@ -1,5 +1,6 @@
 # steam-go
 
+[中文Wiki](https://github.com/GoFurry/steam-go/wiki/%E9%A6%96%E9%A1%B5) | 
 [English](../README.md)
 
 `steam-go` 是一个专注于官方 Steam Web API 的轻量级 Go SDK。
