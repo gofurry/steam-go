@@ -61,6 +61,14 @@ Out of Scope 表示当前不承诺。
 
 这不代表外层方法不稳定，只表示 raw 子树内部的精确 JSON 形状不作为 typed 稳定合同承诺。
 
+## 非标准 Web Surface
+
+`v1.1.0` 新增了只读的 `client.Web.*` 层，用于承载 `api.steampowered.com` 之外的 Storefront、Community 与 Market JSON 接口。
+
+这些 Go 方法签名属于 `v1` 兼容性承诺范围。
+
+但上游 payload 结构与可用性并不是 Valve 承诺稳定的官方 Web API 合同，因此后续兼容工作应优先保持 typed outer 结构稳定，并在必要时把高波动子树下沉为 `json.RawMessage`。
+
 ## Addons
 
 已记录的 addon import path 属于支持的仓库结构，但每个 addon 的行为仍以自身文档为准。

@@ -62,6 +62,14 @@ Some official responses contain high-volatility subtrees and are intentionally m
 The presence of a raw subtree does not make the surrounding method unstable.  
 It means only that the fine-grained internal JSON shape of that subtree is not promised as a typed stable contract.
 
+## Unofficial Web Surfaces
+
+`v1.1.0` adds a read-only `client.Web.*` layer for Storefront, Community, and Market JSON endpoints outside `api.steampowered.com`.
+
+These Go method signatures are stable under the `v1` compatibility policy.
+
+The upstream payloads and availability are not guaranteed by Valve as stable official Web API contracts, so future compatibility work may prefer preserving typed outer structures and moving volatile subtrees to `json.RawMessage`.
+
 ## Addons
 
 The documented addon import paths are part of the supported repository structure, but addon behavior should still be interpreted based on its own documented scope.

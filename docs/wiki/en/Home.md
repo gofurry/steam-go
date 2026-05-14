@@ -6,6 +6,8 @@ Welcome to the `steam-go` Wiki.
 
 `steam-go` is a lightweight Go SDK for the Steam Web API, with practical toolkit features for real-world usage, including client configuration, credential management, retry and rate limiting, proxy selection, traffic policies, OpenID login verification, A2S server queries, error handling, and safe URL redaction.
 
+The repository now also includes a small read-only `client.Web.*` layer for selected Storefront, Community, and Market JSON endpoints outside `api.steampowered.com`.
+
 This Wiki focuses on helping developers quickly understand how the SDK is organized, what each toolkit feature is used for, and how to apply them with small, practical examples.
 
 ## Start Here

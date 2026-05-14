@@ -8,6 +8,8 @@ type Class string
 const (
 	ClassOfficialAPI     Class = "official_api"
 	ClassPublicStorePage Class = "public_store_page"
+	ClassCommunityWeb    Class = "community_web"
+	ClassMarketWeb       Class = "market_web"
 )
 
 type classContextKey struct{}
@@ -39,6 +41,10 @@ func NormalizeClass(class Class) Class {
 	switch class {
 	case ClassPublicStorePage:
 		return ClassPublicStorePage
+	case ClassCommunityWeb:
+		return ClassCommunityWeb
+	case ClassMarketWeb:
+		return ClassMarketWeb
 	case ClassOfficialAPI:
 		fallthrough
 	default:

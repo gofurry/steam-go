@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -145,6 +146,30 @@ func TestMemoryCacheRuntimeSeparatesKeysBySessionLanguageAndCookies(t *testing.T
 	reqSameHeaders = reqSameHeaders.WithContext(traffic.WithRequestSessionKey(context.Background(), "session-a"))
 	if lookup := runtimeB.lookup(reqSameHeaders, now); lookup.found {
 		t.Fatalf("did not expect cache hit across cookie jar views: %#v", lookup)
+	}
+}
+
+func TestMemoryCacheRuntimeDoesNotExposeRawCookieValuesInCacheKey(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntime(time.Minute, cacheTestJar{
+		cookies: []*http.Cookie{{Name: "session", Value: "jar-secret"}},
+	}).(*memoryCacheRuntime)
+	req := newCacheTestRequest(t, "https://steamcommunity.com/inventory/1/730/2")
+	req.Header.Set("Cookie", "steamLoginSecure=header-secret")
+
+	key, ok := runtime.cacheKey(req)
+	if !ok {
+		t.Fatal("expected cache key")
+	}
+	if strings.Contains(key, "header-secret") {
+		t.Fatalf("expected cache key to avoid explicit cookie value, got %q", key)
+	}
+	if strings.Contains(key, "jar-secret") {
+		t.Fatalf("expected cache key to avoid jar cookie value, got %q", key)
+	}
+	if strings.Contains(key, "steamLoginSecure=header-secret") {
+		t.Fatalf("expected cache key to avoid raw cookie header, got %q", key)
 	}
 }
 

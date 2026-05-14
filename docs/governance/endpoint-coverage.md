@@ -57,13 +57,19 @@ The practical interpretation is:
 - missing official endpoints do not block `v1.0.0`
 - new official endpoints can be added compatibly in later `v1.x` releases
 
+## Read-only web surfaces in v1.1.0
+
+Starting with `v1.1.0`, the repository also exposes a separate `client.Web.*` layer for a small set of read-only Storefront, Community, and Market JSON endpoints.
+
+These entrypoints are documented separately from the official Web API coverage above so the `client.API.*` boundary remains clear.
+
 ## Non-coverage areas
 
 The following are intentionally not part of current endpoint coverage:
 
-- new public Steam Store page fetch APIs
-- Steam Community page scraping APIs
+- future undocumented or broader Steam Store page fetch APIs
+- future Steam Community page scraping APIs beyond the documented `client.Web.*` JSON endpoints
 - CDN or static asset helper APIs
-- undocumented web page JSON endpoints
+- undocumented or unstable web page JSON endpoints beyond the documented `client.Web.*` methods
 
 If these appear later, they should be introduced deliberately and documented separately instead of being quietly mixed into the first stable release.
