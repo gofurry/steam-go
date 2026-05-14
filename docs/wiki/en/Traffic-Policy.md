@@ -9,7 +9,9 @@ It is one of the main engineering abstractions in `steam-go`.
 | Class | Meaning |
 |---|---|
 | `TrafficClassOfficialAPI` | Normal typed Steam Web API traffic |
-| `TrafficClassPublicStorePage` | Public Store page or browser-like traffic |
+| `TrafficClassPublicStorePage` | Storefront web JSON or browser-like Store traffic |
+| `TrafficClassCommunityWeb` | Steam Community inventory-style web JSON traffic |
+| `TrafficClassMarketWeb` | Steam Community Market web JSON traffic |
 
 ## Why It Exists
 
@@ -32,6 +34,13 @@ Public Store page traffic may care about:
 - short cache
 - lower concurrency
 - proxy routing
+
+Community or Market web JSON traffic may also care about:
+
+- separate throttling from official API calls
+- cookie jar reuse
+- short cache for repeated reads
+- block detection on `403`, `429`, or challenge HTML
 
 ## Basic Example
 
@@ -78,6 +87,12 @@ ctx := steam.WithTrafficClass(
     steam.TrafficClassPublicStorePage,
 )
 ```
+
+In normal usage, the built-in `client.Web.*` methods already choose their default traffic class automatically:
+
+- `client.Web.Storefront.*` -> `TrafficClassPublicStorePage`
+- `client.Web.Community.*` -> `TrafficClassCommunityWeb`
+- `client.Web.Market.*` -> `TrafficClassMarketWeb`
 
 ## Policy Surface
 
