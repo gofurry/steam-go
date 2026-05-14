@@ -9,9 +9,12 @@
 
 `v1.0.0` 是 `steam-go` 的首个正式稳定版，定位为一个面向生产使用、专注于官方 Steam Web API 的 Go SDK。
 
+`v1.1.0` 新增了只读的 `client.Web.*` 层，用于接入 `api.steampowered.com` 之外的高价值 Steam Storefront、Community 与 Market JSON 接口。
+
 ## 特性
 
 - 统一的根 `Client`，通过 `client.API.*` 分组访问各类服务
+- 新增只读的 `client.Web.*` 访问层，覆盖 Storefront 应用/套餐详情、评论、社区库存与市场价格概览
 - 提供 API key、access token、timeout、retry、rate limit、proxy 的函数式配置
 - 默认限制缓冲响应体大小，并可通过 `WithMaxResponseBodyBytes(...)` 调整
 - `key` 和 `access_token` 被视为两种不同凭证，分别处理
@@ -65,6 +68,7 @@ func main() {
 ```
 
 更详细的 API 分组说明请看 [api/reference.md](api/reference.md)。
+只读 Web 接口说明请看 [web/reference.md](web/reference.md)。
 
 项目治理文档：
 
@@ -101,6 +105,18 @@ func main() {
 - OpenID 只负责确认 Steam 身份并返回 `SteamID64`，不会替代 Web API 凭证
 - 更详细的 addon 说明见 [addons/reference.md](addons/reference.md)
 
+## Web
+
+`client.Web.*` 覆盖了一小组高价值的只读 JSON 接口，这些接口不属于官方 `api.steampowered.com` Web API surface：
+
+- `client.Web.Storefront.GetAppDetails`
+- `client.Web.Storefront.GetPackageDetails`
+- `client.Web.Storefront.GetAppReviews`
+- `client.Web.Community.GetInventory`
+- `client.Web.Market.GetPriceOverview`
+
+这些方法的 Go API 在 `v1.x` 中属于稳定公开接口，但上游 Store / Community / Market payload 仍然是非官方或高波动的 Web surface。`client.Web.*` 不会注入 Steam Web API 的 `key` 或 `access_token`；如果库存读取需要鉴权，只依赖调用方提供的 Cookie。
+
 ## Proxy
 
 `steam-go` 继续把代理能力收敛在 `WithProxySelector(...)` 这一稳定扩展点上。
@@ -134,10 +150,12 @@ if err != nil {
 
 ## 流量类别
 
-`steam-go` 现在支持按流量类别路由请求策略，让官方 Steam Web API 流量和后续公开商店页流量可以使用不同的请求配置。
+`steam-go` 现在支持按流量类别路由请求策略，让官方 Steam Web API 流量和内置的 `client.Web.*` 请求使用不同的请求配置。
 
 - `TrafficClassOfficialAPI`：现有 typed `client.API.*` 方法的默认类别
-- `TrafficClassPublicStorePage`：为后续公开商店页接入预留的类别
+- `TrafficClassPublicStorePage`：`client.Web.Storefront.*` 使用的默认类别
+- `TrafficClassCommunityWeb`：`client.Web.Community.*` 使用的默认类别
+- `TrafficClassMarketWeb`：`client.Web.Market.*` 使用的默认类别
 - `WithTrafficPolicy(...)`：按类别覆盖 proxy、cookie jar、retry、rate limit、短缓存、block 检测、header profile 和 Referer 策略
 - `TransportHook` / `TransportHookFunc`：为某个流量类别预留 HTTP 执行栈扩展点，方便后续接自定义 TLS 或浏览器回退方案
 - `WithTrafficClass(ctx, class)`：让单次请求显式切到非默认类别
@@ -165,12 +183,9 @@ if err != nil {
 // typed Steam Web API 调用仍然建议走默认的 OfficialAPI 类别。
 _, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198370695025"})
 
-// TrafficClassPublicStorePage 预留给后续公开商店页请求入口使用。
-storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
-_ = storeCtx
+// Web 请求会自动选择自己的默认 traffic class。
+_, _ = client.Web.Market.GetPriceOverview(context.Background(), 440, "Mann Co. Supply Crate Key", nil)
 ```
-
-`TrafficClassPublicStorePage` 以及相关的 header / Referer / cache / block / transport hook 能力，目前的定位是“策略隔离与基础设施”，并不代表 `v1.0.0` 已经内置公开商店页抓取 API。
 
 公开商店页请求画像示例：
 

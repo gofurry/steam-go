@@ -36,11 +36,16 @@ import (
 	"github.com/gofurry/steam-go/internal/request"
 	itraffic "github.com/gofurry/steam-go/internal/traffic"
 	"github.com/gofurry/steam-go/internal/transport"
+	"github.com/gofurry/steam-go/internal/webendpoint"
+	"github.com/gofurry/steam-go/web/community"
+	"github.com/gofurry/steam-go/web/market"
+	"github.com/gofurry/steam-go/web/storefront"
 )
 
 // Client is the root Steam Web API entrypoint.
 type Client struct {
 	API *API
+	Web *Web
 
 	httpClients []*http.Client
 }
@@ -77,6 +82,13 @@ type API struct {
 	SteamUserStats            *steamuserstats.Service
 }
 
+// Web groups read-only Steam web JSON services under one stable entrypoint.
+type Web struct {
+	Storefront *storefront.Service
+	Community  *community.Service
+	Market     *market.Service
+}
+
 // NewClient builds a Steam Web API client using functional options.
 func NewClient(opts ...Option) (*Client, error) {
 	cfg := defaultClientConfig()
@@ -90,10 +102,32 @@ func NewClient(opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	executor, err := request.NewExecutor(
+	officialExecutor, err := request.NewExecutor(
 		cfg.baseURL,
 		cfg.apiKeyProvider,
 		cfg.accessTokenProvider,
+		cfg.maxResponseBodyBytes,
+		runtimes.defaultPolicy,
+		runtimes.classPolicies,
+	)
+	if err != nil {
+		return nil, err
+	}
+	storefrontExecutor, err := request.NewExecutor(
+		webendpoint.StorefrontBaseURL,
+		nil,
+		nil,
+		cfg.maxResponseBodyBytes,
+		runtimes.defaultPolicy,
+		runtimes.classPolicies,
+	)
+	if err != nil {
+		return nil, err
+	}
+	communityExecutor, err := request.NewExecutor(
+		webendpoint.CommunityBaseURL,
+		nil,
+		nil,
 		cfg.maxResponseBodyBytes,
 		runtimes.defaultPolicy,
 		runtimes.classPolicies,
@@ -106,34 +140,39 @@ func NewClient(opts ...Option) (*Client, error) {
 		httpClients: runtimes.httpClients,
 	}
 	client.API = &API{
-		AccountCartService:        accountcartservice.NewService(executor),
-		BillingService:            billingservice.NewService(executor),
-		CommunityService:          communityservice.NewService(executor),
-		FamilyGroupsService:       familygroupsservice.NewService(executor),
-		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(executor),
-		MobileNotificationService: mobilenotificationservice.NewService(executor),
-		NewsService:               newsservice.NewService(executor),
-		QuestService:              questservice.NewService(executor),
-		SaleFeatureService:        salefeatureservice.NewService(executor),
-		StoreBrowseService:        storebrowseservice.NewService(executor),
-		StoreCatalogService:       storecatalogservice.NewService(executor),
-		StorePreferencesService:   storepreferencesservice.NewService(executor),
-		StoreService:              storeservice.NewService(executor),
-		StoreTopSellersService:    storetopsellersservice.NewService(executor),
-		SteamDirectory:            steamdirectory.NewService(executor),
-		SteamApps:                 steamapps.NewService(executor),
-		SteamChartsService:        steamchartsservice.NewService(executor),
-		SteamNotificationService:  steamnotificationservice.NewService(executor),
-		SteamUser:                 steamuser.NewService(executor),
-		SteamUserOAuth:            steamuseroauth.NewService(executor),
-		SteamWebAPIUtil:           steamwebapiutil.NewService(executor),
-		UserAccountService:        useraccountservice.NewService(executor),
-		UserReviewsService:        userreviewsservice.NewService(executor),
-		UserStoreVisitService:     userstorevisitservice.NewService(executor),
-		WishlistService:           wishlistservice.NewService(executor),
-		PlayerService:             playerservice.NewService(executor),
-		SteamNews:                 steamnews.NewService(executor),
-		SteamUserStats:            steamuserstats.NewService(executor),
+		AccountCartService:        accountcartservice.NewService(officialExecutor),
+		BillingService:            billingservice.NewService(officialExecutor),
+		CommunityService:          communityservice.NewService(officialExecutor),
+		FamilyGroupsService:       familygroupsservice.NewService(officialExecutor),
+		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(officialExecutor),
+		MobileNotificationService: mobilenotificationservice.NewService(officialExecutor),
+		NewsService:               newsservice.NewService(officialExecutor),
+		QuestService:              questservice.NewService(officialExecutor),
+		SaleFeatureService:        salefeatureservice.NewService(officialExecutor),
+		StoreBrowseService:        storebrowseservice.NewService(officialExecutor),
+		StoreCatalogService:       storecatalogservice.NewService(officialExecutor),
+		StorePreferencesService:   storepreferencesservice.NewService(officialExecutor),
+		StoreService:              storeservice.NewService(officialExecutor),
+		StoreTopSellersService:    storetopsellersservice.NewService(officialExecutor),
+		SteamDirectory:            steamdirectory.NewService(officialExecutor),
+		SteamApps:                 steamapps.NewService(officialExecutor),
+		SteamChartsService:        steamchartsservice.NewService(officialExecutor),
+		SteamNotificationService:  steamnotificationservice.NewService(officialExecutor),
+		SteamUser:                 steamuser.NewService(officialExecutor),
+		SteamUserOAuth:            steamuseroauth.NewService(officialExecutor),
+		SteamWebAPIUtil:           steamwebapiutil.NewService(officialExecutor),
+		UserAccountService:        useraccountservice.NewService(officialExecutor),
+		UserReviewsService:        userreviewsservice.NewService(officialExecutor),
+		UserStoreVisitService:     userstorevisitservice.NewService(officialExecutor),
+		WishlistService:           wishlistservice.NewService(officialExecutor),
+		PlayerService:             playerservice.NewService(officialExecutor),
+		SteamNews:                 steamnews.NewService(officialExecutor),
+		SteamUserStats:            steamuserstats.NewService(officialExecutor),
+	}
+	client.Web = &Web{
+		Storefront: storefront.NewService(storefrontExecutor),
+		Community:  community.NewService(communityExecutor),
+		Market:     market.NewService(communityExecutor),
 	}
 	return client, nil
 }

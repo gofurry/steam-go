@@ -17,9 +17,12 @@
 
 `v1.0.0` is the first stable release of `steam-go`, positioned as a production-oriented Go SDK for the official Steam Web API.
 
+`v1.1.0` adds a read-only `client.Web.*` layer for high-value Steam Storefront, Community, and Market JSON endpoints outside `api.steampowered.com`.
+
 ## Features
 
 - Root `Client` with grouped service access under `client.API.*`
+- Read-only `client.Web.*` access for Storefront app/package details, reviews, community inventory, and market price overview
 - Functional options for API key, access token, timeout, retry, rate limit, and proxy selection
 - Buffered response bodies are capped by default and can be tuned with `WithMaxResponseBodyBytes(...)`
 - `key` and `access_token` are treated as different credentials and can be configured independently
@@ -75,6 +78,7 @@ func main() {
 ```
 
 Detailed API group references live in [docs/api/reference.md](docs/api/reference.md).
+Read-only web endpoint notes live in [docs/web/reference.md](docs/web/reference.md).
 Project governance documents:
 
 - [Documentation Index](docs/README.md)
@@ -110,6 +114,18 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 - `addons/openid` provides Steam OpenID login verification for browser-based sign-in flows
 - OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
 - detailed addon notes live in [docs/addons/reference.md](docs/addons/reference.md)
+
+## Web
+
+`client.Web.*` covers a small set of high-value read-only JSON endpoints outside the official `api.steampowered.com` surface:
+
+- `client.Web.Storefront.GetAppDetails`
+- `client.Web.Storefront.GetPackageDetails`
+- `client.Web.Storefront.GetAppReviews`
+- `client.Web.Community.GetInventory`
+- `client.Web.Market.GetPriceOverview`
+
+These methods are part of the stable Go API surface in `v1.x`, but the upstream Store / Community / Market payloads remain unofficial or volatile web surfaces. `client.Web.*` never injects Steam Web API `key` or `access_token`; inventory access relies on caller-supplied cookies when required.
 
 ## Proxy
 
@@ -214,10 +230,12 @@ fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingPro
 
 ## Traffic Classes
 
-`steam-go` now supports per-class request policy routing so official Steam Web API traffic and future public store-page traffic can use different request strategies.
+`steam-go` now supports per-class request policy routing so official Steam Web API traffic and the built-in `client.Web.*` surfaces can use different request strategies.
 
 - `TrafficClassOfficialAPI` is the default for existing typed `client.API.*` methods
-- `TrafficClassPublicStorePage` is reserved for future public store-page integrations
+- `TrafficClassPublicStorePage` is used by `client.Web.Storefront.*`
+- `TrafficClassCommunityWeb` is used by `client.Web.Community.*`
+- `TrafficClassMarketWeb` is used by `client.Web.Market.*`
 - `WithTrafficPolicy(...)` overrides proxy, cookie jar, retry, rate limit, short-cache, block detection, header profile, and Referer strategy per class
 - `TransportHook` and `TransportHookFunc` reserve one per-class HTTP execution extension point for future TLS customization or browser-backed fallback
 - `WithTrafficClass(ctx, class)` lets one request opt into a non-default class
@@ -245,12 +263,9 @@ if err != nil {
 // Keep typed Steam Web API calls on the default OfficialAPI class.
 _, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198370695025"})
 
-// Reserve TrafficClassPublicStorePage for future public store-page request entrypoints.
-storeCtx := steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage)
-_ = storeCtx
+// Web requests route automatically by method.
+_, _ = client.Web.Market.GetPriceOverview(context.Background(), 440, "Mann Co. Supply Crate Key", nil)
 ```
-
-`TrafficClassPublicStorePage` and its related helpers are infrastructure for future public store-page integrations. They are not built-in public store-page fetch APIs in `v1.0.0`.
 
 Public store-page profile example:
 

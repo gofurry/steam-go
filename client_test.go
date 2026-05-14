@@ -47,6 +47,9 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	if client.API == nil {
 		t.Fatal("expected api entrypoint")
 	}
+	if client.Web == nil {
+		t.Fatal("expected web entrypoint")
+	}
 	if client.API.AccountCartService == nil || client.API.BillingService == nil || client.API.CommunityService == nil {
 		t.Fatal("expected new core services to be initialized")
 	}
@@ -91,6 +94,70 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	}
 	if client.API.WishlistService == nil {
 		t.Fatal("expected wishlist service to be initialized")
+	}
+	if client.Web.Storefront == nil || client.Web.Community == nil || client.Web.Market == nil {
+		t.Fatal("expected web services to be initialized")
+	}
+}
+
+func TestWebServicesUseDedicatedHostsAndSkipCredentials(t *testing.T) {
+	t.Parallel()
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("cookiejar.New returned error: %v", err)
+	}
+
+	communityURL, err := url.Parse("https://steamcommunity.com/")
+	if err != nil {
+		t.Fatalf("url.Parse returned error: %v", err)
+	}
+	jar.SetCookies(communityURL, []*http.Cookie{{
+		Name:  "steamLoginSecure",
+		Value: "cookie-token",
+	}})
+
+	transport := &capturingRoundTripper{
+		responses: map[string]string{
+			"store.steampowered.com/appreviews/550":                `{"success":1,"cursor":"*","reviews":[]}`,
+			"steamcommunity.com/inventory/76561198370695025/730/2": `{"success":1,"assets":[],"descriptions":[],"total_inventory_count":0,"more_items":false}`,
+		},
+	}
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("global-key"),
+		steam.WithAccessToken("global-token"),
+		steam.WithCookieJar(jar),
+		steam.WithHTTPClient(&http.Client{Transport: transport}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if _, err := client.Web.Storefront.GetAppReviews(context.Background(), 550, nil); err != nil {
+		t.Fatalf("GetAppReviews returned error: %v", err)
+	}
+	if _, err := client.Web.Community.GetInventory(context.Background(), "76561198370695025", 730, "2", nil); err != nil {
+		t.Fatalf("GetInventory returned error: %v", err)
+	}
+
+	storeReq := transport.requestForHost(t, "store.steampowered.com")
+	if got := storeReq.URL.Query().Get("key"); got != "" {
+		t.Fatalf("expected storefront request to skip api key, got %q", got)
+	}
+	if got := storeReq.URL.Query().Get("access_token"); got != "" {
+		t.Fatalf("expected storefront request to skip access token, got %q", got)
+	}
+
+	communityReq := transport.requestForHost(t, "steamcommunity.com")
+	if got := communityReq.URL.Query().Get("key"); got != "" {
+		t.Fatalf("expected community request to skip api key, got %q", got)
+	}
+	if got := communityReq.URL.Query().Get("access_token"); got != "" {
+		t.Fatalf("expected community request to skip access token, got %q", got)
+	}
+	if got := communityReq.Header.Get("Cookie"); !strings.Contains(got, "steamLoginSecure=cookie-token") {
+		t.Fatalf("expected community request to include jar cookie, got %q", got)
 	}
 }
 
@@ -4397,6 +4464,42 @@ func newTestClient(t *testing.T, baseURL string) *steam.Client {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
 	return client
+}
+
+type capturingRoundTripper struct {
+	requests  []*http.Request
+	responses map[string]string
+}
+
+func (rt *capturingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	cloned := req.Clone(req.Context())
+	cloned.Header = req.Header.Clone()
+	rt.requests = append(rt.requests, cloned)
+
+	body := "ok"
+	if rt.responses != nil {
+		if value, ok := rt.responses[req.URL.Host+req.URL.Path]; ok {
+			body = value
+		}
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Header:     make(http.Header),
+		Request:    req,
+	}, nil
+}
+
+func (rt *capturingRoundTripper) requestForHost(t *testing.T, host string) *http.Request {
+	t.Helper()
+	for _, req := range rt.requests {
+		if req.URL.Host == host {
+			return req
+		}
+	}
+	t.Fatalf("expected request for host %s", host)
+	return nil
 }
 
 func expectKind(t *testing.T, err error, kind steam.ErrorKind) {

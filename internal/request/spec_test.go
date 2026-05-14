@@ -317,6 +317,52 @@ func TestExecutorPreservesExplicitCredentialsFromQuery(t *testing.T) {
 	}
 }
 
+func TestExecutorWithoutCredentialProvidersSkipsCredentialInjection(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+
+	executor, err := request.NewExecutor(
+		"https://store.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        0,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/appreviews/550",
+		Query:  url.Values{"json": []string{"1"}},
+	})
+	if err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if len(recorder.requests) != 1 {
+		t.Fatalf("expected 1 request, got %d", len(recorder.requests))
+	}
+	got := recorder.requests[0].query
+	if got.Get("key") != "" {
+		t.Fatalf("expected no api key, got %q", got.Get("key"))
+	}
+	if got.Get("access_token") != "" {
+		t.Fatalf("expected no access token, got %q", got.Get("access_token"))
+	}
+}
+
 type recordingTransport struct {
 	mu           sync.Mutex
 	requests     []capturedRequest
@@ -476,6 +522,12 @@ func TestExecutorRoutesTrafficClassPolicies(t *testing.T) {
 	storeTransport := &recordingTransport{
 		statuses: []int{http.StatusOK},
 	}
+	communityTransport := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
+	marketTransport := &recordingTransport{
+		statuses: []int{http.StatusOK},
+	}
 
 	executor, err := request.NewExecutor(
 		"https://api.steampowered.com",
@@ -492,6 +544,16 @@ func TestExecutorRoutesTrafficClassPolicies(t *testing.T) {
 				Retry:        0,
 				RetryBackoff: request.DefaultRetryBackoffConfig(),
 				Transport:    storeTransport,
+			},
+			traffic.ClassCommunityWeb: {
+				Retry:        0,
+				RetryBackoff: request.DefaultRetryBackoffConfig(),
+				Transport:    communityTransport,
+			},
+			traffic.ClassMarketWeb: {
+				Retry:        0,
+				RetryBackoff: request.DefaultRetryBackoffConfig(),
+				Transport:    marketTransport,
 			},
 		},
 	)
@@ -513,6 +575,20 @@ func TestExecutorRoutesTrafficClassPolicies(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("store request returned error: %v", err)
 	}
+	communityCtx := traffic.WithClass(context.Background(), traffic.ClassCommunityWeb)
+	if _, err := executor.DoRaw(communityCtx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/inventory/1/730/2",
+	}); err != nil {
+		t.Fatalf("community request returned error: %v", err)
+	}
+	marketCtx := traffic.WithClass(context.Background(), traffic.ClassMarketWeb)
+	if _, err := executor.DoRaw(marketCtx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/market/priceoverview",
+	}); err != nil {
+		t.Fatalf("market request returned error: %v", err)
+	}
 
 	officialTransport.mu.Lock()
 	officialCount := len(officialTransport.requests)
@@ -520,12 +596,24 @@ func TestExecutorRoutesTrafficClassPolicies(t *testing.T) {
 	storeTransport.mu.Lock()
 	storeCount := len(storeTransport.requests)
 	storeTransport.mu.Unlock()
+	communityTransport.mu.Lock()
+	communityCount := len(communityTransport.requests)
+	communityTransport.mu.Unlock()
+	marketTransport.mu.Lock()
+	marketCount := len(marketTransport.requests)
+	marketTransport.mu.Unlock()
 
 	if officialCount != 1 {
 		t.Fatalf("expected one official request, got %d", officialCount)
 	}
 	if storeCount != 1 {
 		t.Fatalf("expected one store request, got %d", storeCount)
+	}
+	if communityCount != 1 {
+		t.Fatalf("expected one community request, got %d", communityCount)
+	}
+	if marketCount != 1 {
+		t.Fatalf("expected one market request, got %d", marketCount)
 	}
 }
 

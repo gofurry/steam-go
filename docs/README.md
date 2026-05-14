@@ -6,6 +6,7 @@ This directory keeps project documentation that is too detailed for the reposito
 
 - [API reference](api/reference.md)
 - [Addon reference](addons/reference.md)
+- [Web reference](web/reference.md)
 - [Compatibility policy](governance/compatibility.md)
 - [Endpoint coverage](governance/endpoint-coverage.md)
 - [Endpoint stability](governance/endpoint-stability.md)

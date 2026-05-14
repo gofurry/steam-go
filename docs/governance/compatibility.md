@@ -20,6 +20,7 @@ Unless otherwise documented, the following are intended to be covered by the `v1
 - `Client` and the grouped `client.API.*` access pattern
 - Existing exported service method signatures
 - Existing exported request and response structs
+- The grouped `client.Web.*` access pattern and its exported request and response structs
 - Proxy-related public APIs
 - Traffic-policy related public APIs
 - Error types and error kinds
@@ -35,6 +36,7 @@ For the stable surface above, `v1` should preserve:
 - option semantics at a behavior level
 - documented error kinds
 - documented grouping under `client.API.*`
+- documented grouping under `client.Web.*`
 
 Bug fixes, validation tightening, and internal implementation changes are allowed as long as they do not break the documented stable surface.
 
@@ -42,7 +44,6 @@ Bug fixes, validation tightening, and internal implementation changes are allowe
 
 The following areas are intentionally outside the `v1.0.0` compatibility guarantee unless a future document says otherwise:
 
-- future Store / Community / CDN fetch entrypoints
 - HTML parsing rules and page-shape assumptions
 - browser-backed fallback implementations
 - undocumented web payload structures
@@ -60,17 +61,29 @@ The following areas are intentionally outside the `v1.0.0` compatibility guarant
 
 The exact internal shape of `json.RawMessage` subtrees is not part of the `v1` compatibility promise unless explicitly documented as stable.
 
+## v1.1.0 unofficial web surfaces
+
+The following are stable Go APIs but volatile upstream surfaces:
+
+- `client.Web.Storefront`
+- `client.Web.Community`
+- `client.Web.Market`
+
+Breaking changes caused by upstream payload drift should be handled by preserving typed outer structures and moving volatile subtrees to `json.RawMessage` where possible.
+
 ## Experimental and preview areas
 
 The following capabilities may exist in the repository, but should be treated as non-coverage or preview-oriented foundations rather than as a promise of built-in productized fetch APIs:
 
 - `TrafficClassPublicStorePage`
+- `TrafficClassCommunityWeb`
+- `TrafficClassMarketWeb`
 - public store-page header profiles
 - Referer strategies
 - short cache and block detection infrastructure
 - per-class transport hooks for future TLS customization or browser-backed execution
 
-These are stable as root-package configuration APIs only to the extent already documented, but they do not imply that `steam-go v1.0.0` ships a full public Steam Store page SDK.
+These configuration APIs are stable as supporting infrastructure for the existing `client.Web.*` surface, but they should not be read as a promise that every future Steam web flow will be productized in the SDK.
 
 ## Before and after v1.0.0
 

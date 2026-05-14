@@ -18,6 +18,8 @@ type TrafficClass = itraffic.Class
 const (
 	TrafficClassOfficialAPI     TrafficClass = itraffic.ClassOfficialAPI
 	TrafficClassPublicStorePage TrafficClass = itraffic.ClassPublicStorePage
+	TrafficClassCommunityWeb    TrafficClass = itraffic.ClassCommunityWeb
+	TrafficClassMarketWeb       TrafficClass = itraffic.ClassMarketWeb
 )
 
 // RetryBackoffConfig exposes the SDK retry backoff shape for policy overrides.
@@ -209,7 +211,7 @@ func normalizeTrafficClass(class TrafficClass) TrafficClass {
 
 func supportedTrafficClass(class TrafficClass) bool {
 	switch class {
-	case TrafficClassOfficialAPI, TrafficClassPublicStorePage:
+	case TrafficClassOfficialAPI, TrafficClassPublicStorePage, TrafficClassCommunityWeb, TrafficClassMarketWeb:
 		return true
 	default:
 		return false
@@ -274,8 +276,10 @@ func validateTrafficBlockPolicy(class TrafficClass, policy *TrafficBlockPolicy) 
 	if policy == nil {
 		return nil
 	}
-	if normalizeTrafficClass(class) != TrafficClassPublicStorePage {
-		return fmt.Errorf("traffic policy block detection is only supported for public store page traffic")
+	switch normalizeTrafficClass(class) {
+	case TrafficClassPublicStorePage, TrafficClassCommunityWeb, TrafficClassMarketWeb:
+	default:
+		return fmt.Errorf("traffic policy block detection is only supported for unofficial web traffic")
 	}
 	if policy.HTMLSniffBytes < 0 {
 		return fmt.Errorf("traffic policy block html sniff bytes must not be negative")

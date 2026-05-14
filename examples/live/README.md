@@ -13,6 +13,10 @@ Place credential files in `examples/live/`:
 - `family-group-id.txt` (optional, only for `familygroupsservice`)
 - `proxy.txt` (optional, used when `STEAM_PROXY` is unset)
 
+Optional environment variables for web smoke tests:
+
+- `STEAM_PUBLIC_INVENTORY_ID` for `examples/live/webcommunity`
+
 For local transition, the shared helper also falls back to legacy files under `test/` when the new location is empty.
 
 ## Run
@@ -47,6 +51,9 @@ Run one service-specific smoke command, for example:
 - `go run ./examples/live/userreviewsservice`
 - `go run ./examples/live/userstorevisitservice`
 - `go run ./examples/live/wishlistservice`
+- `go run ./examples/live/webstorefront`
+- `go run ./examples/live/webmarket`
+- `go run ./examples/live/webcommunity`
 
 ## Notes
 

@@ -49,7 +49,7 @@ type blockRuntime struct {
 
 func NewBlockRuntime(class traffic.Class, cfg BlockConfig) BlockRuntime {
 	class = traffic.NormalizeClass(class)
-	if class != traffic.ClassPublicStorePage {
+	if !supportsBlockDetection(class) {
 		return nil
 	}
 
@@ -73,13 +73,13 @@ func (r blockRuntime) detect(_ *http.Request, resp *http.Response, body []byte) 
 	case http.StatusTooManyRequests:
 		return &BlockResult{
 			ErrorKind: sdkerrors.KindHTTPStatus,
-			Message:   fmt.Sprintf("public store page block detected: rate_limited (status=%d)", resp.StatusCode),
+			Message:   fmt.Sprintf("%s block detected: rate_limited (status=%d)", r.surfaceLabel(), resp.StatusCode),
 			Retryable: true,
 		}
 	case http.StatusForbidden:
 		return &BlockResult{
 			ErrorKind: sdkerrors.KindHTTPStatus,
-			Message:   fmt.Sprintf("public store page block detected: forbidden (status=%d)", resp.StatusCode),
+			Message:   fmt.Sprintf("%s block detected: forbidden (status=%d)", r.surfaceLabel(), resp.StatusCode),
 			Retryable: true,
 		}
 	}
@@ -91,19 +91,39 @@ func (r blockRuntime) detect(_ *http.Request, resp *http.Response, body []byte) 
 	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
 		return &BlockResult{
 			ErrorKind: sdkerrors.KindAPIResponse,
-			Message:   "public store page block detected: challenge html response",
+			Message:   fmt.Sprintf("%s block detected: challenge html response", r.surfaceLabel()),
 			Retryable: false,
 		}
 	}
 	if resp.StatusCode >= http.StatusInternalServerError {
 		return &BlockResult{
 			ErrorKind: sdkerrors.KindHTTPStatus,
-			Message:   fmt.Sprintf("public store page block detected: challenge html response (status=%d)", resp.StatusCode),
+			Message:   fmt.Sprintf("%s block detected: challenge html response (status=%d)", r.surfaceLabel(), resp.StatusCode),
 			Retryable: true,
 		}
 	}
 
 	return nil
+}
+
+func supportsBlockDetection(class traffic.Class) bool {
+	switch class {
+	case traffic.ClassPublicStorePage, traffic.ClassCommunityWeb, traffic.ClassMarketWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+func (r blockRuntime) surfaceLabel() string {
+	switch r.class {
+	case traffic.ClassCommunityWeb:
+		return "community web"
+	case traffic.ClassMarketWeb:
+		return "market web"
+	default:
+		return "public store page"
+	}
 }
 
 func blockLikeHTMLResponse(resp *http.Response, body []byte, sniffBytes int) bool {
