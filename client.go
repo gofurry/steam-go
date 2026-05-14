@@ -36,7 +36,6 @@ import (
 	"github.com/gofurry/steam-go/internal/request"
 	itraffic "github.com/gofurry/steam-go/internal/traffic"
 	"github.com/gofurry/steam-go/internal/transport"
-	"github.com/gofurry/steam-go/internal/webendpoint"
 	"github.com/gofurry/steam-go/web/community"
 	"github.com/gofurry/steam-go/web/market"
 	"github.com/gofurry/steam-go/web/storefront"
@@ -114,7 +113,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		return nil, err
 	}
 	storefrontExecutor, err := request.NewExecutor(
-		webendpoint.StorefrontBaseURL,
+		cfg.storefrontBaseURL,
 		nil,
 		nil,
 		cfg.maxResponseBodyBytes,
@@ -125,7 +124,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		return nil, err
 	}
 	communityExecutor, err := request.NewExecutor(
-		webendpoint.CommunityBaseURL,
+		cfg.communityBaseURL,
 		nil,
 		nil,
 		cfg.maxResponseBodyBytes,

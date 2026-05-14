@@ -1,6 +1,8 @@
 package request
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"sort"
 	"strings"
@@ -159,11 +161,11 @@ func (c *memoryCacheRuntime) cacheKey(req *http.Request) (string, bool) {
 	}
 	var jarCookies string
 	if c.cookieJar != nil {
-		jarCookies = normalizedCookieKey(c.cookieJar.Cookies(req.URL))
+		jarCookies = hashCacheDimension(normalizedCookieKey(c.cookieJar.Cookies(req.URL)))
 	}
 
 	acceptLanguage := req.Header.Get("Accept-Language")
-	explicitCookie := req.Header.Get("Cookie")
+	explicitCookie := hashCacheDimension(req.Header.Get("Cookie"))
 	rawURL := req.URL.String()
 
 	var builder strings.Builder
@@ -207,6 +209,15 @@ func normalizedCookieKey(cookies []*http.Cookie) string {
 		builder.WriteString(value)
 	}
 	return builder.String()
+}
+
+func hashCacheDimension(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:])
 }
 
 func cloneBytes(src []byte) []byte {

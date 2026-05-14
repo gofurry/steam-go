@@ -88,6 +88,12 @@ func TestCommunityValidationAndErrors(t *testing.T) {
 	if _, err := service.GetInventory(context.Background(), "76561198370695025", 730, "", nil); err == nil {
 		t.Fatal("expected context id validation error")
 	}
+	if _, err := service.GetInventory(context.Background(), "76561198370695025/extra", 730, "2", nil); err == nil {
+		t.Fatal("expected steam id numeric validation error")
+	}
+	if _, err := service.GetInventory(context.Background(), "76561198370695025", 730, "2/3", nil); err == nil {
+		t.Fatal("expected context id numeric validation error")
+	}
 
 	httpErrService := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, &recordingTransport{statuses: []int{http.StatusForbidden}}, 1024)
 	_, err := httpErrService.GetInventory(context.Background(), "76561198370695025", 730, "2", nil)

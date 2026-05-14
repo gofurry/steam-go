@@ -161,6 +161,62 @@ func TestWebServicesUseDedicatedHostsAndSkipCredentials(t *testing.T) {
 	}
 }
 
+func TestWebServicesAllowCustomBaseURLs(t *testing.T) {
+	t.Parallel()
+
+	officialServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/ISteamUser/GetPlayerSummaries/v2/" {
+			t.Fatalf("unexpected official path: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"response":{"players":[{"steamid":"1","personaname":"official"}]}}`))
+	}))
+	defer officialServer.Close()
+
+	storefrontServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/appreviews/550" {
+			t.Fatalf("unexpected storefront path: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"success":1,"query_summary":{"num_reviews":1,"review_score":9,"review_score_desc":"Very Positive","total_positive":1,"total_negative":0,"total_reviews":1},"cursor":"*","reviews":[]}`))
+	}))
+	defer storefrontServer.Close()
+
+	communityServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/inventory/76561198370695025/730/2":
+			_, _ = w.Write([]byte(`{"success":1,"assets":[],"descriptions":[],"total_inventory_count":0,"more_items":false}`))
+		case "/market/priceoverview":
+			_, _ = w.Write([]byte(`{"success":true,"lowest_price":"$1.00","median_price":"$1.10","volume":"10"}`))
+		default:
+			t.Fatalf("unexpected community path: %s", r.URL.Path)
+		}
+	}))
+	defer communityServer.Close()
+
+	client, err := steam.NewClient(
+		steam.WithAPIKey("global-key"),
+		steam.WithAccessToken("global-token"),
+		steam.WithBaseURL(officialServer.URL),
+		steam.WithStorefrontBaseURL(storefrontServer.URL),
+		steam.WithCommunityBaseURL(communityServer.URL),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if _, err := client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"1"}); err != nil {
+		t.Fatalf("GetPlayerSummaries returned error: %v", err)
+	}
+	if _, err := client.Web.Storefront.GetAppReviews(context.Background(), 550, nil); err != nil {
+		t.Fatalf("GetAppReviews returned error: %v", err)
+	}
+	if _, err := client.Web.Community.GetInventory(context.Background(), "76561198370695025", 730, "2", nil); err != nil {
+		t.Fatalf("GetInventory returned error: %v", err)
+	}
+	if _, err := client.Web.Market.GetPriceOverview(context.Background(), 730, "AK-47 | Redline (Field-Tested)", nil); err != nil {
+		t.Fatalf("GetPriceOverview returned error: %v", err)
+	}
+}
+
 func TestAccountCartServiceGetCart(t *testing.T) {
 	t.Parallel()
 

@@ -11,6 +11,7 @@ import (
 	"github.com/gofurry/steam-go/internal/auth"
 	"github.com/gofurry/steam-go/internal/request"
 	"github.com/gofurry/steam-go/internal/transport"
+	"github.com/gofurry/steam-go/internal/webendpoint"
 	"golang.org/x/time/rate"
 )
 
@@ -45,6 +46,8 @@ type clientConfig struct {
 	apiKeyProvider       APIKeyProvider
 	accessTokenProvider  AccessTokenProvider
 	baseURL              string
+	storefrontBaseURL    string
+	communityBaseURL     string
 	httpClient           *http.Client
 	timeout              time.Duration
 	retry                int
@@ -68,6 +71,8 @@ func DefaultAPIKeyHealthConfig() APIKeyHealthConfig {
 func defaultClientConfig() clientConfig {
 	return clientConfig{
 		baseURL:              defaultBaseURL,
+		storefrontBaseURL:    webendpoint.StorefrontBaseURL,
+		communityBaseURL:     webendpoint.CommunityBaseURL,
 		timeout:              10 * time.Second,
 		retry:                0,
 		retryBackoff:         request.DefaultRetryBackoffConfig(),
@@ -155,17 +160,38 @@ func WithAccessTokenProvider(provider AccessTokenProvider) Option {
 	}
 }
 
-// WithBaseURL overrides the default Steam Web API base URL.
+// WithBaseURL overrides the official Steam Web API base URL used by client.API.*.
 func WithBaseURL(rawURL string) Option {
 	return func(cfg *clientConfig) error {
-		parsed, err := url.Parse(rawURL)
+		resolved, err := parseBaseURL(rawURL)
 		if err != nil {
 			return fmt.Errorf("parse base url: %w", err)
 		}
-		if parsed.Scheme == "" || parsed.Host == "" {
-			return fmt.Errorf("base url must include scheme and host")
+		cfg.baseURL = resolved
+		return nil
+	}
+}
+
+// WithStorefrontBaseURL overrides the Steam Storefront web base URL used by client.Web.Storefront.*.
+func WithStorefrontBaseURL(rawURL string) Option {
+	return func(cfg *clientConfig) error {
+		resolved, err := parseBaseURL(rawURL)
+		if err != nil {
+			return fmt.Errorf("parse storefront base url: %w", err)
 		}
-		cfg.baseURL = strings.TrimRight(parsed.String(), "/")
+		cfg.storefrontBaseURL = resolved
+		return nil
+	}
+}
+
+// WithCommunityBaseURL overrides the Steam Community / Market web base URL used by client.Web.Community.* and client.Web.Market.*.
+func WithCommunityBaseURL(rawURL string) Option {
+	return func(cfg *clientConfig) error {
+		resolved, err := parseBaseURL(rawURL)
+		if err != nil {
+			return fmt.Errorf("parse community base url: %w", err)
+		}
+		cfg.communityBaseURL = resolved
 		return nil
 	}
 }
@@ -329,4 +355,15 @@ func WithProxySelector(selector ProxySelector) Option {
 		cfg.proxySelector = selector
 		return nil
 	}
+}
+
+func parseBaseURL(rawURL string) (string, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("base url must include scheme and host")
+	}
+	return strings.TrimRight(parsed.String(), "/"), nil
 }
