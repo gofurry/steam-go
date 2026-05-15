@@ -22,7 +22,7 @@
 
 ### v1.2.0 - Auth Web Session and Free Claim Addons
 
-**Status:** Planned  
+**Status:** In progress
 **Scope:** User-facing / Developer-facing / Stability / Testing / Documentation  
 **Goal:** 将已验证的认证会话与免费领取闭环拆成可维护的主线原子能力和可选 addon 能力。
 
@@ -36,15 +36,15 @@
 
 #### Tasks
 
-- [ ] 新增 `api/authenticationservice`，接入 `client.API.AuthenticationService`
-- [ ] 实现 `GetPasswordRSAPublicKey`
+- [x] 新增 `api/authenticationservice`，接入 `client.API.AuthenticationService`
+- [x] 实现 `GetPasswordRSAPublicKey`
 - [ ] 实现 `BeginAuthSessionViaCredentials`
 - [ ] 实现 `BeginAuthSessionViaQR`
 - [ ] 实现 `UpdateAuthSessionWithSteamGuardCode`
 - [ ] 实现 `PollAuthSessionStatus`
-- [ ] 在 `api/authenticationservice` 内部实现最小 protobuf form 编码/解码 helper，暂不引入公共 protobuf 抽象
-- [ ] 增加 RSA 密码加密 helper，并明确其只辅助认证原子接口，不保存密码、不编排完整登录
-- [ ] 增加 `EResultError` 或等价可 `errors.As` 的错误类型，用于识别 `DuplicateRequest`、`AccountLogonDenied`、`InvalidLoginAuthCode`、`ExpiredLoginAuthCode`、`RateLimitExceeded`
+- [x] 在 `api/authenticationservice` 内部实现最小 protobuf form 编码/解码 helper，暂不引入公共 protobuf 抽象
+- [x] 增加 RSA 密码加密 helper，并明确其只辅助认证原子接口，不保存密码、不编排完整登录
+- [x] 增加 `EResultError` 或等价可 `errors.As` 的错误类型，用于识别 `DuplicateRequest`、`AccountLogonDenied`、`InvalidLoginAuthCode`、`ExpiredLoginAuthCode`、`RateLimitExceeded`
 - [ ] 新增 `addons/websession`，基于 `client.API.AuthenticationService` 编排 credentials 登录流程
 - [ ] 在 `addons/websession` 中支持手机批准、手机令牌、邮箱验证码三类确认路径
 - [ ] 在 `addons/websession` 中实现 refresh token 到 Web Cookie 的转换，复用同一个 `CookieJar` 完成 `finalizelogin` 与 transfer 请求

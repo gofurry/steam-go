@@ -3,6 +3,11 @@ package endpoint
 const (
 	AccountCartServiceGetCart                                 = "/IAccountCartService/GetCart/v1/"
 	AccountCartServiceDeleteCart                              = "/IAccountCartService/DeleteCart/v1/"
+	AuthenticationServiceGetPasswordRSAPublicKey              = "/IAuthenticationService/GetPasswordRSAPublicKey/v1/"
+	AuthenticationServiceBeginAuthSessionViaCredentials       = "/IAuthenticationService/BeginAuthSessionViaCredentials/v1/"
+	AuthenticationServiceBeginAuthSessionViaQR                = "/IAuthenticationService/BeginAuthSessionViaQR/v1/"
+	AuthenticationServiceUpdateAuthSessionWithSteamGuardCode  = "/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1/"
+	AuthenticationServicePollAuthSessionStatus                = "/IAuthenticationService/PollAuthSessionStatus/v1/"
 	BillingServiceGetRecurringSubscriptionsCount              = "/IBillingService/GetRecurringSubscriptionsCount/v1/"
 	CommunityServiceGetApps                                   = "/ICommunityService/GetApps/v1/"
 	FamilyGroupsServiceGetChangeLog                           = "/IFamilyGroupsService/GetChangeLog/v1/"

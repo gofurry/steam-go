@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gofurry/steam-go/api/accountcartservice"
+	"github.com/gofurry/steam-go/api/authenticationservice"
 	"github.com/gofurry/steam-go/api/billingservice"
 	"github.com/gofurry/steam-go/api/communityservice"
 	"github.com/gofurry/steam-go/api/familygroupsservice"
@@ -52,6 +53,7 @@ type Client struct {
 // API groups all typed Steam Web API services under one stable entrypoint.
 type API struct {
 	AccountCartService        *accountcartservice.Service
+	AuthenticationService     *authenticationservice.Service
 	BillingService            *billingservice.Service
 	CommunityService          *communityservice.Service
 	FamilyGroupsService       *familygroupsservice.Service
@@ -140,6 +142,7 @@ func NewClient(opts ...Option) (*Client, error) {
 	}
 	client.API = &API{
 		AccountCartService:        accountcartservice.NewService(officialExecutor),
+		AuthenticationService:     authenticationservice.NewService(officialExecutor),
 		BillingService:            billingservice.NewService(officialExecutor),
 		CommunityService:          communityservice.NewService(officialExecutor),
 		FamilyGroupsService:       familygroupsservice.NewService(officialExecutor),

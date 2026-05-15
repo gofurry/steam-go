@@ -53,6 +53,9 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	if client.API.AccountCartService == nil || client.API.BillingService == nil || client.API.CommunityService == nil {
 		t.Fatal("expected new core services to be initialized")
 	}
+	if client.API.AuthenticationService == nil {
+		t.Fatal("expected authentication service to be initialized")
+	}
 	if client.API.FamilyGroupsService == nil || client.API.LoyaltyRewardsService == nil {
 		t.Fatal("expected access-token services to be initialized")
 	}
