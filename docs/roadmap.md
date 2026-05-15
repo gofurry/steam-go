@@ -45,10 +45,10 @@
 - [x] 在 `api/authenticationservice` 内部实现最小 protobuf form 编码/解码 helper，暂不引入公共 protobuf 抽象
 - [x] 增加 RSA 密码加密 helper，并明确其只辅助认证原子接口，不保存密码、不编排完整登录
 - [x] 增加 `EResultError` 或等价可 `errors.As` 的错误类型，用于识别 `DuplicateRequest`、`AccountLogonDenied`、`InvalidLoginAuthCode`、`ExpiredLoginAuthCode`、`RateLimitExceeded`
-- [ ] 新增 `addons/websession`，基于 `client.API.AuthenticationService` 编排 credentials 登录流程
-- [ ] 在 `addons/websession` 中支持手机批准、手机令牌、邮箱验证码三类确认路径
-- [ ] 在 `addons/websession` 中实现 refresh token 到 Web Cookie 的转换，复用同一个 `CookieJar` 完成 `finalizelogin` 与 transfer 请求
-- [ ] 在 `addons/websession` 中实现 Store 与 Community session 校验，避免只依赖 `/account/licenses/`
+- [x] 新增 `addons/websession`，基于 `client.API.AuthenticationService` 编排 credentials 登录流程
+- [x] 在 `addons/websession` 中支持手机批准、手机令牌、邮箱验证码三类确认路径
+- [x] 在 `addons/websession` 中实现 refresh token 到 Web Cookie 的转换，复用同一个 `CookieJar` 完成 `finalizelogin` 与 transfer 请求
+- [x] 在 `addons/websession` 中实现 Store 与 Community session 校验，避免只依赖 `/account/licenses/`
 - [ ] 新增 `addons/freeclaim`，只依赖调用方提供的 Web Cookie / CookieJar，不管理账号密码或 refresh token
 - [ ] 在 `addons/freeclaim` 中实现限时免费候选搜索，先按 POC 经验解析 Store search HTML 片段
 - [ ] 在 `addons/freeclaim` 中复用 `client.Web.Storefront.GetAppDetails`，从 `package_groups` raw payload 中解析免费 package/subid
