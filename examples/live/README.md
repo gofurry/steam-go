@@ -15,6 +15,7 @@ Place credential files in `examples/live/`:
 
 Optional environment variables for web smoke tests:
 
+- `STEAM_AUTH_ACCOUNT_NAME` for `examples/live/authenticationservice`
 - `STEAM_PUBLIC_INVENTORY_ID` for `examples/live/webcommunity`
 
 For local transition, the shared helper also falls back to legacy files under `test/` when the new location is empty.
@@ -24,6 +25,7 @@ For local transition, the shared helper also falls back to legacy files under `t
 Run one service-specific smoke command, for example:
 
 - `go run ./examples/live/accountcartservice`
+- `go run ./examples/live/authenticationservice`
 - `go run ./examples/live/billingservice`
 - `go run ./examples/live/communityservice`
 - `go run ./examples/live/familygroupsservice`
