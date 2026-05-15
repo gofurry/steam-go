@@ -102,7 +102,10 @@ func main() {
 
 - `addons/a2s`：桥接到独立发布的 [`github.com/gofurry/a2s-go`](https://github.com/gofurry/a2s-go) `v1.0.1`
 - `addons/openid`：用于 Steam OpenID 登录识别
+- `addons/websession`：把 Steam 认证原子接口编排成一个手动网页登录态流程
+- `addons/freeclaim`：搜索 Store 限免候选，并在调用方提供 Web Cookie 时领取单个免费 license
 - OpenID 只负责确认 Steam 身份并返回 `SteamID64`，不会替代 Web API 凭证
+- `addons/freeclaim` 默认保持只读；只有显式进入 claim 路径时才会发送领取请求
 - 更详细的 addon 说明见 [addons/reference.md](addons/reference.md)
 
 ## Web
@@ -311,6 +314,8 @@ if err != nil {
 - `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
+- `go run ./examples/websession`
+- `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/steamuser`
 - `go run ./examples/playerservice`

@@ -27,6 +27,68 @@ go run ./examples/openid --proxy http://127.0.0.1:7897
 
 在部分网络环境下，浏览器可以打开 Steam 登录页，但服务端验证请求仍可能需要代理。
 
+## `addons/websession`
+
+当你想基于 `client.API.AuthenticationService` 走一条手动的 Steam 网页登录链路时，可以使用 `addons/websession`。
+
+它负责：
+
+- 启动账号密码认证会话
+- 可选地提交一次 Steam Guard 验证码
+- 轮询直到拿到 Steam token
+- 把 refresh token 换成 Store / Community Web Cookie
+- 校验 Store 和 Community 两边的 session
+
+它不负责：
+
+- 替你持久化密码、refresh token 或 Cookie
+- 读取浏览器 Cookie 或 Steam 客户端本地登录态
+- 在示例输出里直接打印敏感 token
+
+示例支持 `-account`、`-password`、`-guard-code`、`-proxy`，也支持：
+
+- `STEAM_ACCOUNT_NAME`
+- `STEAM_PASSWORD`
+- `STEAM_GUARD_CODE`
+
+示例：
+
+```bash
+go run ./examples/websession
+```
+
+## `addons/freeclaim`
+
+当你想做限免搜索、免费 package 解析，或者显式领取一个免费 license 时，可以使用 `addons/freeclaim`。
+
+它负责：
+
+- 搜索当前 Store 限免候选
+- 复用 `client.Web.Storefront.GetAppDetails` 解析免费 package
+- 通过 `dynamicstore/userdata` 校验是否已拥有
+- 只有在你显式要求时才发送一次领取请求
+
+它不负责：
+
+- 管理账号密码或浏览器 Cookie
+- 读取 Steam 客户端本地 token 或任何本地账号数据库
+- 自动全部领取
+- 无限重试
+
+示例默认只读。只有在显式 claim 模式下，才需要通过 `-refresh-token` 或 `STEAM_REFRESH_TOKEN` 提供 refresh token。
+
+只读搜索 / 解析示例：
+
+```bash
+go run ./examples/freeclaim
+```
+
+显式领取示例：
+
+```bash
+go run ./examples/freeclaim -app-id 480 -package-id 12345 -claim
+```
+
 ## `addons/a2s`
 
 `addons/a2s` 是对独立包 [`github.com/gofurry/a2s-go`](https://github.com/gofurry/a2s-go) 的轻量桥接。

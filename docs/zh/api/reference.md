@@ -83,5 +83,8 @@
 
 - 普通示例：`examples/`
 - 真实外部 API smoke：`examples/live/`
+- addon 手动示例：`go run ./examples/openid`
+- addon 手动示例：`go run ./examples/websession`
+- addon 手动示例：`go run ./examples/freeclaim`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

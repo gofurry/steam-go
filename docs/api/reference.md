@@ -294,5 +294,7 @@ Notes:
 - `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
+- `go run ./examples/websession`
+- `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`

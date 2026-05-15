@@ -22,7 +22,7 @@
 
 ### v1.2.0 - Auth Web Session and Free Claim Addons
 
-**Status:** In progress
+**Status:** Completed
 **Scope:** User-facing / Developer-facing / Stability / Testing / Documentation  
 **Goal:** 将已验证的认证会话与免费领取闭环拆成可维护的主线原子能力和可选 addon 能力。
 
@@ -55,9 +55,9 @@
 - [x] 在 `addons/freeclaim` 中实现单个 package 的免费 license 领取，优先从 app 页面表单解析隐藏字段
 - [x] 在 `addons/freeclaim` 中区分领取成功、已拥有、登录失效、疑似限流等结果
 - [x] 增加面向认证、websession、freeclaim 的单元测试和 fixture，覆盖请求构造、protobuf 字段、错误映射、HTML 解析和成功判定
-- [ ] 增加 live smoke 示例，但默认不在 CI 中执行
-- [ ] 更新英文与中文文档，说明主线 API、Web session addon、freeclaim addon 的边界、限制和安全注意事项
-- [ ] 明确不支持读取浏览器 Cookie、读取 Steam 客户端本地 token、自动全部领取、无限重试和本地账号数据库
+- [x] 增加 `addons/websession` 和 `addons/freeclaim` 的手动 examples，但默认不在 CI 中执行
+- [x] 更新英文与中文文档，说明主线 API、Web session addon、freeclaim addon 的边界、限制和安全注意事项
+- [x] 明确不支持读取浏览器 Cookie、读取 Steam 客户端本地 token、自动全部领取、无限重试和本地账号数据库
 
 #### Acceptance Criteria
 
@@ -66,7 +66,7 @@
 - `addons/freeclaim` 能搜索免费候选、解析 package/subid、领取单个免费 license，并能区分主要结果状态
 - 所有新增能力复用现有 `WithHTTPClient`、`WithCookieJar`、`WithProxySelector`、`WithTrafficPolicy`、`WithRequestSessionKey` 和 traffic class 体系
 - 不在主线 SDK 中保存密码、refresh token 或长期登录态
-- `go test ./...` 通过，新增 live smoke 示例可由调用方显式配置后手动执行
+- `go test ./...` 通过，新增 addon examples 可由调用方显式配置后手动执行
 - README、`docs/` 和中英文文档都说明能力边界、风险和推荐用法
 
 #### Notes
@@ -75,6 +75,7 @@
 - 免费促销搜索和领取流程依赖 Store 页面行为，默认放在 `addons/freeclaim`，不进入 `client.API.*` 或 `client.Web.*` 稳定主线。
 - `addons/websession` 不读取浏览器 Cookie，也不读取 Steam 客户端本地登录态。
 - `addons/freeclaim` 首版只提供单个领取能力，不提供自动全部领取能力。
+- `addons/websession` 和 `addons/freeclaim` 的手动示例应放在 `examples/`，而不是 `examples/live/`。
 
 ## 维护规则
 

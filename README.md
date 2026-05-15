@@ -112,7 +112,10 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 
 - `addons/a2s` is a lightweight bridge to [`github.com/gofurry/a2s-go`](https://github.com/gofurry/a2s-go) `v1.0.1`
 - `addons/openid` provides Steam OpenID login verification for browser-based sign-in flows
+- `addons/websession` composes Steam authentication atoms into one manual web-login session flow
+- `addons/freeclaim` searches Store promotions and can claim one free license with caller-supplied web cookies
 - OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
+- `addons/freeclaim` stays read-only unless you pass the explicit claim flag in the example or your own code
 - detailed addon notes live in [docs/addons/reference.md](docs/addons/reference.md)
 
 ## Web
@@ -321,6 +324,8 @@ On China-region networks, browser login may succeed while the server-side Steam 
 - `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
+- `go run ./examples/websession`
+- `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`
 - `go run ./examples/steamuser`
