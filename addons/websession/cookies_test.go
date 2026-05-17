@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	steam "github.com/gofurry/steam-go"
 )
 
 func TestRefreshTokenToWebCookiesAndValidateSessions(t *testing.T) {
@@ -149,6 +151,107 @@ func TestRefreshTokenToWebCookiesRejectsInvalidToken(t *testing.T) {
 	}
 	if clientErr.Code != ErrorCodeIdentity {
 		t.Fatalf("unexpected error code: %s", clientErr.Code)
+	}
+}
+
+func TestNewClientFromSteamClientRejectsWithHTTPClient(t *testing.T) {
+	t.Parallel()
+
+	sdk := newSteamSDKClient(t)
+
+	_, err := NewClientFromSteamClient(sdk, WithHTTPClient(&http.Client{}))
+	if err == nil {
+		t.Fatal("expected configuration error")
+	}
+	var clientErr *Error
+	if !errors.As(err, &clientErr) {
+		t.Fatalf("expected websession error, got %T", err)
+	}
+	if clientErr.Code != ErrorCodeConfig {
+		t.Fatalf("unexpected error code: %s", clientErr.Code)
+	}
+}
+
+func TestRefreshTokenToWebCookiesAndValidateSessionsFromSteamClient(t *testing.T) {
+	t.Parallel()
+
+	steamID := "76561198000000001"
+	refreshToken := testJWTWithSubject(t, steamID)
+
+	storeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/login/settoken":
+			http.SetCookie(w, &http.Cookie{Name: "sessionid", Value: "store-session", Path: "/"})
+			http.SetCookie(w, &http.Cookie{Name: "steamLoginSecure", Value: "store-secure", Path: "/"})
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		case "/account/":
+			if _, err := r.Cookie("sessionid"); err != nil {
+				t.Fatalf("expected store session cookie: %v", err)
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("account overview"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer storeServer.Close()
+
+	communityServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/login/transfer":
+			http.SetCookie(w, &http.Cookie{Name: "steamLoginSecure", Value: "community-secure", Path: "/"})
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		case "/profiles/" + steamID + "/":
+			if _, err := r.Cookie("steamLoginSecure"); err != nil {
+				t.Fatalf("expected community login cookie: %v", err)
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("<profile><steamID64>" + steamID + "</steamID64></profile>"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer communityServer.Close()
+
+	loginServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/jwt/finalizelogin" {
+			http.NotFound(w, r)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("ParseForm returned error: %v", err)
+		}
+		if got := r.Form.Get("nonce"); got != refreshToken {
+			t.Fatalf("unexpected nonce: %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"error":0,"transfer_info":[{"url":"` + storeServer.URL + `/login/settoken","params":{"nonce":"` + refreshToken + `","auth":"demo"}},{"url":"` + communityServer.URL + `/login/transfer","params":{"nonce":"` + refreshToken + `"}}]}`))
+	}))
+	defer loginServer.Close()
+
+	sdk := newSteamSDKClient(
+		t,
+		steam.WithStorefrontBaseURL(storeServer.URL),
+		steam.WithCommunityBaseURL(communityServer.URL),
+	)
+	client, err := NewClientFromSteamClient(
+		sdk,
+		WithLoginBaseURL(loginServer.URL),
+		WithStoreBaseURL(storeServer.URL),
+		WithCommunityBaseURL(communityServer.URL),
+	)
+	if err != nil {
+		t.Fatalf("NewClientFromSteamClient returned error: %v", err)
+	}
+
+	result, err := client.RefreshTokenToWebCookies(context.Background(), refreshToken)
+	if err != nil {
+		t.Fatalf("RefreshTokenToWebCookies returned error: %v", err)
+	}
+	if err := client.ValidateWebCookies(context.Background(), result); err != nil {
+		t.Fatalf("ValidateWebCookies returned error: %v", err)
 	}
 }
 

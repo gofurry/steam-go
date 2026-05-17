@@ -57,8 +57,14 @@ What it does not do:
 - it does not persist passwords, refresh tokens, or cookies for you
 - it does not read browser cookies or Steam client local state
 - it does not silently print secrets in the example output
+- it does not persist or rotate one refresh token for you after login succeeds
 
-The example accepts `-account`, `-password`, `-guard-code`, and `-proxy`, and also supports:
+Construction modes:
+
+- `websession.NewClientFromSteamClient(...)` is the recommended path and reuses the root SDK traffic-policy execution stack for Store / Community web traffic
+- `websession.NewClient(...)` remains available as manual mode when you want to supply your own `http.Client`
+
+The example accepts `-account` and `-proxy`, and uses hidden terminal prompts for sensitive values when environment variables are not set:
 
 - `STEAM_ACCOUNT_NAME`
 - `STEAM_PASSWORD`
@@ -87,8 +93,14 @@ What it does not do:
 - it does not read Steam client local tokens or any local account database
 - it does not auto-claim everything
 - it does not retry forever
+- it does not silently escalate into bulk-claim automation
 
-The example is read-only by default. Claim mode requires a refresh token through `-refresh-token` or `STEAM_REFRESH_TOKEN`.
+Construction modes:
+
+- `freeclaim.NewClientFromSteamClient(...)` is the recommended path and reuses the root SDK traffic-policy execution stack for Store web traffic
+- `freeclaim.NewClient(...)` remains available as manual mode when you want to supply your own `http.Client`
+
+The example is read-only by default. Claim mode requires a refresh token through `STEAM_REFRESH_TOKEN` or one hidden terminal prompt.
 
 Run the read-only search / package resolution example:
 

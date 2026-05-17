@@ -116,6 +116,9 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 - `addons/freeclaim` searches Store promotions and can claim one free license with caller-supplied web cookies
 - OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
 - `addons/freeclaim` stays read-only unless you pass the explicit claim flag in the example or your own code
+- the addon examples read sensitive secrets from environment variables or hidden terminal prompts instead of CLI secret flags
+- `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` are the recommended constructors when you want addon web traffic to inherit the root SDK class execution stack
+- the legacy `NewClient(...)` addon constructors remain available as manual mode for caller-managed `http.Client`, proxy, timeout, base URL, and `CookieJar`
 - detailed addon notes live in [docs/addons/reference.md](docs/addons/reference.md)
 
 ## Web

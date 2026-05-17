@@ -16,6 +16,7 @@ type Option func(*clientOptions) error
 
 type clientOptions struct {
 	httpClient           *http.Client
+	httpClientConfigured bool
 	timeout              time.Duration
 	maxResponseBodyBytes int64
 	storeBaseURL         *url.URL
@@ -40,6 +41,7 @@ func WithHTTPClient(client *http.Client) Option {
 			return configError("with_http_client", "http client must not be nil", nil)
 		}
 		opts.httpClient = client
+		opts.httpClientConfigured = true
 		return nil
 	}
 }

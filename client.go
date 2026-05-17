@@ -47,7 +47,9 @@ type Client struct {
 	API *API
 	Web *Web
 
-	httpClients []*http.Client
+	httpClients           []*http.Client
+	rawRuntimes           trafficRuntimeSet
+	maxResponseBodyBytes  int64
 }
 
 // API groups all typed Steam Web API services under one stable entrypoint.
@@ -138,7 +140,9 @@ func NewClient(opts ...Option) (*Client, error) {
 	}
 
 	client := &Client{
-		httpClients: runtimes.httpClients,
+		httpClients:          runtimes.httpClients,
+		rawRuntimes:          runtimes,
+		maxResponseBodyBytes: cfg.maxResponseBodyBytes,
 	}
 	client.API = &API{
 		AccountCartService:        accountcartservice.NewService(officialExecutor),

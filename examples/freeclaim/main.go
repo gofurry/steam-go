@@ -5,13 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
-	"strings"
 	"time"
 
 	steam "github.com/gofurry/steam-go"
 	"github.com/gofurry/steam-go/addons/freeclaim"
 	"github.com/gofurry/steam-go/addons/websession"
+	"github.com/gofurry/steam-go/examples/internal/secretinput"
 )
 
 func main() {
@@ -24,7 +23,6 @@ func main() {
 		packageID   = flag.Uint("package-id", 0, "optional package id for claim; if omitted, one free package will be auto-selected only when exactly one match exists")
 		countryCode = flag.String("country-code", "us", "country code used for Storefront app details")
 		language    = flag.String("language", "english", "language used for Storefront app details")
-		refreshFlag = flag.String("refresh-token", "", "refresh token used only for claim mode; falls back to STEAM_REFRESH_TOKEN")
 		claim       = flag.Bool("claim", false, "actually send one addfreelicense request; default behavior is read-only search and package resolution")
 	)
 	flag.Parse()
@@ -34,10 +32,6 @@ func main() {
 	}
 
 	selector, err := steam.NewStaticProxySelector(*proxyRaw)
-	if err != nil {
-		log.Fatal(err)
-	}
-	httpClient, err := steam.NewHTTPClientWithProxySelector(selector, *timeout)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,9 +45,8 @@ func main() {
 	}
 	defer sdk.Close()
 
-	freeclaimClient, err := freeclaim.NewClient(
-		sdk.Web.Storefront,
-		freeclaim.WithHTTPClient(httpClient),
+	freeclaimClient, err := freeclaim.NewClientFromSteamClient(
+		sdk,
 		freeclaim.WithTimeout(*timeout),
 	)
 	if err != nil {
@@ -106,9 +99,9 @@ func main() {
 		return
 	}
 
-	refreshToken := firstNonEmpty(*refreshFlag, os.Getenv("STEAM_REFRESH_TOKEN"))
-	if strings.TrimSpace(refreshToken) == "" {
-		log.Fatal("claim mode requires -refresh-token or STEAM_REFRESH_TOKEN")
+	refreshToken, err := resolveRefreshToken(secretinput.DefaultResolver())
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	selectedPackageID, err := resolveClaimPackageID(uint32(*packageID), packages)
@@ -116,9 +109,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sessionClient, err := websession.NewClient(
-		sdk.API.AuthenticationService,
-		websession.WithHTTPClient(httpClient),
+	sessionClient, err := websession.NewClientFromSteamClient(
+		sdk,
 		websession.WithTimeout(*timeout),
 	)
 	if err != nil {
@@ -160,13 +152,4 @@ func resolveClaimPackageID(explicit uint32, packages []freeclaim.FreePackage) (u
 		return 0, fmt.Errorf("no free package candidates were found for the selected app")
 	}
 	return 0, fmt.Errorf("multiple free package candidates found; rerun with -package-id")
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return value
-		}
-	}
-	return ""
 }

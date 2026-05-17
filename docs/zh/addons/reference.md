@@ -44,8 +44,14 @@ go run ./examples/openid --proxy http://127.0.0.1:7897
 - 替你持久化密码、refresh token 或 Cookie
 - 读取浏览器 Cookie 或 Steam 客户端本地登录态
 - 在示例输出里直接打印敏感 token
+- 替你长期托管 refresh token 或登录生命周期
 
-示例支持 `-account`、`-password`、`-guard-code`、`-proxy`，也支持：
+构造方式：
+
+- `websession.NewClientFromSteamClient(...)`：推荐方式，复用根 SDK 的按类别 traffic-policy 执行链
+- `websession.NewClient(...)`：手动模式，适合你自己提供 `http.Client`
+
+示例支持 `-account`、`-proxy`，并会在环境变量缺失时通过隐藏输入读取高敏感 secret：
 
 - `STEAM_ACCOUNT_NAME`
 - `STEAM_PASSWORD`
@@ -74,8 +80,14 @@ go run ./examples/websession
 - 读取 Steam 客户端本地 token 或任何本地账号数据库
 - 自动全部领取
 - 无限重试
+- 悄悄扩展成批量自动领取流程
 
-示例默认只读。只有在显式 claim 模式下，才需要通过 `-refresh-token` 或 `STEAM_REFRESH_TOKEN` 提供 refresh token。
+构造方式：
+
+- `freeclaim.NewClientFromSteamClient(...)`：推荐方式，复用根 SDK 的按类别 traffic-policy 执行链
+- `freeclaim.NewClient(...)`：手动模式，适合你自己提供 `http.Client`
+
+示例默认只读。只有在显式 claim 模式下，才需要通过 `STEAM_REFRESH_TOKEN` 或一次隐藏输入提供 refresh token。
 
 只读搜索 / 解析示例：
 

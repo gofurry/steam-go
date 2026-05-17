@@ -83,6 +83,9 @@ func (c *Client) SearchPromotions(ctx context.Context, opts *SearchPromotionsOpt
 	if err != nil {
 		return nil, err
 	}
+	if result.Block != nil {
+		return nil, &Error{Code: ErrorCodeVerify, Op: "search_promotions", Message: result.Block.Message}
+	}
 	if result.StatusCode < http.StatusOK || result.StatusCode >= http.StatusMultipleChoices {
 		return nil, &Error{Code: ErrorCodeHTTPStatus, Op: "search_promotions", Message: fmt.Sprintf("unexpected status %d: %s", result.StatusCode, strings.TrimSpace(string(result.Body)))}
 	}

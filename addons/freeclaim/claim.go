@@ -66,6 +66,14 @@ func (c *Client) claimPackageWithJar(ctx context.Context, jar http.CookieJar, re
 	if err != nil {
 		return ClaimResult{}, err
 	}
+	if pageResult.Block != nil {
+		return ClaimResult{
+			Status:    ClaimStatusRateLimited,
+			AppID:     req.AppID,
+			PackageID: req.PackageID,
+			Message:   pageResult.Block.Message,
+		}, nil
+	}
 	if endedOnLoginPage(pageResult.FinalURL) {
 		return ClaimResult{
 			Status:    ClaimStatusLoginRequired,
@@ -118,6 +126,12 @@ func (c *Client) claimPackageWithJar(ctx context.Context, jar http.CookieJar, re
 		Message:   classifyClaimMessage(claimResult.Body),
 	}
 	switch {
+	case claimResult.Block != nil:
+		outcome.Status = ClaimStatusRateLimited
+		if outcome.Message == "" {
+			outcome.Message = claimResult.Block.Message
+		}
+		return outcome, nil
 	case endedOnLoginPage(claimResult.FinalURL):
 		outcome.Status = ClaimStatusLoginRequired
 		if outcome.Message == "" {

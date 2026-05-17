@@ -106,6 +106,9 @@ func main() {
 - `addons/freeclaim`：搜索 Store 限免候选，并在调用方提供 Web Cookie 时领取单个免费 license
 - OpenID 只负责确认 Steam 身份并返回 `SteamID64`，不会替代 Web API 凭证
 - `addons/freeclaim` 默认保持只读；只有显式进入 claim 路径时才会发送领取请求
+- addon 示例中的高敏感 secret 统一从环境变量或隐藏输入读取，不再通过命令行参数直接传入
+- `addons/websession.NewClientFromSteamClient(...)` 和 `addons/freeclaim.NewClientFromSteamClient(...)` 是推荐入口，会继承根 SDK 的按类别执行链
+- 旧的 addon `NewClient(...)` 构造器仍然保留，继续作为手动模式，适合调用方自己管理 `http.Client`、proxy、timeout、base URL 与 `CookieJar`
 - 更详细的 addon 说明见 [addons/reference.md](addons/reference.md)
 
 ## Web

@@ -10,6 +10,8 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+
+	steam "github.com/gofurry/steam-go"
 )
 
 type WebCookieResult struct {
@@ -56,8 +58,6 @@ func (c *Client) RefreshTokenToWebCookies(ctx context.Context, refreshToken stri
 	if err != nil {
 		return nil, &Error{Code: ErrorCodeConfig, Op: "refresh_token_to_web_cookies", Message: "create cookie jar failed", Err: err}
 	}
-	httpClient := cloneHTTPClient(c.httpClient)
-	httpClient.Jar = jar
 
 	finalizeURL := resolveURL(c.loginBaseURL, "/jwt/finalizelogin")
 	redirURL := resolveURL(c.communityBaseURL, "/login/home/")
@@ -68,7 +68,7 @@ func (c *Client) RefreshTokenToWebCookies(ctx context.Context, refreshToken stri
 	form.Set("nonce", refreshToken)
 	form.Set("sessionid", sessionID)
 	form.Set("redir", redirURL.String())
-	body, err := c.postForm(ctx, httpClient, finalizeURL.String(), form)
+	body, err := c.postForm(ctx, jar, steam.TrafficClassCommunityWeb, finalizeURL.String(), form)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,11 @@ func (c *Client) RefreshTokenToWebCookies(ctx context.Context, refreshToken stri
 			}
 			transferForm.Set(key, value)
 		}
-		if _, err := c.postForm(ctx, httpClient, transferURL.String(), transferForm); err != nil {
+		transferClass := steam.TrafficClassPublicStorePage
+		if transferURL.Hostname() == c.communityBaseURL.Hostname() {
+			transferClass = steam.TrafficClassCommunityWeb
+		}
+		if _, err := c.postForm(ctx, jar, transferClass, transferURL.String(), transferForm); err != nil {
 			return nil, err
 		}
 		addDomain(domains, transferURL)
@@ -111,29 +115,28 @@ func (c *Client) RefreshTokenToWebCookies(ctx context.Context, refreshToken stri
 	}, nil
 }
 
-func (c *Client) postForm(ctx context.Context, client *http.Client, rawURL string, form url.Values) ([]byte, error) {
-	reqCtx, cancel := c.withTimeout(ctx)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, rawURL, strings.NewReader(form.Encode()))
+func (c *Client) postForm(ctx context.Context, jar http.CookieJar, trafficClass steam.TrafficClass, rawURL string, form url.Values) ([]byte, error) {
+	result, err := c.doRequestWithJar(
+		ctx,
+		jar,
+		trafficClass,
+		http.MethodPost,
+		rawURL,
+		strings.NewReader(form.Encode()),
+		"application/x-www-form-urlencoded",
+		nil,
+		"post_form",
+	)
 	if err != nil {
-		return nil, &Error{Code: ErrorCodeRequestBuild, Op: "post_form", Message: "build request failed", Err: err}
+		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, &Error{Code: ErrorCodeTransport, Op: "post_form", Message: "request failed", Err: err}
+	if result.Block != nil {
+		return nil, &Error{Code: ErrorCodeVerify, Op: "post_form", Message: result.Block.Message}
 	}
-	defer resp.Body.Close()
-
-	body, readErr := readBodyLimited(resp.Body, c.maxResponseBodyBytes)
-	if readErr != nil {
-		return nil, &Error{Code: ErrorCodeTransport, Op: "post_form", Message: "read response failed", Err: readErr}
+	if result.StatusCode < http.StatusOK || result.StatusCode >= http.StatusMultipleChoices {
+		return nil, &Error{Code: ErrorCodeHTTPStatus, Op: "post_form", Message: fmt.Sprintf("unexpected status %d: %s", result.StatusCode, strings.TrimSpace(string(result.Body)))}
 	}
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, &Error{Code: ErrorCodeHTTPStatus, Op: "post_form", Message: fmt.Sprintf("unexpected status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))}
-	}
-	return body, nil
+	return result.Body, nil
 }
 
 func cloneHTTPClient(base *http.Client) *http.Client {

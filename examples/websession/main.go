@@ -13,13 +13,12 @@ import (
 	steam "github.com/gofurry/steam-go"
 	"github.com/gofurry/steam-go/addons/websession"
 	"github.com/gofurry/steam-go/api/authenticationservice"
+	"github.com/gofurry/steam-go/examples/internal/secretinput"
 )
 
 func main() {
 	var (
 		accountFlag  = flag.String("account", "", "Steam account name; falls back to STEAM_ACCOUNT_NAME")
-		passwordFlag = flag.String("password", "", "Steam account password; falls back to STEAM_PASSWORD")
-		guardFlag    = flag.String("guard-code", "", "optional Steam Guard code; falls back to STEAM_GUARD_CODE")
 		guardType    = flag.String("guard-type", "device_code", "guard code type: email_code, device_code, device_confirmation, or email_confirmation")
 		deviceName   = flag.String("device-name", "steam-go example", "device friendly name sent to Steam")
 		websiteID    = flag.String("website-id", "Store", "website ID used for BeginAuthSessionViaCredentials")
@@ -32,18 +31,16 @@ func main() {
 	flag.Parse()
 
 	accountName := firstNonEmpty(*accountFlag, os.Getenv("STEAM_ACCOUNT_NAME"))
-	password := firstNonEmpty(*passwordFlag, os.Getenv("STEAM_PASSWORD"))
-	guardCode := firstNonEmpty(*guardFlag, os.Getenv("STEAM_GUARD_CODE"))
-
-	if strings.TrimSpace(accountName) == "" || password == "" {
-		log.Fatal("missing credentials: provide -account/-password or set STEAM_ACCOUNT_NAME and STEAM_PASSWORD")
+	if strings.TrimSpace(accountName) == "" {
+		log.Fatal("missing account name: provide -account or set STEAM_ACCOUNT_NAME")
 	}
-
-	selector, err := steam.NewStaticProxySelector(*proxyRaw)
+	resolver := secretinput.DefaultResolver()
+	password, err := resolvePassword(resolver)
 	if err != nil {
 		log.Fatal(err)
 	}
-	httpClient, err := steam.NewHTTPClientWithProxySelector(selector, *timeout)
+
+	selector, err := steam.NewStaticProxySelector(*proxyRaw)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,9 +54,8 @@ func main() {
 	}
 	defer sdk.Close()
 
-	sessionClient, err := websession.NewClient(
-		sdk.API.AuthenticationService,
-		websession.WithHTTPClient(httpClient),
+	sessionClient, err := websession.NewClientFromSteamClient(
+		sdk,
 		websession.WithTimeout(*timeout),
 	)
 	if err != nil {
@@ -84,8 +80,11 @@ func main() {
 		fmt.Printf("- %s: %s\n", confirmationTypeName(confirmation.ConfirmationType), strings.TrimSpace(confirmation.AssociatedMessage))
 	}
 
-	requiresTypedCode := hasTypedCodeConfirmation(challenge.AllowedConfirmations)
 	allowsApprovalFlow := hasApprovalConfirmation(challenge.AllowedConfirmations)
+	guardCode, err := resolveGuardCode(resolver, challenge.AllowedConfirmations)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if guardCode != "" {
 		typ, err := parseGuardCodeType(*guardType)
 		if err != nil {
@@ -95,8 +94,6 @@ func main() {
 			log.Fatal(err)
 		}
 		fmt.Printf("submitted guard code as %s\n", guardTypeName(typ))
-	} else if requiresTypedCode && !allowsApprovalFlow {
-		log.Fatal("this login challenge requires a guard code; rerun with -guard-code or set STEAM_GUARD_CODE")
 	} else if allowsApprovalFlow {
 		fmt.Println("waiting for approval in Steam Guard or email confirmation flow")
 	}
@@ -148,7 +145,9 @@ func pollUntilReady(ctx context.Context, client *websession.Client, challenge *w
 		if time.Now().After(deadline) {
 			return nil, fmt.Errorf("timed out after %s while waiting for Steam auth session", maxWait)
 		}
-		time.Sleep(interval)
+		if err := waitForPollInterval(ctx, interval); err != nil {
+			return nil, err
+		}
 	}
 }
 

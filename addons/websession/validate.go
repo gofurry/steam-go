@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	steam "github.com/gofurry/steam-go"
 )
 
 func (c *Client) ValidateWebCookies(ctx context.Context, result *WebCookieResult) error {
@@ -33,7 +35,7 @@ func (c *Client) ValidateCommunitySession(ctx context.Context, jar http.CookieJa
 	query := parsed.Query()
 	query.Set("xml", "1")
 	parsed.RawQuery = query.Encode()
-	body, err := c.getWithJar(ctx, jar, parsed.String(), "validate_community_session")
+	body, err := c.getWithJar(ctx, jar, steam.TrafficClassCommunityWeb, parsed.String(), "validate_community_session")
 	if err != nil {
 		return err
 	}
@@ -51,42 +53,25 @@ func (c *Client) ValidateStoreSession(ctx context.Context, jar http.CookieJar) e
 	query := parsed.Query()
 	query.Set("l", "english")
 	parsed.RawQuery = query.Encode()
-	body, err := c.getWithJar(ctx, jar, parsed.String(), "validate_store_session")
-	if err != nil {
-		return err
-	}
-	if strings.Contains(strings.ToLower(string(body)), "login") {
-		return &Error{Code: ErrorCodeVerify, Op: "validate_store_session", Message: "store account page appears to require login"}
-	}
-	return nil
+	_, err := c.getWithJar(ctx, jar, steam.TrafficClassPublicStorePage, parsed.String(), "validate_store_session")
+	return err
 }
 
-func (c *Client) getWithJar(ctx context.Context, jar http.CookieJar, rawURL, op string) ([]byte, error) {
-	reqCtx, cancel := c.withTimeout(ctx)
-	defer cancel()
-
-	client := cloneHTTPClient(c.httpClient)
-	client.Jar = jar
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, rawURL, nil)
+func (c *Client) getWithJar(ctx context.Context, jar http.CookieJar, trafficClass steam.TrafficClass, rawURL, op string) ([]byte, error) {
+	result, err := c.doRequestWithJar(ctx, jar, trafficClass, http.MethodGet, rawURL, nil, "", nil, op)
 	if err != nil {
-		return nil, &Error{Code: ErrorCodeRequestBuild, Op: op, Message: "build request failed", Err: err}
+		return nil, err
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, &Error{Code: ErrorCodeTransport, Op: op, Message: "request failed", Err: err}
+	if result.Block != nil {
+		return nil, &Error{Code: ErrorCodeVerify, Op: op, Message: result.Block.Message}
 	}
-	defer resp.Body.Close()
-	body, readErr := readBodyLimited(resp.Body, c.maxResponseBodyBytes)
-	if readErr != nil {
-		return nil, &Error{Code: ErrorCodeTransport, Op: op, Message: "read response failed", Err: readErr}
+	if result.StatusCode < http.StatusOK || result.StatusCode >= http.StatusMultipleChoices {
+		return nil, &Error{Code: ErrorCodeHTTPStatus, Op: op, Message: fmt.Sprintf("unexpected status %d: %s", result.StatusCode, strings.TrimSpace(string(result.Body)))}
 	}
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, &Error{Code: ErrorCodeHTTPStatus, Op: op, Message: fmt.Sprintf("unexpected status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))}
-	}
-	if resp.Request != nil && strings.Contains(strings.ToLower(resp.Request.URL.Path), "/login") {
+	if result.FinalURL != nil && strings.Contains(strings.ToLower(result.FinalURL.Path), "/login") {
 		return nil, &Error{Code: ErrorCodeVerify, Op: op, Message: "request ended on a login page"}
 	}
-	return body, nil
+	return result.Body, nil
 }
 
 func steamIDFromJWT(token string) (string, error) {

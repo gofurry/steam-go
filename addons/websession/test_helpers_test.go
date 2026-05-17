@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	steam "github.com/gofurry/steam-go"
 	"github.com/gofurry/steam-go/api/authenticationservice"
 	"github.com/gofurry/steam-go/internal/request"
 )
@@ -136,6 +137,16 @@ func newTestClient(t *testing.T, auth *authenticationservice.Service, opts ...Op
 	client, err := NewClient(auth, opts...)
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
+	}
+	return client
+}
+
+func newSteamSDKClient(t *testing.T, opts ...steam.Option) *steam.Client {
+	t.Helper()
+
+	client, err := steam.NewClient(opts...)
+	if err != nil {
+		t.Fatalf("steam.NewClient returned error: %v", err)
 	}
 	return client
 }

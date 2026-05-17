@@ -1,6 +1,9 @@
 package traffic
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
 // Class identifies one request traffic category inside the SDK.
 type Class string
@@ -15,6 +18,7 @@ const (
 type classContextKey struct{}
 type requestSessionContextKey struct{}
 type blockDetectionContextKey struct{}
+type cookieJarContextKey struct{}
 
 // WithClass attaches one traffic class to a context.
 func WithClass(ctx context.Context, class Class) context.Context {
@@ -87,4 +91,24 @@ func BlockDetectionFromContext(ctx context.Context) bool {
 	}
 	enabled, _ := ctx.Value(blockDetectionContextKey{}).(bool)
 	return enabled
+}
+
+// WithCookieJar attaches one runtime cookie jar override to a context.
+func WithCookieJar(ctx context.Context, jar http.CookieJar) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if jar == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, cookieJarContextKey{}, jar)
+}
+
+// CookieJarFromContext resolves one runtime cookie jar override from context.
+func CookieJarFromContext(ctx context.Context) (http.CookieJar, bool) {
+	if ctx == nil {
+		return nil, false
+	}
+	jar, ok := ctx.Value(cookieJarContextKey{}).(http.CookieJar)
+	return jar, ok && jar != nil
 }

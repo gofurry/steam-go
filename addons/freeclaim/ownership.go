@@ -38,6 +38,9 @@ func (c *Client) isAppOwnedWithJar(ctx context.Context, jar http.CookieJar, appI
 	if err != nil {
 		return false, err
 	}
+	if result.Block != nil {
+		return false, &Error{Code: ErrorCodeVerify, Op: "is_app_owned", Message: result.Block.Message}
+	}
 	if endedOnLoginPage(result.FinalURL) {
 		return false, &Error{Code: ErrorCodeVerify, Op: "is_app_owned", Message: "request ended on a login page"}
 	}
