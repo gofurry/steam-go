@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6)
 ![Release](https://img.shields.io/github/v/release/gofurry/steam-go?style=flat&color=blue)
-![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat&logo=go&logoColor=white)
+![Go Version](https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gofurry/steam-go)](https://goreportcard.com/report/github.com/gofurry/steam-go)
 
 ![Weekend Project](https://img.shields.io/badge/weekend-project-8B5CF6?style=flat)

@@ -5,6 +5,8 @@
 [English](../../README.md) | 
 [Steam Keys and Access Tokens](https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens)
 
+![Go Version](https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white)
+
 `steam-go` 是一个专注于官方 Steam Web API 的轻量级 Go SDK。
 
 `v1.0.0` 是 `steam-go` 的首个正式稳定版，定位为一个面向生产使用、专注于官方 Steam Web API 的 Go SDK。
