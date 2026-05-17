@@ -72,16 +72,28 @@
 - `addons/a2s`
 - `addons/a2s/master`
 - `addons/a2s/scanner`
+- `addons/websession`
+- `addons/freeclaim`
+
+说明：
+
+- `addons/websession.NewClientFromSteamClient(...)` 和 `addons/freeclaim.NewClientFromSteamClient(...)` 会复用根 SDK 的按分类 `WithTrafficPolicy(...)` 执行链。
+- 旧的 addon `NewClient(...)` 构造器仍然保留，继续作为手动模式，依赖调用方提供的 `http.Client`、proxy、timeout、base URL 和 `CookieJar`。
 
 ## Proxy 和 Traffic Policy
 
 根包提供代理、限流、重试、cookie jar、traffic class、请求控制和公开商店页策略基础能力。
 
-`TrafficClassPublicStorePage` 目前只是策略隔离和请求基础设施，不代表 `v1.0.0` 已经内置完整公开商店页抓取 API。
+`client.Web.Storefront.*` 默认使用 `TrafficClassPublicStorePage`，`client.Web.Community.*` 默认使用 `TrafficClassCommunityWeb`，`client.Web.Market.*` 默认使用 `TrafficClassMarketWeb`。
+
+另外，`(*steam.Client).DoRawHTTPRequest(...)` 提供了一个面向 addon/raw HTTP 场景的公开入口，让非 typed 服务也能复用根 SDK 的按类别执行链。
 
 ## 示例
 
 - 普通示例：`examples/`
 - 真实外部 API smoke：`examples/live/`
+- addon 手动示例：`go run ./examples/openid`
+- addon 手动示例：`go run ./examples/websession`
+- addon 手动示例：`go run ./examples/freeclaim`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

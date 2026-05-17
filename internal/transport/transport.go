@@ -70,34 +70,44 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		return nil, fmt.Errorf("request is required")
 	}
 
-	hostKey := requestHostKey(req)
-	sessionKey := requestSessionKey(ctx)
+	execCtx := ctx
+	if req.Context() != nil {
+		execCtx = req.Context()
+	}
 
-	if err := waitRequestControl(ctx, c.hostController, hostKey); err != nil {
+	hostKey := requestHostKey(req)
+	sessionKey := requestSessionKey(execCtx)
+
+	if err := waitRequestControl(execCtx, c.hostController, hostKey); err != nil {
 		return nil, err
 	}
-	if err := waitRequestControl(ctx, c.sessionController, sessionKey); err != nil {
+	if err := waitRequestControl(execCtx, c.sessionController, sessionKey); err != nil {
 		return nil, err
 	}
 	if c.limiter != nil {
-		if err := c.limiter.Wait(ctx); err != nil {
+		if err := c.limiter.Wait(execCtx); err != nil {
 			return nil, err
 		}
 	}
 
-	hostRelease, err := acquireRequestControl(ctx, c.hostController, hostKey)
+	hostRelease, err := acquireRequestControl(execCtx, c.hostController, hostKey)
 	if err != nil {
 		return nil, err
 	}
 	defer hostRelease()
 
-	sessionRelease, err := acquireRequestControl(ctx, c.sessionController, sessionKey)
+	sessionRelease, err := acquireRequestControl(execCtx, c.sessionController, sessionKey)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionRelease()
 
-	return c.httpClient.Do(req.Clone(ctx))
+	httpClient := c.httpClient
+	if jar, ok := traffic.CookieJarFromContext(execCtx); ok {
+		httpClient = cloneHTTPClientWithJar(c.httpClient, jar)
+	}
+
+	return httpClient.Do(req.Clone(execCtx))
 }
 
 // WrapRoundTripper installs proxy selection on top of an existing transport.
@@ -183,6 +193,15 @@ func cloneURL(proxyURL *url.URL) *url.URL {
 		return nil
 	}
 	cloned := *proxyURL
+	return &cloned
+}
+
+func cloneHTTPClientWithJar(base *http.Client, jar http.CookieJar) *http.Client {
+	if base == nil {
+		return nil
+	}
+	cloned := *base
+	cloned.Jar = jar
 	return &cloned
 }
 

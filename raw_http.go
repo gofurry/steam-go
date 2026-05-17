@@ -1,0 +1,131 @@
+package steam
+
+import (
+	"context"
+	"net/http"
+	"net/url"
+
+	sdkerrors "github.com/gofurry/steam-go/internal/errors"
+	"github.com/gofurry/steam-go/internal/request"
+	itraffic "github.com/gofurry/steam-go/internal/traffic"
+)
+
+// RawHTTPRequestOptions controls raw addon-oriented HTTP execution through the SDK runtime.
+type RawHTTPRequestOptions struct {
+	TrafficClass         TrafficClass
+	CookieJar            http.CookieJar
+	MaxResponseBodyBytes int64
+}
+
+// RawHTTPBlockResult exposes block-detection metadata without discarding the raw response.
+type RawHTTPBlockResult struct {
+	Kind      ErrorKind
+	Message   string
+	Retryable bool
+}
+
+// RawHTTPResult exposes one raw HTTP response after retries, cache, and block detection.
+type RawHTTPResult struct {
+	StatusCode int
+	Header     http.Header
+	FinalURL   *url.URL
+	Body       []byte
+	Block      *RawHTTPBlockResult
+}
+
+// DoRawHTTPRequest executes one absolute HTTP request through one SDK traffic class runtime.
+func (c *Client) DoRawHTTPRequest(ctx context.Context, req *http.Request, opts *RawHTTPRequestOptions) (RawHTTPResult, error) {
+	if c == nil {
+		return RawHTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "client must not be nil", nil, nil)
+	}
+	if req == nil {
+		return RawHTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "request is required", nil, nil)
+	}
+	if req.URL == nil || req.URL.Scheme == "" || req.URL.Host == "" {
+		return RawHTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "request url must be absolute", nil, nil)
+	}
+
+	class := TrafficClassOfficialAPI
+	maxResponseBodyBytes := c.maxResponseBodyBytes
+	if opts != nil {
+		class = normalizeTrafficClass(opts.TrafficClass)
+		if opts.MaxResponseBodyBytes < 0 {
+			return RawHTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max response body bytes must not be negative", nil, nil)
+		}
+		if opts.MaxResponseBodyBytes > 0 {
+			maxResponseBodyBytes = opts.MaxResponseBodyBytes
+		}
+	}
+	if maxResponseBodyBytes <= 0 {
+		return RawHTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max response body bytes must be greater than zero", nil, nil)
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx = itraffic.WithClass(ctx, normalizeTrafficClass(class))
+	if opts != nil && opts.CookieJar != nil {
+		ctx = request.WithRuntimeCookieJar(ctx, opts.CookieJar)
+	}
+
+	result, err := request.ExecuteRawHTTPRequest(ctx, req, maxResponseBodyBytes, c.rawExecutionPolicy(normalizeTrafficClass(class)))
+	if err != nil {
+		return RawHTTPResult{}, err
+	}
+	return mapRawHTTPResult(result), nil
+}
+
+func (c *Client) rawExecutionPolicy(class TrafficClass) request.ExecutionPolicy {
+	class = normalizeTrafficClass(class)
+	if policy, ok := c.rawRuntimes.classPolicies[itraffic.Class(class)]; ok {
+		return policy
+	}
+	return c.rawRuntimes.defaultPolicy
+}
+
+func mapRawHTTPResult(src request.HTTPResult) RawHTTPResult {
+	out := RawHTTPResult{
+		StatusCode: src.StatusCode,
+		Header:     cloneRawHTTPHeader(src.Header),
+		FinalURL:   cloneRawHTTPURL(src.FinalURL),
+		Body:       cloneRawHTTPBody(src.Body),
+	}
+	if src.Block != nil {
+		out.Block = &RawHTTPBlockResult{
+			Kind:      src.Block.ErrorKind,
+			Message:   src.Block.Message,
+			Retryable: src.Block.Retryable,
+		}
+	}
+	return out
+}
+
+func cloneRawHTTPHeader(src http.Header) http.Header {
+	if len(src) == 0 {
+		return nil
+	}
+	cloned := make(http.Header, len(src))
+	for key, values := range src {
+		copied := make([]string, len(values))
+		copy(copied, values)
+		cloned[key] = copied
+	}
+	return cloned
+}
+
+func cloneRawHTTPURL(src *url.URL) *url.URL {
+	if src == nil {
+		return nil
+	}
+	cloned := *src
+	return &cloned
+}
+
+func cloneRawHTTPBody(src []byte) []byte {
+	if len(src) == 0 {
+		return nil
+	}
+	cloned := make([]byte, len(src))
+	copy(cloned, src)
+	return cloned
+}

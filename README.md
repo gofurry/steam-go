@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6)
 ![Release](https://img.shields.io/github/v/release/gofurry/steam-go?style=flat&color=blue)
-![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat&logo=go&logoColor=white)
+![Go Version](https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gofurry/steam-go)](https://goreportcard.com/report/github.com/gofurry/steam-go)
 
 ![Weekend Project](https://img.shields.io/badge/weekend-project-8B5CF6?style=flat)
@@ -112,7 +112,13 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 
 - `addons/a2s` is a lightweight bridge to [`github.com/gofurry/a2s-go`](https://github.com/gofurry/a2s-go) `v1.0.1`
 - `addons/openid` provides Steam OpenID login verification for browser-based sign-in flows
+- `addons/websession` composes Steam authentication atoms into one manual web-login session flow
+- `addons/freeclaim` searches Store promotions and can claim one free license with caller-supplied web cookies
 - OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
+- `addons/freeclaim` stays read-only unless you pass the explicit claim flag in the example or your own code
+- the addon examples read sensitive secrets from environment variables or hidden terminal prompts instead of CLI secret flags
+- `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` are the recommended constructors when you want addon web traffic to inherit the root SDK class execution stack
+- the legacy `NewClient(...)` addon constructors remain available as manual mode for caller-managed `http.Client`, proxy, timeout, base URL, and `CookieJar`
 - detailed addon notes live in [docs/addons/reference.md](docs/addons/reference.md)
 
 ## Web
@@ -321,6 +327,8 @@ On China-region networks, browser login may succeed while the server-side Steam 
 - `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
+- `go run ./examples/websession`
+- `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`
 - `go run ./examples/steamuser`

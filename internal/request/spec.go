@@ -152,14 +152,14 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		if policy.CacheRuntime != nil && requestCacheable(req) {
 			cacheLookup = policy.CacheRuntime.lookup(req, time.Now())
 			if cacheLookup.fresh {
-				return cloneBytes(cacheLookup.body), nil
+				return cloneBytes(cacheLookup.result.Body), nil
 			}
 			if cacheLookupAllowsConditionalRequest(cacheLookup) {
 				applyConditionalCacheHeaders(req, cacheLookup)
 			}
 		}
 
-		resp, err := policy.Transport.Do(ctx, req)
+		resp, err := policy.Transport.Do(req.Context(), req)
 		if err != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, err)
 			if shouldRetryTransport(ctx, err) && attempt < policy.Retry {
@@ -171,9 +171,9 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			return nil, lastErr
 		}
 		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
-			if body, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
+			if result, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
 				_ = resp.Body.Close()
-				return body, nil
+				return cloneBytes(result.Body), nil
 			}
 		}
 
@@ -223,7 +223,16 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			return nil, lastErr
 		}
 		if policy.CacheRuntime != nil && requestCacheable(req) {
-			policy.CacheRuntime.store(req, resp, body, time.Now())
+			var finalURL *url.URL
+			if resp.Request != nil && resp.Request.URL != nil {
+				finalURL = cloneURL(resp.Request.URL)
+			}
+			policy.CacheRuntime.store(req, resp, HTTPResult{
+				StatusCode: resp.StatusCode,
+				Header:     cloneHeader(resp.Header),
+				FinalURL:   finalURL,
+				Body:       body,
+			}, time.Now())
 		}
 
 		return body, nil

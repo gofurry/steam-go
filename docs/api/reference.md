@@ -225,7 +225,13 @@ Additional rules:
 - `addons/a2s/master`
 - `addons/a2s/scanner`
 - `addons/openid`
+- `addons/websession`
+- `addons/freeclaim`
 - [Addon usage notes](../addons/reference.md)
+
+Notes:
+- `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` reuse the root SDK per-class `WithTrafficPolicy(...)` execution stack.
+- The legacy addon `NewClient(...)` constructors remain manual mode and still rely on caller-supplied `http.Client`, proxy, timeout, base URL, and `CookieJar`.
 
 ## Proxy Helpers
 
@@ -270,16 +276,21 @@ Notes:
 - `TrafficBlockPolicy`
 - `TrafficRateLimiterPolicy`
 - `TrafficRetryPolicy`
+- `RawHTTPRequestOptions`
+- `RawHTTPBlockResult`
+- `RawHTTPResult`
 - `WithTrafficPolicy(class TrafficClass, policy TrafficPolicy)`
 - `WithTrafficClass(ctx context.Context, class TrafficClass) context.Context`
 - `WithRefererSource(ctx context.Context, rawURL string) context.Context`
 - `NewStaticRefererSelector(rawURL string)`
 - `NewRoutingRefererSelector(routes ...RefererRoute)`
 - `NewContextRefererSelector(fallback RefererSelector)`
+- `(*Client).DoRawHTTPRequest(...)`
 
 Notes:
 - Existing typed `client.API.*` methods default to `TrafficClassOfficialAPI`.
-- `TrafficClassPublicStorePage` is reserved for future public store-page integrations and can already carry isolated request policy overrides.
+- `client.Web.Storefront.*` defaults to `TrafficClassPublicStorePage`, `client.Web.Community.*` defaults to `TrafficClassCommunityWeb`, and `client.Web.Market.*` defaults to `TrafficClassMarketWeb`.
+- `(*Client).DoRawHTTPRequest(...)` is intended for addon-style raw HTTP flows that still need the SDK's class-aware execution stack.
 - `WithTrafficPolicy(...)` only overrides the fields you set; unset fields continue to use the client-level defaults.
 - `TrafficCachePolicy` currently applies only to `GET` requests and uses in-memory short TTL caching with `ETag` / `Last-Modified` revalidation.
 - `TrafficBlockPolicy` is currently supported only on `TrafficClassPublicStorePage` and detects `429`, `403`, and HTML challenge responses.
@@ -294,5 +305,7 @@ Notes:
 - `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
+- `go run ./examples/websession`
+- `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`

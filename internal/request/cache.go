@@ -3,6 +3,7 @@ package request
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"context"
 	"net/http"
 	"sort"
 	"strings"
@@ -15,13 +16,13 @@ import (
 
 type CacheRuntime interface {
 	lookup(req *http.Request, now time.Time) cacheLookup
-	store(req *http.Request, resp *http.Response, body []byte, now time.Time)
-	refresh(lookup cacheLookup, resp *http.Response, now time.Time) ([]byte, bool)
+	store(req *http.Request, resp *http.Response, result HTTPResult, now time.Time)
+	refresh(lookup cacheLookup, resp *http.Response, now time.Time) (HTTPResult, bool)
 }
 
 type cacheLookup struct {
 	key          string
-	body         []byte
+	result       HTTPResult
 	etag         string
 	lastModified string
 	fresh        bool
@@ -40,7 +41,7 @@ type memoryCacheRuntime struct {
 }
 
 type cacheEntry struct {
-	body         []byte
+	result       HTTPResult
 	etag         string
 	lastModified string
 	storedAt     time.Time
@@ -91,7 +92,7 @@ func (c *memoryCacheRuntime) lookup(req *http.Request, now time.Time) cacheLooku
 
 	return cacheLookup{
 		key:          key,
-		body:         cloneBytes(entry.body),
+		result:       cloneHTTPResult(entry.result),
 		etag:         entry.etag,
 		lastModified: entry.lastModified,
 		fresh:        !entry.expiresAt.Before(now),
@@ -99,7 +100,7 @@ func (c *memoryCacheRuntime) lookup(req *http.Request, now time.Time) cacheLooku
 	}
 }
 
-func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, body []byte, now time.Time) {
+func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, result HTTPResult, now time.Time) {
 	if c == nil || req == nil || resp == nil || req.Method != http.MethodGet {
 		return
 	}
@@ -111,7 +112,7 @@ func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, body 
 
 	c.mu.Lock()
 	c.entries[key] = cacheEntry{
-		body:         cloneBytes(body),
+		result:       cloneHTTPResult(result),
 		etag:         strings.TrimSpace(resp.Header.Get("ETag")),
 		lastModified: strings.TrimSpace(resp.Header.Get("Last-Modified")),
 		storedAt:     now,
@@ -123,9 +124,9 @@ func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, body 
 	c.mu.Unlock()
 }
 
-func (c *memoryCacheRuntime) refresh(lookup cacheLookup, resp *http.Response, now time.Time) ([]byte, bool) {
+func (c *memoryCacheRuntime) refresh(lookup cacheLookup, resp *http.Response, now time.Time) (HTTPResult, bool) {
 	if c == nil || !lookup.found || lookup.key == "" {
-		return nil, false
+		return HTTPResult{}, false
 	}
 
 	c.mu.Lock()
@@ -133,7 +134,7 @@ func (c *memoryCacheRuntime) refresh(lookup cacheLookup, resp *http.Response, no
 
 	entry, ok := c.entries[lookup.key]
 	if !ok {
-		return nil, false
+		return HTTPResult{}, false
 	}
 
 	entry.storedAt = now
@@ -147,7 +148,7 @@ func (c *memoryCacheRuntime) refresh(lookup cacheLookup, resp *http.Response, no
 		}
 	}
 	c.entries[lookup.key] = entry
-	return cloneBytes(entry.body), true
+	return cloneHTTPResult(entry.result), true
 }
 
 func (c *memoryCacheRuntime) cacheKey(req *http.Request) (string, bool) {
@@ -160,8 +161,8 @@ func (c *memoryCacheRuntime) cacheKey(req *http.Request) (string, bool) {
 		sessionKey = value
 	}
 	var jarCookies string
-	if c.cookieJar != nil {
-		jarCookies = hashCacheDimension(normalizedCookieKey(c.cookieJar.Cookies(req.URL)))
+	if jar := c.resolveCookieJar(req.Context()); jar != nil {
+		jarCookies = hashCacheDimension(normalizedCookieKey(jar.Cookies(req.URL)))
 	}
 
 	acceptLanguage := req.Header.Get("Accept-Language")
@@ -182,6 +183,13 @@ func (c *memoryCacheRuntime) cacheKey(req *http.Request) (string, bool) {
 	builder.WriteByte('\x1f')
 	builder.WriteString(jarCookies)
 	return builder.String(), true
+}
+
+func (c *memoryCacheRuntime) resolveCookieJar(ctx context.Context) http.CookieJar {
+	if jar, ok := RuntimeCookieJarFromContext(ctx); ok {
+		return jar
+	}
+	return c.cookieJar
 }
 
 func normalizedCookieKey(cookies []*http.Cookie) string {
