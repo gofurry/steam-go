@@ -63,6 +63,92 @@ go run ./examples/openid --proxy http://127.0.0.1:7897
 go run ./examples/websession
 ```
 
+## `addons/assets`
+
+当你需要根据一个或多个 Steam AppID 构造高价值公开 Store / Library 图片资源 URL 时，可以使用 `addons/assets`。
+
+它负责：
+
+- 本地构造 `header.jpg`、`capsule_616x353.jpg`、`library_600x900_2x.jpg`、`library_hero.jpg`、`logo_2x.png` 等静态 URL
+- 为每类资源提供一个直接 helper，例如 `assets.HeaderURLs(...)`、`assets.LibraryLogoURLs(...)`
+- 提供 `assets.StoreKinds()`、`assets.LibraryKinds()`、`assets.AllKinds()` 等预设 kind 组
+- 提供 `assets.ListWithLanguage(...)` 等资源清单 helper
+- 在资源类型运行时才确定时，通过 `assets.URLs(kind, appIDs...)` 统一构造
+- 通过 `assets.All(...)` / `assets.AllWithLanguage(...)` 返回每个 AppID 一组完整结构体
+- 通过 `assets.VerifyURLs(...)` 和 `assets.VerifyAppAssets(...)` 验证 URL 是否存在
+- 通过 `assets.ReadURLs(...)` 和 `assets.ReadAppAssets(...)` 将资源读取到内存
+- 通过 `assets.DownloadURLs(...)` 下载任意 URL
+- 通过 `assets.DownloadAppAssets(...)` 下载根据 AppID 构造出的资源
+- 通过 `assets.FetchStoreMediaURLs(...)` 请求商店页截图、视频和背景资源 URL
+- 通过 `assets.VerifyStoreMedia(...)` / `assets.ReadStoreMedia(...)` / `assets.DownloadStoreMedia(...)` 验证、读取或下载这些商店媒体资源
+- 通过 `assets.WriteManifestJSON(...)` 写出 URL / 下载 manifest
+
+它不负责：
+
+- 创建 client
+- 静态 URL 构造不会请求 Steam；商店媒体发现、验证和下载 helper 会显式发起网络请求
+- 接入 SteamGridDB
+
+示例：
+
+```go
+headers := assets.HeaderURLs(550, 107100)
+heroes := assets.URLs(assets.KindLibraryHero, 550, 107100)
+all := assets.AllWithLanguage("schinese", 550, 107100)
+```
+
+导出 helper：
+
+- `HeaderURLs`、`HeaderLocalizedURLs`
+- `CapsuleSmallURLs`、`CapsuleMainURLs`
+- `LibraryCapsuleURLs`、`LibraryCapsule2xURLs`、`LibraryHeroURLs`、`LibraryLogoURLs`、`LibraryLogo2xURLs`
+- `StoreKinds`、`StoreKindsWithLocalized`、`LibraryKinds`、`DefaultKinds`、`AllKinds`
+- `StoreMediaKinds`、`StoreBackgroundKinds`、`StoreScreenshotKinds`、`StoreMovieKinds`
+- `List`、`ListWithLanguage`、`ListKinds`、`ListKindsWithLanguage`
+- `URLs(kind, appIDs...)`、`LocalizedURLs(kind, language, appIDs...)`
+- `All(appIDs...)`、`AllWithLanguage(language, appIDs...)`
+- `CommunityIconURL`、`CommunityIconURLs`、`CommunityLogoURL`、`CommunityLogoURLs`、`ClientIconURL`、`ClientIconURLs`：用于已知 AppID/hash 的图标 URL
+- `VerifyURLs(ctx, urls...)`、`VerifyURLsWithClient(ctx, httpClient, urls...)`、`VerifyURLsWithOptions(ctx, VerifyOptions{...}, urls...)`、`VerifyAppAssets(ctx, opts, appIDs...)`
+- `ReadURLs(ctx, urls...)`、`ReadURLsWithClient(ctx, httpClient, urls...)`、`ReadURLsWithOptions(ctx, ReadOptions{...}, urls...)`
+- `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`、`ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`、`ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
+- `DownloadURLs(ctx, dir, urls...)`、`DownloadURLsWithClient(ctx, httpClient, dir, urls...)`
+- `DownloadAppAssets(ctx, DownloadAppOptions{...}, appIDs...)`
+- `FetchStoreMediaURLs(ctx, storefront, StoreMediaOptions{...}, appIDs...)`
+- `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
+- `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`、`ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
+- `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `AllowHosts`、`AllowHostSuffixes`、`SteamStaticURLValidator`：用于直接 URL 校验
+- `NewURLManifest`、`NewDownloadManifest`、`MarshalManifestJSON`、`WriteManifestJSON`
+
+下载存放方式：
+
+- `assets.StoreFlat`：所有生成资源直接放到目标目录，文件名带 AppID 前缀，例如 `550_header.jpg`
+- `assets.StoreByAppID`：按 AppID 建子目录，例如 `550/header.jpg`
+
+批量下载会尽量处理所有 URL。成功的文件会保留在磁盘上，失败项会同时出现在对应的 `DownloadResult.Error` 字段和最终聚合 error 中；直接 URL 下载遇到重复文件名时会自动追加后缀避免互相覆盖。
+
+下载选项包含 `FilenameStyle`、`Overwrite`、`SkipExisting` 和 `Concurrency`。下载结果会标记为 `DownloadStatusDownloaded`、`DownloadStatusSkipped` 或 `DownloadStatusFailed`。
+
+读取 helper 会把完整资源放到 `ReadResult.Data []byte`，适合调用方自行处理。默认每个资源最多读取 32 MiB；需要更大文件时显式设置 `MaxBytes`。大批量读取时优先用 `ReadEachURLs`、`ReadEachAppAssets` 或 `ReadEachStoreMedia`，可以逐个处理结果，不需要把整批数据都留在内存里。
+
+直接 URL helper 会请求调用方传入的 HTTP(S) 地址。如果这些 URL 来自用户输入或其他不可信来源，请设置 `URLValidator`，例如 `assets.SteamStaticURLValidator` 或 `assets.AllowHosts(...)`，再进行验证、读取或下载。
+
+对于商店视频资源，DASH/HLS 类型会保存 `.mpd` / `.m3u8` 播放清单 URL 本身；addon 不会展开下载视频分片。
+
+运行示例：
+
+```bash
+go run ./examples/assets -app-ids 550,107100 -language schinese
+go run ./examples/assets -verify-urls https://shared.steamstatic.com/store_item_assets/steam/apps/550/header.jpg
+go run ./examples/assets -verify-apps -kind all
+go run ./examples/assets -read-apps -kind header -proxy http://127.0.0.1:7897
+go run ./examples/assets -download-apps -download-dir ./tmp/assets -download-mode by_app_id -kind all -skip-existing -concurrency 4 -manifest ./tmp/assets/manifest.json
+go run ./examples/assets -app-ids 550 -store-media -kind all
+go run ./examples/assets -app-ids 550 -read-store-media -kind movie_dash_h264 -proxy http://127.0.0.1:7897
+go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/assets-media -download-mode by_app_id -kind movie_dash_h264
+go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
+```
+
 ## `addons/freeclaim`
 
 当你想做限免搜索、免费 package 解析，或者显式领取一个免费 license 时，可以使用 `addons/freeclaim`。

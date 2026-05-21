@@ -72,12 +72,14 @@
 - `addons/a2s`
 - `addons/a2s/master`
 - `addons/a2s/scanner`
+- `addons/assets`
 - `addons/websession`
 - `addons/freeclaim`
 
 说明：
 
 - `addons/websession.NewClientFromSteamClient(...)` 和 `addons/freeclaim.NewClientFromSteamClient(...)` 会复用根 SDK 的按分类 `WithTrafficPolicy(...)` 执行链。
+- `addons/assets` 提供纯 URL 构造 helper，以及显式调用的商店媒体发现、验证、读取和下载 helper；它不创建 client。
 - 旧的 addon `NewClient(...)` 构造器仍然保留，继续作为手动模式，依赖调用方提供的 `http.Client`、proxy、timeout、base URL 和 `CookieJar`。
 
 ## Proxy 和 Traffic Policy
@@ -94,6 +96,7 @@
 - 真实外部 API smoke：`examples/live/`
 - addon 手动示例：`go run ./examples/openid`
 - addon 手动示例：`go run ./examples/websession`
+- addon 手动示例：`go run ./examples/assets -app-ids 550,107100`
 - addon 手动示例：`go run ./examples/freeclaim`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

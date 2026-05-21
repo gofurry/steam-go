@@ -106,6 +106,7 @@ func main() {
 - `addons/openid`：用于 Steam OpenID 登录识别
 - `addons/websession`：把 Steam 认证原子接口编排成一个手动网页登录态流程
 - `addons/freeclaim`：搜索 Store 限免候选，并在调用方提供 Web Cookie 时领取单个免费 license
+- `addons/assets`：根据 AppID 构造静态资源 URL、请求商店媒体 URL、验证、读取并下载公开 Store / Library 资源
 - OpenID 只负责确认 Steam 身份并返回 `SteamID64`，不会替代 Web API 凭证
 - `addons/freeclaim` 默认保持只读；只有显式进入 claim 路径时才会发送领取请求
 - addon 示例中的高敏感 secret 统一从环境变量或隐藏输入读取，不再通过命令行参数直接传入
@@ -320,6 +321,8 @@ if err != nil {
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
 - `go run ./examples/websession`
+- `go run ./examples/assets -app-ids 550,107100 -verify-apps -kind all`
+- `go run ./examples/assets -app-ids 550 -store-media -kind all`
 - `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/steamuser`

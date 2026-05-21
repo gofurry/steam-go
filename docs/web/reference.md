@@ -17,6 +17,11 @@
 - `GetAppReviews` / `GetAppReviewsRaw`
 - default traffic class: `TrafficClassPublicStorePage`
 
+`GetAppDetails` includes typed high-value Store fields such as capsule URLs,
+screenshots, movies/trailers, background URLs, highlighted achievements,
+recommendations, Metacritic, support info, content descriptors, and ratings raw
+JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
+
 ### `client.Web.Community`
 
 - `GetInventory` / `GetInventoryRaw`

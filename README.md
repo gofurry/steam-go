@@ -114,6 +114,7 @@ When a method signature explicitly asks for `accessToken` or `key`, that credent
 - `addons/openid` provides Steam OpenID login verification for browser-based sign-in flows
 - `addons/websession` composes Steam authentication atoms into one manual web-login session flow
 - `addons/freeclaim` searches Store promotions and can claim one free license with caller-supplied web cookies
+- `addons/assets` builds, fetches Store media URLs, verifies, reads, and downloads high-value public Store / Library assets from AppIDs
 - OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
 - `addons/freeclaim` stays read-only unless you pass the explicit claim flag in the example or your own code
 - the addon examples read sensitive secrets from environment variables or hidden terminal prompts instead of CLI secret flags
@@ -328,6 +329,8 @@ On China-region networks, browser login may succeed while the server-side Steam 
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
 - `go run ./examples/websession`
+- `go run ./examples/assets -app-ids 550,107100 -verify-apps -kind all`
+- `go run ./examples/assets -app-ids 550 -store-media -kind all`
 - `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`

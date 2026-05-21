@@ -31,6 +31,7 @@ This Wiki focuses on helping developers quickly understand how the SDK is organi
 - [OpenID Notes](https://github.com/gofurry/steam-go/wiki/OpenID-Notes)
 - [A2S Notes](https://github.com/gofurry/steam-go/wiki/A2S-Notes)
 - [Steam Keys and Access Tokens](https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens)
+- [Steam Static Assets](https://github.com/gofurry/steam-go/wiki/Steam-Static-Assets)
 
 ## Design Notes
 

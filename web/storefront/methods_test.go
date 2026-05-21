@@ -21,9 +21,9 @@ func TestGetAppDetailsBuildsRequestAndDecodesResponse(t *testing.T) {
 	official := &recordingTransport{statuses: []int{http.StatusOK}}
 	store := &recordingTransport{
 		statuses:     []int{http.StatusOK},
-		responseBody: `{"550":{"success":true,"data":{"type":"game","name":"Left 4 Dead 2","steam_appid":550,"is_free":false,"short_description":"coop","header_image":"header.jpg","developers":["Valve"],"publishers":["Valve"],"price_overview":{"currency":"USD","initial":999,"final":499,"discount_percent":50,"initial_formatted":"$9.99","final_formatted":"$4.99"},"platforms":{"windows":true,"mac":true,"linux":true},"categories":[{"id":1,"description":"Multi-player"}],"genres":[{"id":"1","description":"Action"}],"packages":[469],"package_groups":[{"name":"default"}],"release_date":{"coming_soon":false,"date":"16 Nov, 2009"}}}}`,
+		responseBody: `{"550":{"success":true,"data":{"type":"game","name":"Left 4 Dead 2","steam_appid":550,"required_age":"0","is_free":false,"controller_support":"full","detailed_description":"details","about_the_game":"about","short_description":"coop","supported_languages":"English","header_image":"header.jpg","capsule_image":"capsule.jpg","capsule_imagev5":"capsulev5.jpg","website":"https://example.test","pc_requirements":{"minimum":"min","recommended":"rec"},"mac_requirements":[],"developers":["Valve"],"publishers":["Valve"],"price_overview":{"currency":"USD","initial":999,"final":499,"discount_percent":50,"initial_formatted":"$9.99","final_formatted":"$4.99"},"platforms":{"windows":true,"mac":true,"linux":true},"metacritic":{"score":89,"url":"https://metacritic.test"},"categories":[{"id":1,"description":"Multi-player"}],"genres":[{"id":"1","description":"Action"}],"screenshots":[{"id":1,"path_thumbnail":"thumb.jpg","path_full":"full.jpg"}],"movies":[{"id":2,"name":"Trailer","thumbnail":"movie.jpg","webm":{"480":"480.webm","max":"max.webm"},"mp4":{"480":"480.mp4","max":"max.mp4"},"dash_av1":"av1.mpd","dash_h264":"h264.mpd","hls_h264":"h264.m3u8","highlight":true}],"recommendations":{"total":10},"achievements":{"total":1,"highlighted":[{"icon":"a.jpg","localized_name":"Done","name":"DONE","path":"https://example.test/a.jpg"}]},"packages":[469],"package_groups":[{"name":"default"}],"release_date":{"coming_soon":false,"date":"16 Nov, 2009"},"support_info":{"url":"https://support.test","email":""},"background":"bg.jpg","background_raw":"bg_raw.jpg","content_descriptors":{"ids":[2],"notes":"notes"},"ratings":{"usk":{"rating":"18"}}}}}`,
 	}
-	service := newTestService(t, official, store, 1024)
+	service := newTestService(t, official, store, 16*1024)
 
 	resp, err := service.GetAppDetails(context.Background(), 550, &GetAppDetailsOptions{
 		CountryCode: "US",
@@ -35,6 +35,21 @@ func TestGetAppDetailsBuildsRequestAndDecodesResponse(t *testing.T) {
 	}
 	if got := resp["550"].Data.Name; got != "Left 4 Dead 2" {
 		t.Fatalf("unexpected name: %q", got)
+	}
+	if got := resp["550"].Data.CapsuleImage; got != "capsule.jpg" {
+		t.Fatalf("unexpected capsule image: %q", got)
+	}
+	if got := resp["550"].Data.RequiredAge.Int(); got != 0 {
+		t.Fatalf("unexpected required age: %d", got)
+	}
+	if got := resp["550"].Data.Screenshots[0].PathFull; got != "full.jpg" {
+		t.Fatalf("unexpected screenshot: %q", got)
+	}
+	if got := resp["550"].Data.Movies[0].DASHH264; got != "h264.mpd" {
+		t.Fatalf("unexpected movie dash URL: %q", got)
+	}
+	if got := resp["550"].Data.Achievements.Highlighted[0].Path; got != "https://example.test/a.jpg" {
+		t.Fatalf("unexpected achievement path: %q", got)
 	}
 
 	official.mu.Lock()
@@ -189,6 +204,26 @@ func TestFlexibleFloat64SupportsStringAndNumberPayloads(t *testing.T) {
 		t.Fatalf("UnmarshalJSON returned error: %v", err)
 	}
 	if got := quoted.Float64(); got != 0.75 {
+		t.Fatalf("unexpected quoted value: %v", got)
+	}
+}
+
+func TestFlexibleIntSupportsStringAndNumberPayloads(t *testing.T) {
+	t.Parallel()
+
+	var numeric FlexibleInt
+	if err := numeric.UnmarshalJSON([]byte("18")); err != nil {
+		t.Fatalf("UnmarshalJSON returned error: %v", err)
+	}
+	if got := numeric.Int(); got != 18 {
+		t.Fatalf("unexpected numeric value: %v", got)
+	}
+
+	var quoted FlexibleInt
+	if err := quoted.UnmarshalJSON([]byte(`"16"`)); err != nil {
+		t.Fatalf("UnmarshalJSON returned error: %v", err)
+	}
+	if got := quoted.Int(); got != 16 {
 		t.Fatalf("unexpected quoted value: %v", got)
 	}
 }
