@@ -18,14 +18,14 @@
 	<a herf="https://github.com/gofurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token">Steam Key 与 Access Token</a> ⭐
 </p>
 
-`steam-go` is a lightweight Go SDK focused on the official Steam Web API.
-
 ```text
 				____ ____ ____ _  _ ____ ____ _   _   / ____ ___ ____ ____ _  _    ____ ____ 
 				| __ |  | |___ |  | |__/ |__/  \_/   /  [__   |  |___ |__| |\/| __ | __ |  | 
 				|__] |__| |    |__| |  \ |  \   |   /   ___]  |  |___ |  | |  |    |__] |__| 
                                                                              
 ```
+
+`steam-go` is a lightweight Go SDK focused on the official Steam Web API.
 
 ## Features
 
