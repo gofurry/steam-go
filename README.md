@@ -1,21 +1,25 @@
 # steam-go
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6" alt="License">&nbsp&nbsp&nbsp&nbsp
-  <img src="https://img.shields.io/github/v/release/gofurry/steam-go?style=flat&color=blue" alt="Release">&nbsp&nbsp&nbsp&nbsp
-  <img src="https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white" alt="Go Version">&nbsp&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6" alt="License">&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/github/v/release/gofurry/steam-go?style=flat&color=blue" alt="Release">&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white" alt="Go Version">&nbsp&nbsp&nbsp
   <a href="https://goreportcard.com/report/github.com/gofurry/steam-go">
     <img src="https://goreportcard.com/badge/github.com/gofurry/steam-go" alt="Go Report Card">
-  </a>&nbsp&nbsp&nbsp&nbsp
-  <img src="https://img.shields.io/badge/weekend-project-8B5CF6?style=flat" alt="Weekend Project">&nbsp&nbsp&nbsp&nbsp
+  </a>&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/badge/weekend-project-8B5CF6?style=flat" alt="Weekend Project">&nbsp&nbsp&nbsp
   <img src="https://img.shields.io/badge/made%20with-%E2%9D%A4-E11D48?style=flat&color=orange" alt="Made with Love">
 </p>
 
 <p align="center">
-	⭐ <a herf="https://github.com/gofurry/steam-go/wiki">steam-go Wiki</a>&nbsp&nbsp|&nbsp&nbsp
-	<a herf="https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens">Steam Keys and Access Tokens</a>&nbsp&nbsp|&nbsp&nbsp
-	<a herf="https://github.com/gofurry/steam-go/docs/zh/README.md">中文文档</a>&nbsp&nbsp|&nbsp&nbsp
-	<a herf="https://github.com/gofurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token">Steam Key 与 Access Token</a> ⭐
+  ⭐
+  <a href="https://github.com/gofurry/steam-go">English</a>
+  &nbsp;|&nbsp;
+  <a href="https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens">Steam Keys and Access Tokens</a>&nbsp;|&nbsp;
+  <a href="https://github.com/gofurry/steam-go/wiki/%E9%A6%96%E9%A1%B5">中文Wiki</a>
+  &nbsp;|&nbsp;
+  <a href="https://github.com/gofurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token">Steam Key 与 Access Token</a>
+  ⭐
 </p>
 
 ```text
