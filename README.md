@@ -1,23 +1,31 @@
 # steam-go
 
-![License](https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6)
-![Release](https://img.shields.io/github/v/release/gofurry/steam-go?style=flat&color=blue)
-![Go Version](https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gofurry/steam-go)](https://goreportcard.com/report/github.com/gofurry/steam-go)
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-6C757D?style=flat&color=3B82F6" alt="License">&nbsp&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/github/v/release/gofurry/steam-go?style=flat&color=blue" alt="Release">&nbsp&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat&logo=go&logoColor=white" alt="Go Version">&nbsp&nbsp&nbsp&nbsp
+  <a href="https://goreportcard.com/report/github.com/gofurry/steam-go">
+    <img src="https://goreportcard.com/badge/github.com/gofurry/steam-go" alt="Go Report Card">
+  </a>&nbsp&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/badge/weekend-project-8B5CF6?style=flat" alt="Weekend Project">&nbsp&nbsp&nbsp&nbsp
+  <img src="https://img.shields.io/badge/made%20with-%E2%9D%A4-E11D48?style=flat&color=orange" alt="Made with Love">
+</p>
 
-![Weekend Project](https://img.shields.io/badge/weekend-project-8B5CF6?style=flat)
-![Made with Love](https://img.shields.io/badge/made%20with-%E2%9D%A4-E11D48?style=flat&color=orange)
-
-[steam-go Wiki](https://github.com/gofurry/steam-go/wiki) | 
-[Steam Keys and Access Tokens](https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens) | 
-[中文文档](docs/zh/README.md) | 
-[Steam Key 与 Access Token](https://github.com/gofurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token)
+<p align="center">
+	⭐ <a herf="https://github.com/gofurry/steam-go/wiki">steam-go Wiki</a>&nbsp&nbsp|&nbsp&nbsp
+	<a herf="https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens">Steam Keys and Access Tokens</a>&nbsp&nbsp|&nbsp&nbsp
+	<a herf="https://github.com/gofurry/steam-go/docs/zh/README.md">中文文档</a>&nbsp&nbsp|&nbsp&nbsp
+	<a herf="https://github.com/gofurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token">Steam Key 与 Access Token</a> ⭐
+</p>
 
 `steam-go` is a lightweight Go SDK focused on the official Steam Web API.
 
-`v1.0.0` is the first stable release of `steam-go`, positioned as a production-oriented Go SDK for the official Steam Web API.
-
-`v1.1.0` adds a read-only `client.Web.*` layer for high-value Steam Storefront, Community, and Market JSON endpoints outside `api.steampowered.com`.
+```text
+			____ ____ ____ _  _ ____ ____ _   _   / ____ ___ ____ ____ _  _    ____ ____ 
+			| __ |  | |___ |  | |__/ |__/  \_/   /  [__   |  |___ |__| |\/| __ | __ |  | 
+			|__] |__| |    |__| |  \ |  \   |   /   ___]  |  |___ |  | |  |    |__] |__| 
+                                                                             
+```
 
 ## Features
 
