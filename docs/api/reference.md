@@ -224,6 +224,7 @@ Additional rules:
 - `addons/a2s`
 - `addons/a2s/master`
 - `addons/a2s/scanner`
+- `addons/assets`
 - `addons/openid`
 - `addons/websession`
 - `addons/freeclaim`
@@ -231,6 +232,7 @@ Additional rules:
 
 Notes:
 - `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` reuse the root SDK per-class `WithTrafficPolicy(...)` execution stack.
+- `addons/assets` has pure URL builders plus explicit Store media discovery, verification, read, and download helpers; it does not create a client.
 - The legacy addon `NewClient(...)` constructors remain manual mode and still rely on caller-supplied `http.Client`, proxy, timeout, base URL, and `CookieJar`.
 
 ## Proxy Helpers
@@ -306,6 +308,7 @@ Notes:
 - `go run ./examples/openid`
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
 - `go run ./examples/websession`
+- `go run ./examples/assets -app-ids 550,107100`
 - `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`

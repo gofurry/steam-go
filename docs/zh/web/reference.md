@@ -17,6 +17,10 @@
 - `GetAppReviews` / `GetAppReviewsRaw`
 - 默认 traffic class：`TrafficClassPublicStorePage`
 
+`GetAppDetails` 已补充高价值商店字段的 typed 结构，包括 capsule URL、截图、
+视频 / trailer、背景图、高亮成就、推荐数、Metacritic、支持信息、内容描述和
+ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAppDetailsRaw`。
+
 ### `client.Web.Community`
 
 - `GetInventory` / `GetInventoryRaw`

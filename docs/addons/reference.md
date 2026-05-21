@@ -76,6 +76,89 @@ Run it:
 go run ./examples/websession
 ```
 
+## `addons/assets`
+
+Use `addons/assets` when you want high-value public Store and Library image asset URLs from one or more Steam AppIDs.
+
+What it does:
+
+- locally builds static URLs such as `header.jpg`, `capsule_616x353.jpg`, `library_600x900_2x.jpg`, `library_hero.jpg`, and `logo_2x.png`
+- provides one helper per asset family, for example `assets.HeaderURLs(...)` and `assets.LibraryLogoURLs(...)`
+- provides preset kind groups such as `assets.StoreKinds()`, `assets.LibraryKinds()`, and `assets.AllKinds()`
+- provides resource list helpers such as `assets.ListWithLanguage(...)`
+- provides `assets.URLs(kind, appIDs...)` when the asset family is chosen at runtime
+- provides `assets.All(...)` / `assets.AllWithLanguage(...)` when you want one struct per AppID
+- verifies URL existence with `assets.VerifyURLs(...)` and `assets.VerifyAppAssets(...)`
+- reads resources into memory with `assets.ReadURLs(...)` and `assets.ReadAppAssets(...)`
+- downloads arbitrary URLs with `assets.DownloadURLs(...)`
+- downloads constructed AppID assets with `assets.DownloadAppAssets(...)`
+- requests Storefront screenshot, movie, and background URLs with `assets.FetchStoreMediaURLs(...)`
+- verifies, reads, or downloads those Storefront media URLs with `assets.VerifyStoreMedia(...)`, `assets.ReadStoreMedia(...)`, and `assets.DownloadStoreMedia(...)`
+- writes URL/download manifests with `assets.WriteManifestJSON(...)`
+
+What it does not do:
+
+- it does not create a client
+- static URL construction does not call Steam; Store media discovery, verification, and download helpers perform explicit network requests
+- it does not integrate SteamGridDB
+
+Example:
+
+```go
+headers := assets.HeaderURLs(550, 107100)
+heroes := assets.URLs(assets.KindLibraryHero, 550, 107100)
+all := assets.AllWithLanguage("schinese", 550, 107100)
+```
+
+Exported helpers:
+
+- `HeaderURLs`, `HeaderLocalizedURLs`
+- `CapsuleSmallURLs`, `CapsuleMainURLs`
+- `LibraryCapsuleURLs`, `LibraryCapsule2xURLs`, `LibraryHeroURLs`, `LibraryLogoURLs`, `LibraryLogo2xURLs`
+- `StoreKinds`, `StoreKindsWithLocalized`, `LibraryKinds`, `DefaultKinds`, `AllKinds`
+- `StoreMediaKinds`, `StoreBackgroundKinds`, `StoreScreenshotKinds`, `StoreMovieKinds`
+- `List`, `ListWithLanguage`, `ListKinds`, `ListKindsWithLanguage`
+- `URLs(kind, appIDs...)`, `LocalizedURLs(kind, language, appIDs...)`
+- `All(appIDs...)`, `AllWithLanguage(language, appIDs...)`
+- `CommunityIconURL`, `CommunityIconURLs`, `CommunityLogoURL`, `CommunityLogoURLs`, `ClientIconURL`, `ClientIconURLs` for known AppID/hash pairs
+- `VerifyURLs(ctx, urls...)`, `VerifyURLsWithClient(ctx, httpClient, urls...)`, `VerifyAppAssets(ctx, opts, appIDs...)`
+- `ReadURLs(ctx, urls...)`, `ReadURLsWithClient(ctx, httpClient, urls...)`, `ReadURLsWithOptions(ctx, ReadOptions{...}, urls...)`
+- `ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`
+- `DownloadURLs(ctx, dir, urls...)`, `DownloadURLsWithClient(ctx, httpClient, dir, urls...)`
+- `DownloadAppAssets(ctx, DownloadAppOptions{...}, appIDs...)`
+- `FetchStoreMediaURLs(ctx, storefront, StoreMediaOptions{...}, appIDs...)`
+- `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
+- `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`
+- `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `NewURLManifest`, `NewDownloadManifest`, `MarshalManifestJSON`, `WriteManifestJSON`
+
+Download modes:
+
+- `assets.StoreFlat`: writes generated app asset files directly under the destination directory with AppID-prefixed names such as `550_header.jpg`
+- `assets.StoreByAppID`: writes generated app asset files under child folders such as `550/header.jpg`
+
+Batch downloads try every URL. Successful files remain on disk, and failed items are reported in both their `DownloadResult.Error` field and the final joined error.
+
+Download options include `FilenameStyle`, `Overwrite`, `SkipExisting`, and `Concurrency`. Results include `DownloadStatusDownloaded`, `DownloadStatusSkipped`, or `DownloadStatusFailed`.
+
+Read helpers return `ReadResult.Data` as `[]byte` for callers that want to process the resource themselves. They default to a 32 MiB per-resource limit; set `MaxBytes` explicitly for larger files.
+
+For Storefront movie resources, DASH/HLS kinds save the `.mpd` / `.m3u8` playlist URL itself. The addon does not expand playlists into video segments.
+
+Run the example:
+
+```bash
+go run ./examples/assets -app-ids 550,107100 -language schinese
+go run ./examples/assets -verify-urls https://shared.steamstatic.com/store_item_assets/steam/apps/550/header.jpg
+go run ./examples/assets -verify-apps -kind all
+go run ./examples/assets -read-apps -kind header -proxy http://127.0.0.1:7897
+go run ./examples/assets -download-apps -download-dir ./tmp/assets -download-mode by_app_id -kind all -skip-existing -concurrency 4 -manifest ./tmp/assets/manifest.json
+go run ./examples/assets -app-ids 550 -store-media -kind all
+go run ./examples/assets -app-ids 550 -read-store-media -kind movie_dash_h264 -proxy http://127.0.0.1:7897
+go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/assets-media -download-mode by_app_id -kind movie_dash_h264
+go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
+```
+
 ## `addons/freeclaim`
 
 Use `addons/freeclaim` when you want one addon-level bridge for Store promotion discovery and one explicit free-license claim.
