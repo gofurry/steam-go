@@ -108,15 +108,16 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 - `URLs(kind, appIDs...)`、`LocalizedURLs(kind, language, appIDs...)`
 - `All(appIDs...)`、`AllWithLanguage(language, appIDs...)`
 - `CommunityIconURL`、`CommunityIconURLs`、`CommunityLogoURL`、`CommunityLogoURLs`、`ClientIconURL`、`ClientIconURLs`：用于已知 AppID/hash 的图标 URL
-- `VerifyURLs(ctx, urls...)`、`VerifyURLsWithClient(ctx, httpClient, urls...)`、`VerifyAppAssets(ctx, opts, appIDs...)`
+- `VerifyURLs(ctx, urls...)`、`VerifyURLsWithClient(ctx, httpClient, urls...)`、`VerifyURLsWithOptions(ctx, VerifyOptions{...}, urls...)`、`VerifyAppAssets(ctx, opts, appIDs...)`
 - `ReadURLs(ctx, urls...)`、`ReadURLsWithClient(ctx, httpClient, urls...)`、`ReadURLsWithOptions(ctx, ReadOptions{...}, urls...)`
-- `ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`
+- `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`、`ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`、`ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
 - `DownloadURLs(ctx, dir, urls...)`、`DownloadURLsWithClient(ctx, httpClient, dir, urls...)`
 - `DownloadAppAssets(ctx, DownloadAppOptions{...}, appIDs...)`
 - `FetchStoreMediaURLs(ctx, storefront, StoreMediaOptions{...}, appIDs...)`
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
-- `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`
+- `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`、`ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
 - `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `AllowHosts`、`AllowHostSuffixes`、`SteamStaticURLValidator`：用于直接 URL 校验
 - `NewURLManifest`、`NewDownloadManifest`、`MarshalManifestJSON`、`WriteManifestJSON`
 
 下载存放方式：
@@ -124,11 +125,13 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 - `assets.StoreFlat`：所有生成资源直接放到目标目录，文件名带 AppID 前缀，例如 `550_header.jpg`
 - `assets.StoreByAppID`：按 AppID 建子目录，例如 `550/header.jpg`
 
-批量下载会尽量处理所有 URL。成功的文件会保留在磁盘上，失败项会同时出现在对应的 `DownloadResult.Error` 字段和最终聚合 error 中。
+批量下载会尽量处理所有 URL。成功的文件会保留在磁盘上，失败项会同时出现在对应的 `DownloadResult.Error` 字段和最终聚合 error 中；直接 URL 下载遇到重复文件名时会自动追加后缀避免互相覆盖。
 
 下载选项包含 `FilenameStyle`、`Overwrite`、`SkipExisting` 和 `Concurrency`。下载结果会标记为 `DownloadStatusDownloaded`、`DownloadStatusSkipped` 或 `DownloadStatusFailed`。
 
-读取 helper 会把完整资源放到 `ReadResult.Data []byte`，适合调用方自行处理。默认每个资源最多读取 32 MiB；需要更大文件时显式设置 `MaxBytes`。
+读取 helper 会把完整资源放到 `ReadResult.Data []byte`，适合调用方自行处理。默认每个资源最多读取 32 MiB；需要更大文件时显式设置 `MaxBytes`。大批量读取时优先用 `ReadEachURLs`、`ReadEachAppAssets` 或 `ReadEachStoreMedia`，可以逐个处理结果，不需要把整批数据都留在内存里。
+
+直接 URL helper 会请求调用方传入的 HTTP(S) 地址。如果这些 URL 来自用户输入或其他不可信来源，请设置 `URLValidator`，例如 `assets.SteamStaticURLValidator` 或 `assets.AllowHosts(...)`，再进行验证、读取或下载。
 
 对于商店视频资源，DASH/HLS 类型会保存 `.mpd` / `.m3u8` 播放清单 URL 本身；addon 不会展开下载视频分片。
 

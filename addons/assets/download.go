@@ -15,9 +15,13 @@ import (
 
 // DownloadURLs downloads one or more URLs into dir.
 //
-// File names are taken from each URL path. Batch downloads try every URL; successful
-// files remain on disk even when later downloads fail. Failed items are marked in
-// DownloadResult.Error and returned together as one joined error.
+// File names are taken from each URL path and duplicate names are uniquified.
+// Batch downloads try every URL; successful files remain on disk even when later
+// downloads fail. Failed items are marked in DownloadResult.Error and returned
+// together as one joined error.
+//
+// When URLs come from untrusted input, use DownloadURLsWithOptions with a
+// URLValidator.
 func DownloadURLs(ctx context.Context, dir string, urls ...string) ([]DownloadResult, error) {
 	return DownloadURLsWithOptions(ctx, DownloadOptions{Dir: dir}, urls...)
 }
@@ -33,7 +37,16 @@ func DownloadURLsWithOptions(ctx context.Context, opts DownloadOptions, urls ...
 		return nil, fmt.Errorf("download dir must not be empty")
 	}
 	requests := make([]downloadRequest, 0, len(urls))
+	usedPaths := make(map[string]int)
 	for _, rawURL := range urls {
+		if err := validateDirectURL(rawURL, opts.URLValidator); err != nil {
+			requests = append(requests, downloadRequest{
+				item: URLItem{URL: rawURL},
+				url:  rawURL,
+				err:  fmt.Errorf("download %s: %w", rawURL, err),
+			})
+			continue
+		}
 		name, err := httpasset.Filename(rawURL)
 		if err != nil {
 			requests = append(requests, downloadRequest{
@@ -46,7 +59,7 @@ func DownloadURLsWithOptions(ctx context.Context, opts DownloadOptions, urls ...
 		requests = append(requests, downloadRequest{
 			item: URLItem{URL: rawURL},
 			url:  rawURL,
-			path: filepath.Join(opts.Dir, name),
+			path: uniqueDownloadPath(filepath.Join(opts.Dir, name), usedPaths),
 		})
 	}
 	return downloadRequests(ctx, opts.HTTPClient, effectiveOverwrite(opts.Overwrite, opts.SkipExisting), opts.Concurrency, requests)
@@ -195,6 +208,10 @@ func downloadRequestOne(ctx context.Context, client *http.Client, overwrite Over
 	}
 
 	result, err := httpasset.Download(ctx, client, req.url, req.path)
+	resultURL := result.URL
+	if resultURL == "" {
+		resultURL = req.url
+	}
 	status := DownloadStatusDownloaded
 	if err != nil {
 		status = DownloadStatusFailed
@@ -204,7 +221,7 @@ func downloadRequestOne(ctx context.Context, client *http.Client, overwrite Over
 		Kind:          req.item.Kind,
 		ID:            req.item.ID,
 		Name:          req.item.Name,
-		URL:           result.URL,
+		URL:           resultURL,
 		Path:          req.path,
 		Status:        status,
 		StatusCode:    result.StatusCode,

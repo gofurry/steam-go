@@ -2,8 +2,10 @@ package assets
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -61,6 +63,36 @@ func TestReadURLsMaxBytes(t *testing.T) {
 	}
 }
 
+func TestReadEachURLs(t *testing.T) {
+	server := newAssetTestServer(t)
+
+	var got []string
+	err := ReadEachURLs(context.Background(), ReadOptions{}, func(result ReadResult) error {
+		if result.Error != "" {
+			return nil
+		}
+		got = append(got, string(result.Data))
+		return nil
+	}, server.URL+"/header.jpg", server.URL+"/missing.jpg")
+	if err == nil {
+		t.Fatal("ReadEachURLs returned nil error")
+	}
+	if len(got) != 1 || got[0] != "header-body" {
+		t.Fatalf("handler data = %#v", got)
+	}
+}
+
+func TestReadEachURLsReturnsHandlerErrors(t *testing.T) {
+	server := newAssetTestServer(t)
+
+	err := ReadEachURLs(context.Background(), ReadOptions{}, func(result ReadResult) error {
+		return errors.New("handler failed")
+	}, server.URL+"/header.jpg")
+	if !containsError(err, "handler failed") {
+		t.Fatalf("ReadEachURLs error = %v", err)
+	}
+}
+
 func TestReadAppAssets(t *testing.T) {
 	client := &http.Client{Transport: staticAssetTransport{}}
 
@@ -81,6 +113,10 @@ func TestReadAppAssets(t *testing.T) {
 	if results[1].AppID != 550 || results[1].Kind != KindLibraryHero || string(results[1].Data) != "asset:library_hero.jpg" {
 		t.Fatalf("second result = %#v", results[1])
 	}
+}
+
+func containsError(err error, text string) bool {
+	return err != nil && strings.Contains(err.Error(), text)
 }
 
 func TestReadStoreMedia(t *testing.T) {

@@ -2,6 +2,7 @@ package assets
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -55,6 +56,44 @@ func TestDownloadURLsContinuesAfterErrors(t *testing.T) {
 		t.Fatalf("success result = %#v", results[1])
 	}
 	assertFile(t, filepath.Join(dir, "header.jpg"), "header-body")
+}
+
+func TestDownloadURLsUniquifiesDuplicateFilenames(t *testing.T) {
+	server := newAssetTestServer(t)
+	dir := t.TempDir()
+
+	results, err := DownloadURLsWithOptions(context.Background(), DownloadOptions{
+		Dir:         dir,
+		Concurrency: 2,
+	}, server.URL+"/same/header.jpg", server.URL+"/other/header.jpg")
+	if err != nil {
+		t.Fatalf("DownloadURLsWithOptions returned error: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want 2", len(results))
+	}
+	if results[0].Path == results[1].Path {
+		t.Fatalf("duplicate paths were not uniquified: %#v", results)
+	}
+	assertFile(t, filepath.Join(dir, "header.jpg"), "same-header")
+	assertFile(t, filepath.Join(dir, "header_2.jpg"), "other-header")
+}
+
+func TestDownloadURLsKeepsURLOnTransportError(t *testing.T) {
+	rawURL := "https://example.com/header.jpg"
+	results, err := DownloadURLsWithOptions(context.Background(), DownloadOptions{
+		Dir:        t.TempDir(),
+		HTTPClient: &http.Client{Transport: failingTransport{}},
+	}, rawURL)
+	if err == nil {
+		t.Fatal("DownloadURLsWithOptions returned nil error")
+	}
+	if len(results) != 1 {
+		t.Fatalf("results = %d, want 1", len(results))
+	}
+	if results[0].URL != rawURL || results[0].Status != DownloadStatusFailed || results[0].Error == "" {
+		t.Fatalf("result = %#v", results[0])
+	}
 }
 
 func TestDownloadAppAssetsStoreModes(t *testing.T) {
@@ -189,6 +228,12 @@ func (selectiveAssetTransport) RoundTrip(req *http.Request) (*http.Response, err
 	}
 	body := "asset:" + name
 	return stringResponse(req, http.StatusOK, "image/test", body), nil
+}
+
+type failingTransport struct{}
+
+func (failingTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("transport failed")
 }
 
 func assertFile(t *testing.T, path, want string) {

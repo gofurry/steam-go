@@ -62,6 +62,7 @@ func Download(ctx context.Context, client *http.Client, rawURL, path string) (Re
 
 	result := resultFromResponse(parsed.String(), resp)
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return result, fmt.Errorf("download %s returned HTTP %d", parsed.String(), resp.StatusCode)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

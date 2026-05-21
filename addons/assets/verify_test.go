@@ -71,6 +71,12 @@ func newAssetTestServer(t *testing.T) *httptest.Server {
 			if r.Method != http.MethodHead {
 				_, _ = io.WriteString(w, "header-body")
 			}
+		case "/same/header.jpg":
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = io.WriteString(w, "same-header")
+		case "/other/header.jpg":
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = io.WriteString(w, "other-header")
 		case "/fallback.jpg":
 			if r.Method == http.MethodHead {
 				w.WriteHeader(http.StatusMethodNotAllowed)

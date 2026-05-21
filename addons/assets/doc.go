@@ -3,5 +3,6 @@
 // for verifying, reading, and downloading those resources.
 //
 // URL construction helpers are local-only. Verification and download helpers perform
-// explicit HTTP requests only when called.
+// explicit HTTP requests only when called. Use URLValidator options when direct
+// URLs come from untrusted input.
 package assets

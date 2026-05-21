@@ -121,15 +121,16 @@ Exported helpers:
 - `URLs(kind, appIDs...)`, `LocalizedURLs(kind, language, appIDs...)`
 - `All(appIDs...)`, `AllWithLanguage(language, appIDs...)`
 - `CommunityIconURL`, `CommunityIconURLs`, `CommunityLogoURL`, `CommunityLogoURLs`, `ClientIconURL`, `ClientIconURLs` for known AppID/hash pairs
-- `VerifyURLs(ctx, urls...)`, `VerifyURLsWithClient(ctx, httpClient, urls...)`, `VerifyAppAssets(ctx, opts, appIDs...)`
+- `VerifyURLs(ctx, urls...)`, `VerifyURLsWithClient(ctx, httpClient, urls...)`, `VerifyURLsWithOptions(ctx, VerifyOptions{...}, urls...)`, `VerifyAppAssets(ctx, opts, appIDs...)`
 - `ReadURLs(ctx, urls...)`, `ReadURLsWithClient(ctx, httpClient, urls...)`, `ReadURLsWithOptions(ctx, ReadOptions{...}, urls...)`
-- `ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`
+- `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`, `ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`, `ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
 - `DownloadURLs(ctx, dir, urls...)`, `DownloadURLsWithClient(ctx, httpClient, dir, urls...)`
 - `DownloadAppAssets(ctx, DownloadAppOptions{...}, appIDs...)`
 - `FetchStoreMediaURLs(ctx, storefront, StoreMediaOptions{...}, appIDs...)`
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
-- `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`
+- `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`, `ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
 - `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `AllowHosts`, `AllowHostSuffixes`, `SteamStaticURLValidator` for direct URL validation
 - `NewURLManifest`, `NewDownloadManifest`, `MarshalManifestJSON`, `WriteManifestJSON`
 
 Download modes:
@@ -137,11 +138,13 @@ Download modes:
 - `assets.StoreFlat`: writes generated app asset files directly under the destination directory with AppID-prefixed names such as `550_header.jpg`
 - `assets.StoreByAppID`: writes generated app asset files under child folders such as `550/header.jpg`
 
-Batch downloads try every URL. Successful files remain on disk, and failed items are reported in both their `DownloadResult.Error` field and the final joined error.
+Batch downloads try every URL. Successful files remain on disk, failed items are reported in both their `DownloadResult.Error` field and the final joined error, and duplicate direct URL file names are automatically uniquified.
 
 Download options include `FilenameStyle`, `Overwrite`, `SkipExisting`, and `Concurrency`. Results include `DownloadStatusDownloaded`, `DownloadStatusSkipped`, or `DownloadStatusFailed`.
 
-Read helpers return `ReadResult.Data` as `[]byte` for callers that want to process the resource themselves. They default to a 32 MiB per-resource limit; set `MaxBytes` explicitly for larger files.
+Read helpers return `ReadResult.Data` as `[]byte` for callers that want to process the resource themselves. They default to a 32 MiB per-resource limit; set `MaxBytes` explicitly for larger files. For large batches, use `ReadEachURLs`, `ReadEachAppAssets`, or `ReadEachStoreMedia` to process each result without retaining the whole batch in memory.
+
+Direct URL helpers accept caller-supplied HTTP(S) URLs. If those URLs come from users or another untrusted source, set `URLValidator`, for example `assets.SteamStaticURLValidator` or `assets.AllowHosts(...)`, before verifying, reading, or downloading them.
 
 For Storefront movie resources, DASH/HLS kinds save the `.mpd` / `.m3u8` playlist URL itself. The addon does not expand playlists into video segments.
 

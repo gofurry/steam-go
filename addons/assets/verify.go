@@ -11,15 +11,26 @@ import (
 //
 // It uses HEAD first and falls back to GET when the server returns 405 or 501.
 // HTTP non-2xx responses are reported as Exists=false and are not returned as errors.
+//
+// When URLs come from untrusted input, use VerifyURLsWithOptions with a
+// URLValidator.
 func VerifyURLs(ctx context.Context, urls ...string) ([]VerifyResult, error) {
 	return VerifyURLsWithClient(ctx, nil, urls...)
 }
 
 // VerifyURLsWithClient is VerifyURLs with a caller-supplied HTTP client.
 func VerifyURLsWithClient(ctx context.Context, client *http.Client, urls ...string) ([]VerifyResult, error) {
+	return VerifyURLsWithOptions(ctx, VerifyOptions{HTTPClient: client}, urls...)
+}
+
+// VerifyURLsWithOptions verifies one or more direct URLs with explicit options.
+func VerifyURLsWithOptions(ctx context.Context, opts VerifyOptions, urls ...string) ([]VerifyResult, error) {
 	out := make([]VerifyResult, 0, len(urls))
 	for _, rawURL := range urls {
-		verified, err := verifyURLItem(ctx, client, URLItem{URL: rawURL})
+		if err := validateDirectURL(rawURL, opts.URLValidator); err != nil {
+			return out, err
+		}
+		verified, err := verifyURLItem(ctx, opts.HTTPClient, URLItem{URL: rawURL})
 		if err != nil {
 			return out, err
 		}

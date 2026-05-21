@@ -159,11 +159,17 @@ type ReadResult struct {
 	Error         string `json:"error,omitempty"`
 }
 
+// ReadHandler handles one read result without requiring the whole batch to be
+// retained in memory. The Data field is valid for the duration of the call; copy
+// it if it must outlive the handler.
+type ReadHandler func(ReadResult) error
+
 // ReadOptions controls direct URL reads.
 type ReadOptions struct {
-	HTTPClient  *http.Client
-	MaxBytes    int64
-	Concurrency int
+	HTTPClient   *http.Client
+	MaxBytes     int64
+	Concurrency  int
+	URLValidator URLValidator
 }
 
 // ReadAppOptions controls app asset reads.
@@ -183,6 +189,13 @@ type DownloadOptions struct {
 	SkipExisting  bool
 	FilenameStyle FilenameStyle
 	Concurrency   int
+	URLValidator  URLValidator
+}
+
+// VerifyOptions controls direct URL verification.
+type VerifyOptions struct {
+	HTTPClient   *http.Client
+	URLValidator URLValidator
 }
 
 // DownloadAppOptions controls app asset downloads.
