@@ -144,7 +144,7 @@
 
 ## 4.2 `v1.2.2`：Documentation adoption
 
-**Status:** In progress  
+**Status:** Completed  
 **Scope:** Documentation / User-facing / Developer-facing  
 **Goal:** 降低新用户理解和采用成本，让 README 从“全量说明”变成“入口页”。
 
@@ -157,18 +157,17 @@
 - [x] 新增中文 cookbook：basic API、OpenID、read-only Web、proxy/region、rate limit/retry、error handling、credential redaction、assets。
 - [x] 更新 `docs/README.md` 和 `docs/zh/README.md` cookbook 索引。
 - [x] 评估最低 Go 版本：代码语法本身接近 Go 1.22，但当前安全依赖链 `golang.org/x/net v0.55.0`、`x/term v0.43.0`、`x/sys v0.45.0` 要求 Go 1.25，因此本轮不降低 `go.mod` 的 `go 1.25.0`。
-- [ ] 为核心包和关键 addon 增加 pkg.go.dev `Example...` 测试。
+- [x] 为核心包和关键 addon 增加 pkg.go.dev `Example...` 测试。
 
 ### Deferred
 
 - Go 1.22 支持暂不承诺。只有在安全依赖链允许且完整 CI 验证通过时，才重新评估降低最低 Go 版本。
-- pkg.go.dev 示例保留为 `v1.2.2` 后续补齐项；本轮优先完成 README 和 cookbook 采用路径。
 
 ### 验收标准
 
 - [x] README 变短，入口更清晰。
 - [x] 至少 6 篇 cookbook 完成。
-- [ ] pkg.go.dev 能展示核心示例。
+- [x] pkg.go.dev 能展示核心示例。
 - [x] 最低 Go 版本策略有明确说明。
 
 ---
@@ -559,7 +558,7 @@ type RequestObserverFunc func(event RequestEvent)
 7. [x] Remove IDE metadata from repository if unnecessary.
 8. [ ] Add Dependabot or Renovate config.
 
-## Milestone: `v1.2.2 Documentation adoption`（In progress）
+## Milestone: `v1.2.2 Documentation adoption`（Completed）
 
 建议 issues：
 
@@ -570,7 +569,7 @@ type RequestObserverFunc func(event RequestEvent)
 5. [x] Add cookbook: proxy and region network setup.
 6. [x] Add cookbook: retry and rate limit.
 7. [x] Add cookbook: credential redaction.
-8. [ ] Add pkg.go.dev examples for core package.
+8. [x] Add pkg.go.dev examples for core package.
 9. [x] Evaluate minimum Go version.
 
 ## Milestone: `v1.2.3 Compatibility and safety`
