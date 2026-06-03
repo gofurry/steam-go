@@ -29,21 +29,17 @@
                                                                              
 ```
 
-`steam-go` is a lightweight Go SDK focused on the official Steam Web API.
+`steam-go` is a stable Go SDK for the official Steam Web API, with practical request controls and carefully scoped read-only Steam Web helpers.
 
-## Features
+## Why Use It
 
-- Root `Client` with grouped service access under `client.API.*`
-- Read-only `client.Web.*` access for Storefront app/package details, reviews, community inventory, and market price overview
-- Functional options for API key, access token, timeout, retry, rate limit, and proxy selection
-- Buffered response bodies are capped by default and can be tuned with `WithMaxResponseBodyBytes(...)`
-- `key` and `access_token` are treated as different credentials and can be configured independently
-- API key is optional and can be supplied through a rotating key provider
-- `WithSafeDefaults()` enables a conservative retry + rate-limit preset for real external traffic
-- `WithHealthCheckedAPIKeys(...)` adds temporary cooldown for keys that repeatedly hit `401/429`
-- Typed responses by default with matching raw response methods
-- `401/429` can automatically retry with the next API key when `WithAPIKeys(...)` and `WithRetry(...)` are used together
-- Independent addons can extend the SDK without bloating the core Web API client
+- Stable root `Client` with grouped official API access under `client.API.*`
+- Read-only `client.Web.*` helpers for Storefront, Community inventory, and Market JSON endpoints
+- Functional options for API key, access token, timeout, retry, rate limit, proxy, cookies, and traffic policy
+- Safe defaults for external traffic with bounded response bodies and URL redaction helpers
+- Typed responses for stable payloads, with raw methods and `json.RawMessage` for volatile subtrees
+- Rotating and health-checked API key providers for resilient `401/429` handling
+- Addons for OpenID, web sessions, assets, free-claim workflows, and A2S without bloating the core SDK
 
 ## Installation
 
@@ -51,7 +47,9 @@
 go get github.com/gofurry/steam-go@latest
 ```
 
-## Quick Start
+`steam-go` currently requires Go 1.25+. The code is intentionally conservative, but the current security-patched dependency chain requires Go 1.25, so the project does not claim Go 1.22 support in this release line.
+
+## Quick Start: Official API
 
 ```go
 package main
@@ -89,283 +87,86 @@ func main() {
 }
 ```
 
-Detailed API group references live in [docs/api/reference.md](docs/api/reference.md).
-Read-only web endpoint notes live in [docs/web/reference.md](docs/web/reference.md).
-Project governance documents:
+More official API examples: [docs/cookbook/basic-api.md](docs/cookbook/basic-api.md).
 
-- [Documentation Index](docs/README.md)
-- [Compatibility Policy](docs/governance/compatibility.md)
-- [Endpoint Stability](docs/governance/endpoint-stability.md)
-- [Endpoint Coverage](docs/governance/endpoint-coverage.md)
-- [v1.0.0 Release Notes](docs/releases/v1.0.0.md)
+## Quick Start: Steam OpenID
 
-## WishlistService Coverage
+```go
+verifier, err := openid.NewVerifier(openid.Config{
+	Realm:    "https://example.com/",
+	ReturnTo: "https://example.com/auth/steam/callback",
+})
+if err != nil {
+	panic(err)
+}
 
-`client.API.WishlistService` currently covers the main wishlist lookup flows:
+loginURL, err := verifier.LoginURL("csrf-state")
+if err != nil {
+	panic(err)
+}
 
-- `GetWishlist` for the wishlist item list of a Steam account
-- `GetWishlistItemCount` for the total wishlist count
-- `GetWishlistItemsOnSale` for detailed on-sale wishlist items with configurable `input_json` fields
+fmt.Println(loginURL)
+```
 
-`GetWishlist` and `GetWishlistItemCount` use typed lightweight responses. `GetWishlistItemsOnSale` keeps each `store_item` as raw JSON so the SDK can tolerate Steam's very large and frequently changing store payload.
+In a real app, store the `state` in a secure cookie or server-side session before redirecting the user. Cookbook: [docs/cookbook/auth-openid.md](docs/cookbook/auth-openid.md).
 
-## PlayerService Coverage
+## Quick Start: Read-Only Web Query
 
-`client.API.PlayerService` already covers a useful mix of public and authenticated profile/gameplay endpoints, including:
+```go
+client, err := steam.NewClient(steam.WithSafeDefaults())
+if err != nil {
+	panic(err)
+}
+defer client.Close()
 
-- badges, community badge progress, favorite badge, Steam level, and Steam level distribution
-- animated avatars, avatar frames, profile backgrounds, mini-profile backgrounds, equipped items, and owned profile items
-- profile customization, purchased customizations, purchased/upgraded customization summaries, and available profile themes
-- nickname lists, player link details, friends gameplay info, recently played games, last played times, and top achievements for games
+reviews, err := client.Web.Storefront.GetAppReviews(context.Background(), 440, &storefront.GetAppReviewsOptions{
+	Language:   "english",
+	NumPerPage: 20,
+})
+if err != nil {
+	panic(err)
+}
 
-When a method signature explicitly asks for `accessToken` or `key`, that credential must be passed to the method itself. Client-level credentials remain useful as defaults for endpoints that do not require caller-specific credentials in the method signature.
+fmt.Println(reviews.QuerySummary.TotalReviews)
+```
+
+`client.Web.*` is read-only and never injects Steam Web API `key` or `access_token`. Cookbook: [docs/cookbook/web-readonly.md](docs/cookbook/web-readonly.md).
+
+## Production Notes
+
+- Start with `WithSafeDefaults()` for real external traffic, then tune timeout, retry, and rate limit per workload.
+- Use `WithProxySelector(...)` or `WithTrafficPolicy(...)` when region, host, or session behavior needs different network paths.
+- Do not log raw URLs that may contain `key`, `access_token`, cookies, or proxy credentials. Use `steam.RedactSensitiveURL(...)`.
+- Use `WithMaxResponseBodyBytes(...)` when callers need a stricter response body cap.
+- Keep live smoke credentials and web cookies out of Git; examples use environment variables or hidden terminal prompts for sensitive values.
+
+## Stability Boundary
+
+- `client.API.*` is the official Steam Web API surface and the main stable `v1` contract.
+- `client.Web.*` exposes stable Go method signatures, but the upstream Store / Community / Market payloads are unofficial and may drift.
+- Volatile nested payloads may remain `json.RawMessage` instead of being forced into brittle typed structs.
+- The core package does not include browser fallback, purchase, sell, trade, or bulk account automation.
 
 ## Addons
 
-- `addons/a2s` is a lightweight bridge to [`github.com/gofurry/a2s-go`](https://github.com/gofurry/a2s-go) `v1.0.1`
-- `addons/openid` provides Steam OpenID login verification for browser-based sign-in flows
-- `addons/websession` composes Steam authentication atoms into one manual web-login session flow
-- `addons/freeclaim` searches Store promotions and can claim one free license with caller-supplied web cookies
-- `addons/assets` builds, fetches Store media URLs, verifies, reads, and downloads high-value public Store / Library assets from AppIDs
-- OpenID only confirms Steam identity and returns `SteamID64`; it does not replace Web API credentials
-- `addons/freeclaim` stays read-only unless you pass the explicit claim flag in the example or your own code
-- the addon examples read sensitive secrets from environment variables or hidden terminal prompts instead of CLI secret flags
-- `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` are the recommended constructors when you want addon web traffic to inherit the root SDK class execution stack
-- the legacy `NewClient(...)` addon constructors remain available as manual mode for caller-managed `http.Client`, proxy, timeout, base URL, and `CookieJar`
-- detailed addon notes live in [docs/addons/reference.md](docs/addons/reference.md)
+| Addon | Use it for |
+|---|---|
+| `addons/openid` | Steam OpenID login verification |
+| `addons/websession` | Manual Steam web-login session flow |
+| `addons/freeclaim` | Read-only free promotion discovery plus explicit single-package claim |
+| `addons/assets` | Store / Library asset URL construction, verification, reading, and downloading |
+| `addons/a2s` | A2S server queries through `github.com/gofurry/a2s-go` |
 
-## Web
+Detailed addon notes: [docs/addons/reference.md](docs/addons/reference.md).
 
-`client.Web.*` covers a small set of high-value read-only JSON endpoints outside the official `api.steampowered.com` surface:
+## Documentation
 
-- `client.Web.Storefront.GetAppDetails`
-- `client.Web.Storefront.GetPackageDetails`
-- `client.Web.Storefront.GetAppReviews`
-- `client.Web.Community.GetInventory`
-- `client.Web.Market.GetPriceOverview`
-
-These methods are part of the stable Go API surface in `v1.x`, but the upstream Store / Community / Market payloads remain unofficial or volatile web surfaces. `client.Web.*` never injects Steam Web API `key` or `access_token`; inventory access relies on caller-supplied cookies when required.
-
-## Proxy
-
-`steam-go` keeps proxy support centered on `WithProxySelector(...)`.
-
-- `NewStaticProxySelector(...)` for one fixed proxy
-- `NewRoundRobinProxySelector(...)` for simple rotation
-- `NewHealthCheckedRoundRobinProxySelector(...)` for failure-based cooldown in one proxy pool
-- `NewStickyProxySelector(...)` for explicit session-key based sticky proxy selection
-- `NewRoutingProxySelector(...)` for host/path-based routing
-- `NewHTTPClientWithProxySelector(...)` for addon or standalone HTTP flows
-- `WithProxySessionKey(ctx, key)` for attaching one sticky session key to request context
-- `ProxyMetricsProvider` for one in-memory health snapshot of a health-checked proxy pool
-- no external metrics integration or heavy proxy-pool management
-
-Static example:
-
-```go
-selector, err := steam.NewStaticProxySelector("http://127.0.0.1:7897")
-if err != nil {
-	panic(err)
-}
-
-client, err := steam.NewClient(
-	steam.WithAPIKey("your-key"),
-	steam.WithProxySelector(selector),
-)
-if err != nil {
-	panic(err)
-}
-```
-
-Routing example:
-
-```go
-selector, err := steam.NewRoutingProxySelector(
-	steam.ProxyRoute{
-		Host:       "api.steampowered.com",
-		PathPrefix: "/ISteamUser/",
-		ProxyURL:   "http://127.0.0.1:7897",
-	},
-	steam.ProxyRoute{
-		Host:       "steamcommunity.com",
-		PathPrefix: "/openid/",
-		ProxyURL:   "",
-	},
-)
-if err != nil {
-	panic(err)
-}
-```
-
-Sticky example:
-
-```go
-baseSelector, err := steam.NewRoundRobinProxySelector(
-	"http://127.0.0.1:7897",
-	"http://127.0.0.1:7898",
-)
-if err != nil {
-	panic(err)
-}
-
-client, err := steam.NewClient(
-	steam.WithAPIKey("your-key"),
-	steam.WithProxySelector(steam.NewStickyProxySelector(baseSelector)),
-)
-if err != nil {
-	panic(err)
-}
-
-ctx := steam.WithProxySessionKey(context.Background(), "browser-session-1")
-_, err = client.API.SteamUser.GetPlayerSummaries(ctx, []string{"76561198370695025"})
-if err != nil {
-	panic(err)
-}
-```
-
-Health-checked round-robin example:
-
-```go
-selector, err := steam.NewHealthCheckedRoundRobinProxySelector(
-	steam.DefaultProxyHealthConfig(),
-	"http://127.0.0.1:7897",
-	"http://127.0.0.1:7898",
-)
-if err != nil {
-	panic(err)
-}
-
-client, err := steam.NewClient(
-	steam.WithAPIKey("your-key"),
-	steam.WithProxySelector(selector),
-)
-if err != nil {
-	panic(err)
-}
-
-metrics := selector.(steam.ProxyMetricsProvider).ProxyMetricsSnapshot()
-fmt.Printf("healthy=%d cooling=%d\n", metrics.HealthyProxies, metrics.CoolingProxies)
-```
-
-## Traffic Classes
-
-`steam-go` now supports per-class request policy routing so official Steam Web API traffic and the built-in `client.Web.*` surfaces can use different request strategies.
-
-- `TrafficClassOfficialAPI` is the default for existing typed `client.API.*` methods
-- `TrafficClassPublicStorePage` is used by `client.Web.Storefront.*`
-- `TrafficClassCommunityWeb` is used by `client.Web.Community.*`
-- `TrafficClassMarketWeb` is used by `client.Web.Market.*`
-- `WithTrafficPolicy(...)` overrides proxy, cookie jar, retry, rate limit, short-cache, block detection, header profile, and Referer strategy per class
-- `TransportHook` and `TransportHookFunc` reserve one per-class HTTP execution extension point for future TLS customization or browser-backed fallback
-- `WithTrafficClass(ctx, class)` lets one request opt into a non-default class
-- `DefaultPublicStoreHeaderProfileZH()` and `DefaultPublicStoreHeaderProfileEN()` provide stable browser-like header presets
-- `WithRefererSource(ctx, rawURL)` plus `NewStaticRefererSelector(...)`, `NewRoutingRefererSelector(...)`, and `NewContextRefererSelector(...)` support fixed, routed, and context-driven Referer policies
-- `TrafficCachePolicy{TTL: ...}` enables per-class in-memory short caching with `ETag` / `Last-Modified` revalidation for `GET` requests
-- `TrafficBlockPolicy{HTMLSniffBytes: ...}` enables public store-page block detection for `429`, `403`, and HTML challenge responses
-
-Example:
-
-```go
-client, err := steam.NewClient(
-	steam.WithAPIKey("your-key"),
-	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
-		RateLimiter: &steam.TrafficRateLimiterPolicy{
-			Limit: 10,
-			Burst: 10,
-		},
-	}),
-)
-if err != nil {
-	panic(err)
-}
-
-// Keep typed Steam Web API calls on the default OfficialAPI class.
-_, _ = client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198370695025"})
-
-// Web requests route automatically by method.
-_, _ = client.Web.Market.GetPriceOverview(context.Background(), 440, "Mann Co. Supply Crate Key", nil)
-```
-
-Public store-page profile example:
-
-```go
-profile := steam.DefaultPublicStoreHeaderProfileZH()
-refererSelector, err := steam.NewStaticRefererSelector("https://store.steampowered.com/search/")
-if err != nil {
-	panic(err)
-}
-
-client, err := steam.NewClient(
-	steam.WithAPIKey("your-key"),
-	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
-		Cache:           &steam.TrafficCachePolicy{TTL: time.Minute},
-		BlockPolicy:     &steam.TrafficBlockPolicy{},
-		HeaderProfile:   &profile,
-		RefererSelector: refererSelector,
-	}),
-)
-if err != nil {
-	panic(err)
-}
-```
-
-Public store-page transport hook example:
-
-```go
-client, err := steam.NewClient(
-	steam.WithAPIKey("your-key"),
-	steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
-		TransportHook: steam.TransportHookFunc(func(class steam.TrafficClass, base *http.Client) (*http.Client, error) {
-			cloned := *base
-			if transport, ok := base.Transport.(*http.Transport); ok {
-				custom := transport.Clone()
-				custom.TLSHandshakeTimeout = 5 * time.Second
-				cloned.Transport = custom
-			}
-			return &cloned, nil
-		}),
-	}),
-)
-if err != nil {
-	panic(err)
-}
-```
-
-On China-region networks, browser login may succeed while the server-side Steam OpenID `check_authentication` request still times out. The OpenID example supports `--proxy http://127.0.0.1:7897` for that case and also demonstrates cookie-backed `state` verification on the callback.
-
-## Examples
-
-- `go run ./examples/a2s -server 1.2.3.4:27015 -query info`
-- `go run ./examples/a2s -server 1.2.3.4:27015 -query players`
-- `go run ./examples/a2s -server 1.2.3.4:27015 -query rules`
-- `go run ./examples/openid`
-- `go run ./examples/openid --proxy http://127.0.0.1:7897`
-- `go run ./examples/websession`
-- `go run ./examples/assets -app-ids 550,107100 -verify-apps -kind all`
-- `go run ./examples/assets -app-ids 550 -store-media -kind all`
-- `go run ./examples/freeclaim`
-- `go run ./examples/proxy`
-- `go run ./examples/traffic`
-- `go run ./examples/steamuser`
-- `go run ./examples/playerservice`
-- `go run ./examples/steamuserstats`
-- `go run ./examples/steamnews`
-- `go run ./examples/live/steamuser`
-- `go run ./examples/live/playerservice`
-- `go run ./examples/live/wishlistservice`
-- full live smoke list: [examples/live/README.md](examples/live/README.md)
-
-## Error Handling
-
-SDK errors use `*steam.APIError` with these kinds:
-
-- `request_build`
-- `transport`
-- `http_status`
-- `decode`
-- `api_response`
-
-Use `errors.As(err, &apiErr)` to inspect kind, status code, and raw body.
-
-Steam Web API credentials are injected through query parameters by default because that matches Steam's HTTP interface.
-Avoid logging raw request URLs in production. Use `steam.RedactSensitiveURL(...)` before sending URLs to logs, traces, or monitoring systems.
+- [Documentation index](docs/README.md)
+- [API reference](docs/api/reference.md)
+- [Web reference](docs/web/reference.md)
+- [Addon reference](docs/addons/reference.md)
+- [Cookbook](docs/cookbook/basic-api.md)
+- [Compatibility policy](docs/governance/compatibility.md)
+- [Endpoint stability](docs/governance/endpoint-stability.md)
+- [Endpoint coverage](docs/governance/endpoint-coverage.md)
+- [Release checklist](docs/releases/checklist.md)
