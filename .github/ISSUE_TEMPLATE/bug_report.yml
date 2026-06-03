@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a reproducible bug in steam-go.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include real API keys, access tokens, refresh tokens, cookies, proxy passwords, or raw URLs containing credentials.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal code, command, or test case that reproduces the issue.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: steam-go version
+      placeholder: "v1.2.1 or commit SHA"
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      placeholder: "go version"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - root client / options
+        - official API client.API.*
+        - web client.Web.*
+        - proxy / network / rate limit / retry
+        - addon: openid
+        - addon: websession
+        - addon: freeclaim
+        - addon: assets
+        - addon: a2s
+        - documentation
+        - CI / release
+        - unsure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or errors
+      description: Redact credentials before pasting. Prefer steam.RedactSensitiveURL for URLs.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed or redacted API keys, access tokens, refresh tokens, cookies, proxy passwords, and credential-bearing URLs.
+          required: true

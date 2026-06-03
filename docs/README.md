@@ -11,6 +11,8 @@ This directory keeps project documentation that is too detailed for the reposito
 - [Endpoint coverage](governance/endpoint-coverage.md)
 - [Endpoint stability](governance/endpoint-stability.md)
 - [v1.0.0 release notes](releases/v1.0.0.md)
+- [v1.2.1 release notes](releases/v1.2.1.md)
+- [Release checklist](releases/checklist.md)
 
 ## Chinese
 
@@ -21,6 +23,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [Endpoint 覆盖范围](zh/governance/endpoint-coverage.md)
 - [Endpoint 稳定性](zh/governance/endpoint-stability.md)
 - [v1.0.0 Release Notes](zh/releases/v1.0.0.md)
+- [v1.2.1 Release Notes](zh/releases/v1.2.1.md)
 
 ## Chinese-only Operational Docs
 

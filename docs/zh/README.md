@@ -97,6 +97,8 @@ func main() {
 - [Endpoint 稳定性](governance/endpoint-stability.md)
 - [Endpoint 覆盖范围](governance/endpoint-coverage.md)
 - [v1.0.0 Release Notes](releases/v1.0.0.md)
+- [v1.2.1 Release Notes](releases/v1.2.1.md)
+- [Release Checklist](../releases/checklist.md)
 
 ## WishlistService 覆盖范围
 
