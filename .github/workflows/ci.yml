@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+env:
+  STATICCHECK_VERSION: v0.7.0
+  GOVULNCHECK_VERSION: v1.3.0
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
       matrix:
         go-version:
           - "1.25"
-          - "1.26"
+          - "1.26.4"
 
     steps:
       - name: Checkout
@@ -28,7 +32,6 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-          check-latest: true
           cache: true
 
       - name: Show Go version
@@ -47,8 +50,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26"
-          check-latest: true
+          go-version: "1.26.4"
           cache: true
 
       - name: Show Go version
@@ -58,13 +60,13 @@ jobs:
         run: go vet ./...
 
       - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+        run: go install honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}
 
       - name: Run staticcheck
         run: staticcheck ./...
 
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
 
       - name: Run govulncheck
         run: govulncheck ./...
@@ -79,8 +81,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26"
-          check-latest: true
+          go-version: "1.26.4"
           cache: true
 
       - name: Show Go version

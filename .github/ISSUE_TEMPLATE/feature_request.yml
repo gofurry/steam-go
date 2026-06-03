@@ -1,0 +1,59 @@
+name: Feature request
+description: Propose a compatible feature or endpoint.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please keep requests scoped. The core SDK focuses on official Steam Web API support and carefully scoped read-only web helpers.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or maintainer problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the API shape, endpoint, addon, or documentation change.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - official API endpoint
+        - read-only Web surface
+        - addon
+        - request controls
+        - proxy / network behavior
+        - documentation
+        - CI / release
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Does this add public API, change behavior, or touch the v1 stable surface?
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and abuse considerations
+      description: Note credentials, cookies, mutating requests, rate limits, or account automation risks.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

@@ -1,0 +1,45 @@
+name: Latest Toolchain Advisory
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  latest-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup latest Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "stable"
+          check-latest: true
+          cache: true
+
+      - name: Show Go version
+        run: go version
+
+      - name: Run tests with latest stable Go
+        run: go test ./...
+
+      - name: Run go vet with latest stable Go
+        run: go vet ./...
+
+      - name: Install latest staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run latest staticcheck
+        run: staticcheck ./...
+
+      - name: Install latest govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run latest govulncheck
+        run: govulncheck ./...

@@ -2,4 +2,32 @@ access-token.txt
 key.txt
 proxy.txt
 
-tmp
+tmp/
+
+# Local credential and environment files
+.env
+.env.*
+*.pem
+*.key
+
+# Editor and IDE metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Go build and test output
+bin/
+dist/
+coverage.out
+*.coverprofile
+*.test
+
+# Logs and temporary artifacts
+*.log
+*.tmp

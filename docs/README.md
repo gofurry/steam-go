@@ -7,20 +7,43 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API reference](api/reference.md)
 - [Addon reference](addons/reference.md)
 - [Web reference](web/reference.md)
+- Cookbook:
+  - [Basic official API](cookbook/basic-api.md)
+  - [Steam OpenID](cookbook/auth-openid.md)
+  - [Read-only Web endpoints](cookbook/web-readonly.md)
+  - [Proxy and region](cookbook/proxy-and-region.md)
+  - [Rate limit and retry](cookbook/rate-limit-and-retry.md)
+  - [Error handling](cookbook/error-handling.md)
+  - [Credential redaction](cookbook/credential-redaction.md)
+  - [Assets addon](cookbook/assets.md)
 - [Compatibility policy](governance/compatibility.md)
 - [Endpoint coverage](governance/endpoint-coverage.md)
 - [Endpoint stability](governance/endpoint-stability.md)
+- [Credential safety](security/credentials.md)
 - [v1.0.0 release notes](releases/v1.0.0.md)
+- [v1.2.1 release notes](releases/v1.2.1.md)
+- [Release checklist](releases/checklist.md)
 
 ## Chinese
 
 - [中文文档首页](zh/README.md)
 - [API 参考](zh/api/reference.md)
 - [Addon 参考](zh/addons/reference.md)
+- Cookbook:
+  - [基础官方 API](zh/cookbook/basic-api.md)
+  - [Steam OpenID](zh/cookbook/auth-openid.md)
+  - [只读 Web 接口](zh/cookbook/web-readonly.md)
+  - [代理与区域网络](zh/cookbook/proxy-and-region.md)
+  - [限流与重试](zh/cookbook/rate-limit-and-retry.md)
+  - [错误处理](zh/cookbook/error-handling.md)
+  - [凭据脱敏](zh/cookbook/credential-redaction.md)
+  - [Assets addon](zh/cookbook/assets.md)
 - [兼容性策略](zh/governance/compatibility.md)
 - [Endpoint 覆盖范围](zh/governance/endpoint-coverage.md)
 - [Endpoint 稳定性](zh/governance/endpoint-stability.md)
+- [凭据安全](zh/security/credentials.md)
 - [v1.0.0 Release Notes](zh/releases/v1.0.0.md)
+- [v1.2.1 Release Notes](zh/releases/v1.2.1.md)
 
 ## Chinese-only Operational Docs
 

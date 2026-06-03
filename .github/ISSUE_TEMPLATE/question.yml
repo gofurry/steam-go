@@ -1,0 +1,47 @@
+name: Question
+description: Ask a usage or design question.
+title: "question: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste real Steam credentials, cookies, proxy passwords, or raw URLs containing secrets.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include sanitized code snippets, package names, endpoint names, or links to relevant docs.
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - official API client.API.*
+        - web client.Web.*
+        - addon
+        - credentials / auth
+        - proxy / network
+        - rate limit / retry
+        - errors / redaction
+        - documentation
+        - other
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed or redacted API keys, access tokens, refresh tokens, cookies, proxy passwords, and credential-bearing URLs.
+          required: true

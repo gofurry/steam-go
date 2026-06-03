@@ -216,6 +216,7 @@ Additional rules:
 - If a method explicitly accepts `key` or `accessToken`, pass the caller-specific credential to that method.
 - Client-level credentials still act as defaults for shared/public endpoints that do not require explicit method-level credentials.
 - Steam expects many of these credentials on the URL query string. Do not log raw request URLs in production; use `steam.RedactSensitiveURL(...)` before emitting URLs to logs, traces, or monitoring.
+- Use `steam.RedactSensitiveHeaders(...)` before logging headers that may contain `Authorization`, `Cookie`, `Set-Cookie`, proxy credentials, or Web API key headers.
 - `WithSafeDefaults()` enables one conservative preset for external traffic: retry `2` with a `3 rps / burst 3` client-level limiter.
 - `WithHealthCheckedAPIKeys(...)` keeps round-robin rotation but temporarily cools down keys that repeatedly fail with `401/429`, so one bad key does not keep poisoning every retry loop.
 
