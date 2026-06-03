@@ -2,6 +2,13 @@
 
 This directory keeps reference-style documentation that is too detailed for the repository homepage.
 
+## Generated Coverage
+
+- [Generated API coverage](coverage.generated.md)
+- [API coverage diff](coverage-diff.md)
+
+The generated coverage reports compare Steam's public `GetSupportedAPIList` inventory with SDK endpoint constants and `api/*` service methods. `extra_sdk` is a drift signal, not an automatic removal request.
+
 ## API Groups
 
 - `client.API.AccountCartService`

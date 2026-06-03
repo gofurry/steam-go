@@ -2,6 +2,13 @@
 
 本文档记录 `steam-go` 当前公开的 API 分组和使用边界。更完整的方法签名以源码和 Go 文档为准。
 
+## Generated 覆盖报告
+
+- [Generated API 覆盖报告](../../api/coverage.generated.md)
+- [API 覆盖差异](../../api/coverage-diff.md)
+
+这些报告会对比 Steam 公开 `GetSupportedAPIList` inventory、SDK endpoint 常量和 `api/*` service methods。`extra_sdk` 是 drift 信号，不是自动删除要求。
+
 ## API 分组
 
 当前 `client.API.*` 下包含这些服务分组：

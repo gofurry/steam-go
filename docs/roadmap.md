@@ -202,64 +202,30 @@
 
 ## 5.1 `v1.3.0`：API coverage automation
 
-### 目标
+**Status:** Completed  
+**Scope:** Developer-facing / CI/Release / Documentation  
+**Goal:** 把 endpoint 维护从“人工记忆”升级为“自动发现、自动 diff、自动生成报告”。
 
-把 endpoint 维护从“人工记忆”升级为“自动发现、自动 diff、自动生成报告”。
+### 已完成
 
-### 建议工具：`steamapi-sync`
-
-可以放在：
-
-- `cmd/steamapi-sync`
-- 或 `internal/tools/steamapi-sync`
-- 或 `tools/steamapi-sync`
-
-推荐先作为仓库维护工具，不急着承诺为稳定 public API。
-
-### 功能设计
-
-`steamapi-sync` 做四件事：
-
-1. 调用官方 `ISteamWebAPIUtil/GetSupportedAPIList`。
-2. 生成 Steam 官方 API inventory。
-3. 与仓库当前 `client.API.*` coverage 对比。
-4. 输出 markdown / JSON diff 报告。
-
-输出文件建议：
-
-- `docs/api/coverage.generated.md`
-- `docs/api/coverage.generated.json`
-- `docs/api/coverage-diff.md`
-
-每个 endpoint 记录：
-
-- interface/service name
-- method name
-- version
-- HTTP method
-- parameters
-- auth requirement
-- SDK coverage status
-- typed/raw status
-- stability level
-- docs/example link
-- live smoke status
-
-### GitHub Actions 集成
-
-新增 scheduled job：
-
-- 定期跑 `steamapi-sync`。
-- 若发现新增/变化 endpoint，生成 artifact。
-- 可选：自动开 issue 或创建 PR。
-- 不建议一开始自动改代码，先只生成报告。
+- [x] 新增 `internal/tools/steamapi-sync`，作为本地维护工具，不承诺稳定用户 CLI。
+- [x] 支持从官方 `ISteamWebAPIUtil/GetSupportedAPIList` 拉取 inventory。
+- [x] 支持 `-input <file>` 离线读取 fixture JSON。
+- [x] 支持 `-output-dir docs/api` 生成 coverage Markdown、JSON 和 diff Markdown。
+- [x] 扫描 `internal/endpoint` path 常量，并识别 `api/*` service typed/raw 方法。
+- [x] 以 `interface + method + version` 判定 `covered`、`missing`、`extra_sdk`、`version_mismatch`。
+- [x] 提交 `docs/api/coverage.generated.md`、`docs/api/coverage.generated.json`、`docs/api/coverage-diff.md` 快照。
+- [x] 新增 scheduled coverage drift workflow，发现 drift 时开/更新 GitHub issue，不自动改代码或开 PR。
+- [x] 新增中英文“如何新增 official endpoint”文档。
+- [x] 更新文档索引和 release checklist。
 
 ### 验收标准
 
-- 能生成当前官方 API coverage 报告。
-- 能发现新增、删除、参数变化或版本变化。
-- 报告可读，可用于手工规划后续 endpoint。
-- 不因 Steam 偶发请求失败导致主线 CI 失败。
+- [x] 能生成当前官方 API coverage 报告。
+- [x] 能发现新增、删除、参数变化或版本变化。
+- [x] 报告可读，可用于手工规划后续 endpoint。
+- [x] 官方 drift 不进入主线 CI hard gate。
+- [x] scheduled workflow 只生成 artifact 并开/更新 issue，不自动提交代码。
 
 ---
 
@@ -544,16 +510,16 @@ type RequestObserverFunc func(event RequestEvent)
 5. [x] Add error handling cookbook.
 6. [x] Add compatibility policy checklist to release process.
 
-## Milestone: `v1.3.0 API coverage automation`
+## Milestone: `v1.3.0 API coverage automation`（Completed）
 
 建议 issues：
 
-1. Implement `steamapi-sync` prototype.
-2. Generate official API inventory JSON.
-3. Generate coverage markdown table.
-4. Compare inventory with existing SDK services.
-5. Add scheduled coverage drift workflow.
-6. Document how to add a new official endpoint.
+1. [x] Implement `steamapi-sync` prototype.
+2. [x] Generate official API inventory JSON.
+3. [x] Generate coverage markdown table.
+4. [x] Compare inventory with existing SDK services.
+5. [x] Add scheduled coverage drift workflow.
+6. [x] Document how to add a new official endpoint.
 
 ## Milestone: `v1.3.1 Fixture and smoke baseline`
 

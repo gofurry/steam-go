@@ -20,6 +20,8 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] `staticcheck ./...`
 - [ ] `govulncheck ./...`
 - [ ] `go run ./internal/tools/apidiffcheck -base <previous-tag> -incompatible`
+- [ ] `go run ./internal/tools/steamapi-sync -output-dir docs/api`
+- [ ] Review generated API coverage drift under `docs/api/coverage-diff.md`.
 - [ ] Examples compile or the release notes explain why they were not checked.
 - [ ] Live smoke examples only run through explicit opt-in.
 
