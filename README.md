@@ -47,7 +47,7 @@
 go get github.com/gofurry/steam-go@latest
 ```
 
-`steam-go` currently requires Go 1.25+. The code is intentionally conservative, but the current security-patched dependency chain requires Go 1.25, so the project does not claim Go 1.22 support in this release line.
+`steam-go` currently requires Go 1.25+.
 
 ## Quick Start: Official API
 

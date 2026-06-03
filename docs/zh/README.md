@@ -48,7 +48,7 @@
 go get github.com/gofurry/steam-go@latest
 ```
 
-`steam-go` 当前要求 Go 1.25+。代码本身保持保守，但当前已修复安全问题的依赖链要求 Go 1.25，因此本 release line 不承诺 Go 1.22 支持。
+`steam-go` 当前要求 Go 1.25+。
 
 ## 快速开始：官方 API
 
