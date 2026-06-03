@@ -19,6 +19,7 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] `go vet ./...`
 - [ ] `staticcheck ./...`
 - [ ] `govulncheck ./...`
+- [ ] `go run ./internal/tools/apidiffcheck -base <previous-tag> -incompatible`
 - [ ] Examples compile or the release notes explain why they were not checked.
 - [ ] Live smoke examples only run through explicit opt-in.
 
