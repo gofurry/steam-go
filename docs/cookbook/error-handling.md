@@ -31,3 +31,20 @@ fmt.Println(resp.Response.Players)
 - Log bounded previews with `BodyPreview(max)`, not full response bodies.
 - Retry transport failures, `429`, and some `5xx` responses according to your workload.
 - Treat authentication and authorization failures as credential problems unless a retry policy says otherwise.
+
+## Retry Guidance
+
+Usually retry:
+
+- `ErrorKindTransport`
+- `ErrorKindHTTPStatus` with `429`
+- temporary `5xx` responses
+
+Usually do not retry without changing credentials or user state:
+
+- `401` or `403`
+- invalid request build errors
+- decode errors caused by unexpected payload shape
+- API response errors that clearly indicate account, permission, or token problems
+
+When logging an error, combine `errors.As` with bounded previews and URL/header redaction. Do not print raw response bodies, raw request URLs, cookies, or authorization headers.

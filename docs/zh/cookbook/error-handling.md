@@ -31,3 +31,20 @@ fmt.Println(resp.Response.Players)
 - 日志中使用 `BodyPreview(max)` 记录有界响应体预览，不要打印完整响应体。
 - transport failure、`429` 和部分 `5xx` 可按业务策略重试。
 - 鉴权失败通常应视为凭据问题，除非重试策略明确覆盖。
+
+## 重试建议
+
+通常可以重试：
+
+- `ErrorKindTransport`
+- `ErrorKindHTTPStatus` 且状态为 `429`
+- 临时 `5xx` 响应
+
+通常不应在不更换凭据或用户状态的情况下重试：
+
+- `401` 或 `403`
+- 请求构造错误
+- 上游 payload 形状变化导致的 decode 错误
+- 明确指向账号、权限或 token 问题的 API response 错误
+
+记录错误时，应把 `errors.As`、有界 `BodyPreview(max)`、URL/header 脱敏结合起来。不要打印原始响应体、原始请求 URL、cookie 或 authorization header。

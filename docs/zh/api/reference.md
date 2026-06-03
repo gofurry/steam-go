@@ -63,6 +63,7 @@
 - 某些方法签名会显式要求 `key` 或 `accessToken`，这类凭证需要传给方法本身。
 - 客户端级凭证适合作为默认配置，用于不要求调用方显式传凭证的方法。
 - 日志中不要直接打印包含 `key` 或 `access_token` 的 URL，优先使用 `steam.RedactSensitiveURL(...)`。
+- 记录可能包含 `Authorization`、`Cookie`、`Set-Cookie`、proxy 凭据或 Web API key header 的 headers 前，优先使用 `steam.RedactSensitiveHeaders(...)`。
 
 ## Addons
 

@@ -13,6 +13,16 @@ fmt.Println(safeURL)
 
 `RedactSensitiveURL(...)` removes URL userinfo plus known Steam credential query parameters such as `key` and `access_token`.
 
+## Redact Headers
+
+```go
+safeHeaders := steam.RedactSensitiveHeaders(req.Header)
+```
+
+Sensitive headers such as `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`, `X-WebAPI-Key`, and `X-API-Key` are replaced with `[REDACTED]`.
+
+`RedactSensitiveHeaders(...)` returns a clone and does not mutate the original header map.
+
 ## Sensitive Values
 
 Do not log or paste:

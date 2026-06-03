@@ -174,66 +174,27 @@
 
 ## 4.3 `v1.2.3`：Compatibility & safety
 
-### 目标
+**Status:** Completed  
+**Scope:** Compatibility / Security/Safety / Documentation / CI/Release  
+**Goal:** 建立 `v1` 兼容性保护和凭据安全默认路径。
 
-建立 `v1` 兼容性保护和凭据安全默认路径。
+### 已完成
 
-### 任务清单
-
-#### 4.3.1 增加 public API diff 检查
-
-建议引入 Go API 兼容性检查方式，例如：
-
-- 使用 `golang.org/x/exp/apidiff`。
-- 或维护一个导出的 API baseline 文件。
-- 在 release 前对比上一个 tag。
-
-检查重点：
-
-- root package exported API。
-- `client.API.*` method signatures。
-- `client.Web.*` method signatures。
-- exported request/response structs。
-- errors、proxy、traffic policy、redaction helpers。
-- documented addon import paths。
-
-#### 4.3.2 增强 redaction 能力和测试
-
-建议覆盖：
-
-- URL query：`key`、`access_token`、`refresh_token`、`steamLoginSecure` 等。
-- Proxy URL userinfo：`http://user:pass@proxy.example`。
-- Redirect final URL。
-- Error body preview 不应默认打印完整 body。
-- Header/Cookie redaction helper，可作为新增能力或文档示例。
-
-#### 4.3.3 补 credential safety 文档
-
-新增 `docs/security/credentials.md`，说明：
-
-- API key 与 access token 的区别。
-- 为什么 Steam credentials 常出现在 query string。
-- 日志和 trace 中的风险。
-- cookie jar 的生命周期。
-- refresh token 不应出现在命令行参数中。
-- examples 为什么使用环境变量或 hidden terminal prompt。
-- 生产部署中如何接入 secret manager。
-
-#### 4.3.4 错误模型文档化
-
-当前错误模型已经有 `request_build`、`transport`、`http_status`、`decode`、`api_response` 等分类。建议补一篇：
-
-- `docs/cookbook/error-handling.md`
-- 包含 `errors.As(err, &steam.APIError)` 示例。
-- 说明哪些错误适合 retry，哪些应该让用户重新登录/换 token。
-- 说明 `BodyPreview(max)` 的安全使用方式。
+- [x] 新增 `internal/tools/apidiffcheck`，用于 release 前对比 base ref 与当前工作树的 public API drift。
+- [x] 将 API diff 本地检查加入 `docs/releases/checklist.md`。
+- [x] 扩展 `RedactSensitiveURL(...)` 覆盖 `refresh_token`、`steamLoginSecure`、`sessionid`、`webapi_token`、`loyalty_webapi_token` 等 query key。
+- [x] 新增 `RedactSensitiveHeaderValue(...)` 和 `RedactSensitiveHeaders(...)`。
+- [x] 补充 redaction tests，覆盖 query、proxy userinfo、redirect final URL、header/cookie redaction 和 clone 不变性。
+- [x] 新增 `docs/security/credentials.md` 与 `docs/zh/security/credentials.md`。
+- [x] 增强中英文 error handling cookbook，明确 retry 与重新登录/换 token 的边界。
+- [x] 更新文档索引和 API reference 中的 redaction 指引。
 
 ### 验收标准
 
-- release 前能检查 public API drift。
-- redaction 覆盖 query、proxy、cookie/header 场景。
-- 凭据安全有独立文档。
-- 错误处理有 cookbook 示例。
+- [x] release 前能检查 public API drift。
+- [x] redaction 覆盖 query、proxy、cookie/header 场景。
+- [x] 凭据安全有独立文档。
+- [x] 错误处理有 cookbook 示例。
 
 ---
 
@@ -572,16 +533,16 @@ type RequestObserverFunc func(event RequestEvent)
 8. [x] Add pkg.go.dev examples for core package.
 9. [x] Evaluate minimum Go version.
 
-## Milestone: `v1.2.3 Compatibility and safety`
+## Milestone: `v1.2.3 Compatibility and safety`（Completed）
 
 建议 issues：
 
-1. Add exported API diff check.
-2. Add redaction tests for sensitive query fields.
-3. Add redaction tests for proxy userinfo.
-4. Add credential safety document.
-5. Add error handling cookbook.
-6. Add compatibility policy checklist to release process.
+1. [x] Add exported API diff check.
+2. [x] Add redaction tests for sensitive query fields.
+3. [x] Add redaction tests for proxy userinfo.
+4. [x] Add credential safety document.
+5. [x] Add error handling cookbook.
+6. [x] Add compatibility policy checklist to release process.
 
 ## Milestone: `v1.3.0 API coverage automation`
 

@@ -19,6 +19,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [Compatibility policy](governance/compatibility.md)
 - [Endpoint coverage](governance/endpoint-coverage.md)
 - [Endpoint stability](governance/endpoint-stability.md)
+- [Credential safety](security/credentials.md)
 - [v1.0.0 release notes](releases/v1.0.0.md)
 - [v1.2.1 release notes](releases/v1.2.1.md)
 - [Release checklist](releases/checklist.md)
@@ -40,6 +41,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [兼容性策略](zh/governance/compatibility.md)
 - [Endpoint 覆盖范围](zh/governance/endpoint-coverage.md)
 - [Endpoint 稳定性](zh/governance/endpoint-stability.md)
+- [凭据安全](zh/security/credentials.md)
 - [v1.0.0 Release Notes](zh/releases/v1.0.0.md)
 - [v1.2.1 Release Notes](zh/releases/v1.2.1.md)
 
