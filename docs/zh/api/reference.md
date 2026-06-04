@@ -42,6 +42,27 @@
 - `client.API.UserStoreVisitService`
 - `client.API.WishlistService`
 
+## Web Helper
+
+`client.Web.*` 提供一小组官方 Steam Web API 之外的只读 Web helper：
+
+- `client.Web.Storefront.GetAppDetails` / `GetAppDetailsRaw`
+- `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
+- `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
+- `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.GetAppDetailsBatch`
+- `client.Web.Community.GetInventory` / `GetInventoryRaw`
+- `client.Web.Community.ListInventory`
+- `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
+- `client.Web.Market.GetPriceOverviewBatch`
+
+说明：
+
+- Web helper 只读，不会注入 Steam Web API 的 `key` 或 `access_token`。
+- paginator 和 batch helper 复用底层单项方法的 timeout、retry、rate limit、body cap、proxy、cookie jar 与 traffic policy。
+- batch helper 保持输入顺序，并通过 per-item error 表示单项失败。
+- Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
+
 ## 重点覆盖
 
 `PlayerService` 覆盖了常用玩家资料、徽章、装饰物、最近游戏、成就进度、Steam 等级等接口。
@@ -97,6 +118,8 @@
 `client.Web.Storefront.*` 默认使用 `TrafficClassPublicStorePage`，`client.Web.Community.*` 默认使用 `TrafficClassCommunityWeb`，`client.Web.Market.*` 默认使用 `TrafficClassMarketWeb`。
 
 另外，`(*steam.Client).DoRawHTTPRequest(...)` 提供了一个面向 addon/raw HTTP 场景的公开入口，让非 typed 服务也能复用根 SDK 的按类别执行链。
+
+`WithRequestObserver(...)` 可以安装轻量 request observer。事件包含 traffic class、method、host、不带 raw query 的 path、status、error kind、attempts、cache hit、block detected 和 duration；不包含 header、body、API key、token、cookie、raw query 或 proxy 密码。
 
 ## 示例
 

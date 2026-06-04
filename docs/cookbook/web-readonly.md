@@ -22,6 +22,8 @@ if err != nil {
 fmt.Println(reviews.QuerySummary.TotalReviews)
 ```
 
+For cursor pagination, use `ListAppReviews`. See [High-value read-only helpers](high-value-helpers.md).
+
 ## App Details
 
 ```go
@@ -38,8 +40,11 @@ if app, ok := details["440"]; ok && app.Success {
 }
 ```
 
+For multiple AppIDs, use `GetAppDetailsBatch`. See [High-value read-only helpers](high-value-helpers.md).
+
 ## Notes
 
 - `client.Web.*` never injects Steam Web API `key` or `access_token`.
 - These Go methods are stable, but upstream Store / Community / Market payloads are unofficial and may drift.
 - Inventory may require caller-supplied cookies through `WithCookieJar(...)` or `WithDefaultCookieJar()`.
+- Paginator and batch helpers reuse the same request controls as the underlying single-item methods.
