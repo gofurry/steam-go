@@ -286,83 +286,26 @@
 
 ## 5.4 `v1.3.0-3`：High-value helpers
 
-### 目标
+**Status:** Completed  
+**Scope:** User-facing / Developer-facing / Observability / Documentation  
+**Goal:** 增加少量高频、低风险、只读 helper，避免用户反复手写翻页、批量查询和基础观测胶水。
 
-只增加少量“非常高频、低风险、只读”的 helper，避免 API 膨胀。
+### 已完成
 
-### 推荐 helper
-
-#### 5.4.1 Reviews paginator
-
-场景：Store reviews cursor 翻页很常见，适合 SDK 提供 helper。
-
-建议形式：
-
-- `GetAppReviewsPage`
-- `AppReviewsIterator`
-- 或 `ListAppReviews(ctx, appID, opts, handler)`
-
-优先选择不一次性拉爆内存的 handler/iterator 模式。
-
-#### 5.4.2 Inventory paginator
-
-场景：Community inventory 经常需要翻页，且可能需要 cookie。
-
-建议明确：
-
-- 只读。
-- 不管理登录。
-- 不刷新 cookie。
-- 不保证 private inventory 可访问。
-
-#### 5.4.3 Batch app details / price overview
-
-场景：批量查询 app details、market price overview 很常见。
-
-要求：
-
-- 内置并发限制。
-- 尊重 client rate limit。
-- 返回 per-item error，不因单个失败丢掉整个批次。
-- 支持 context cancellation。
-
-#### 5.4.4 Lightweight observability hook
-
-先提供低依赖 hook，不直接引入 OpenTelemetry：
-
-```go
-type RequestObserver interface {
-    OnRequestStart(...)
-    OnRequestDone(...)
-}
-```
-
-或更简单：
-
-```go
-type RequestObserverFunc func(event RequestEvent)
-```
-
-事件字段建议：
-
-- traffic class
-- method
-- host
-- path template，避免 raw query
-- status code
-- error kind
-- retry attempt
-- cache hit
-- block detected
-- proxy used，脱敏
-- duration
+- [x] 新增 `Storefront.ListAppReviews` handler/page paginator，不一次性聚合全部 reviews。
+- [x] 新增 `Community.ListInventory` handler/page paginator，保持只读，不登录、不刷新 cookie、不保证 private inventory 可访问。
+- [x] 新增 `Storefront.GetAppDetailsBatch`，支持并发限制、context cancellation、输入顺序保持和 per-item error。
+- [x] 新增 `Market.GetPriceOverviewBatch`，支持并发限制、context cancellation、输入顺序保持和 per-item error。
+- [x] 新增 `WithRequestObserver`、`RequestObserverFunc` 和脱敏 `RequestEvent`。
+- [x] 新增 paginator、batch helper 和 observer 的 pkg.go.dev examples。
+- [x] 新增中英文 high-value helpers cookbook，并更新 Web reference、release checklist 和文档索引。
 
 ### 验收标准
 
-- helper 只覆盖高频只读场景。
-- 所有 helper 都有 context、rate limit、body cap、error handling 示例。
-- 不引入账号自动化行为。
-- 可观测性默认无依赖、无输出。
+- [x] helper 只覆盖高频只读场景。
+- [x] 所有 helper 都走现有 context、rate limit、retry、body cap 和 error handling 路径。
+- [x] 不引入账号自动化行为。
+- [x] 可观测性默认无依赖、无输出，且事件不包含 raw query、header、body、凭据、cookie 或 proxy 密码。
 
 ---
 
@@ -443,17 +386,17 @@ type RequestObserverFunc func(event RequestEvent)
 6. [x] Add JSON output mode.
 7. [x] Add doctor cookbook.
 
-## Milestone: `v1.3.0-3 High-value helpers`
+## Milestone: `v1.3.0-3 High-value helpers`（Completed）
 
 建议 issues：
 
-1. Add reviews paginator.
-2. Add inventory paginator.
-3. Add batch app details helper.
-4. Add batch market price overview helper.
-5. Add lightweight request observer hook.
-6. Add examples for batch and paginator usage.
-7. Add tests for cancellation and partial failures.
+1. [x] Add reviews paginator.
+2. [x] Add inventory paginator.
+3. [x] Add batch app details helper.
+4. [x] Add batch market price overview helper.
+5. [x] Add lightweight request observer hook.
+6. [x] Add examples for batch and paginator usage.
+7. [x] Add tests for cancellation and partial failures.
 
 ---
 

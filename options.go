@@ -57,6 +57,7 @@ type clientConfig struct {
 	cookieJarConfigured  bool
 	maxResponseBodyBytes int64
 	proxySelector        ProxySelector
+	requestObserver      request.RequestObserver
 	trafficPolicies      map[TrafficClass]trafficPolicyConfig
 }
 
@@ -353,6 +354,18 @@ func WithMaxResponseBodyBytes(max int64) Option {
 func WithProxySelector(selector ProxySelector) Option {
 	return func(cfg *clientConfig) error {
 		cfg.proxySelector = selector
+		return nil
+	}
+}
+
+// WithRequestObserver installs a lightweight sanitized request event observer.
+//
+// The observer is called synchronously after one SDK request finishes. Keep the
+// callback fast and avoid slow I/O in the hot path. Passing nil disables
+// observation.
+func WithRequestObserver(observer RequestObserver) Option {
+	return func(cfg *clientConfig) error {
+		cfg.requestObserver = observer
 		return nil
 	}
 }

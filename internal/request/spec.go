@@ -73,6 +73,7 @@ type ExecutionPolicy struct {
 	CacheRuntime   CacheRuntime
 	BlockRuntime   BlockRuntime
 	PrepareRequest RequestPreparer
+	Observer       RequestObserver
 }
 
 // DefaultRetryBackoffConfig returns the SDK retry defaults.
@@ -132,26 +133,35 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 	}
 	class := e.executionClass(ctx, spec.TrafficClass)
 	policy := e.executionPolicyForClass(class)
+	started := time.Now()
+	var lastReq *http.Request
+	attempts := 0
 
 	var lastErr error
 	for attempt := 0; attempt <= policy.Retry; attempt++ {
+		attempts = attempt + 1
 		req, err := e.buildRequest(ctx, resolved, spec, creds)
 		if err != nil {
+			observeRequest(policy.Observer, lastReq, class, 0, err, attempts, false, false, started)
 			return nil, err
 		}
+		lastReq = req
 		req = req.WithContext(traffic.WithClass(req.Context(), class))
 		if policy.BlockRuntime != nil {
 			req = req.WithContext(traffic.WithBlockDetection(req.Context()))
 		}
 		if policy.PrepareRequest != nil {
 			if err := policy.PrepareRequest(req); err != nil {
-				return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
+				observedErr := sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
+				observeRequest(policy.Observer, req, class, 0, observedErr, attempts, false, false, started)
+				return nil, observedErr
 			}
 		}
 		cacheLookup := cacheLookup{}
 		if policy.CacheRuntime != nil && requestCacheable(req) {
 			cacheLookup = policy.CacheRuntime.lookup(req, time.Now())
 			if cacheLookup.fresh {
+				observeRequest(policy.Observer, req, class, cacheLookup.result.StatusCode, nil, attempts, true, false, started)
 				return cloneBytes(cacheLookup.result.Body), nil
 			}
 			if cacheLookupAllowsConditionalRequest(cacheLookup) {
@@ -164,10 +174,13 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, err)
 			if shouldRetryTransport(ctx, err) && attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, nil, policy.RetryBackoff) {
-					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					observeRequest(policy.Observer, req, class, 0, lastErr, attempts, false, false, started)
+					return nil, lastErr
 				}
 				continue
 			}
+			observeRequest(policy.Observer, req, class, 0, lastErr, attempts, false, false, started)
 			return nil, lastErr
 		}
 		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
@@ -182,10 +195,13 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, resp.StatusCode, "read response body failed", nil, readErr)
 			if attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
-					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, false, started)
+					return nil, lastErr
 				}
 				continue
 			}
+			observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, false, started)
 			return nil, lastErr
 		}
 		e.reportAPIKeyResult(req, creds, resp.StatusCode, nil)
@@ -194,10 +210,13 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 				lastErr = sdkerrors.New(blockResult.ErrorKind, resp.StatusCode, blockResult.Message, body, nil)
 				if blockResult.Retryable && attempt < policy.Retry {
 					if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
-						return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+						lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+						observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, true, started)
+						return nil, lastErr
 					}
 					continue
 				}
+				observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, true, started)
 				return nil, lastErr
 			}
 		}
@@ -213,13 +232,17 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			if shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil, e.accessTokenProvider != nil) && attempt < policy.Retry {
 				creds, err = e.rotateRetryCredentials(req, resp.StatusCode, creds)
 				if err != nil {
+					observeRequest(policy.Observer, req, class, resp.StatusCode, err, attempts, false, false, started)
 					return nil, err
 				}
 				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
-					return nil, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, false, started)
+					return nil, lastErr
 				}
 				continue
 			}
+			observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, false, started)
 			return nil, lastErr
 		}
 		if policy.CacheRuntime != nil && requestCacheable(req) {
@@ -235,12 +258,14 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			}, time.Now())
 		}
 
+		observeRequest(policy.Observer, req, class, resp.StatusCode, nil, attempts, false, false, started)
 		return body, nil
 	}
 
 	if lastErr == nil {
 		lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, nil)
 	}
+	observeRequest(policy.Observer, lastReq, class, 0, lastErr, attempts, false, false, started)
 	return nil, lastErr
 }
 

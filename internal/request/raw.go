@@ -30,20 +30,32 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 	if err != nil {
 		return HTTPResult{}, err
 	}
+	class := traffic.NormalizeClass(traffic.ClassOfficialAPI)
+	if ctxClass, ok := traffic.ClassFromContext(ctx); ok {
+		class = traffic.NormalizeClass(ctxClass)
+	}
+	started := time.Now()
+	var lastReq *http.Request
+	attempts := 0
 
 	var lastErr error
 	var lastResult HTTPResult
 	for attempt := 0; attempt <= policy.Retry; attempt++ {
+		attempts = attempt + 1
 		execReq, err := cloneRequestForExecution(baseReq, ctx)
 		if err != nil {
+			observeRequest(policy.Observer, lastReq, class, 0, err, attempts, false, false, started)
 			return HTTPResult{}, err
 		}
+		lastReq = execReq
 		if policy.BlockRuntime != nil {
 			execReq = execReq.WithContext(traffic.WithBlockDetection(execReq.Context()))
 		}
 		if policy.PrepareRequest != nil {
 			if err := policy.PrepareRequest(execReq); err != nil {
-				return HTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
+				observedErr := sdkerrors.New(sdkerrors.KindRequestBuild, 0, "prepare request failed", nil, err)
+				observeRequest(policy.Observer, execReq, class, 0, observedErr, attempts, false, false, started)
+				return HTTPResult{}, observedErr
 			}
 		}
 
@@ -51,6 +63,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		if policy.CacheRuntime != nil && requestCacheable(execReq) {
 			cacheLookup = policy.CacheRuntime.lookup(execReq, time.Now())
 			if cacheLookup.fresh {
+				observeRequest(policy.Observer, execReq, class, cacheLookup.result.StatusCode, nil, attempts, true, false, started)
 				return cloneHTTPResult(cacheLookup.result), nil
 			}
 			if cacheLookupAllowsConditionalRequest(cacheLookup) {
@@ -63,10 +76,13 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, err)
 			if shouldRetryTransport(ctx, err) && attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, nil, policy.RetryBackoff) {
-					return HTTPResult{}, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					observeRequest(policy.Observer, execReq, class, 0, lastErr, attempts, false, false, started)
+					return HTTPResult{}, lastErr
 				}
 				continue
 			}
+			observeRequest(policy.Observer, execReq, class, 0, lastErr, attempts, false, false, started)
 			return HTTPResult{}, lastErr
 		}
 
@@ -82,10 +98,13 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, resp.StatusCode, "read response body failed", nil, readErr)
 			if attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
-					return HTTPResult{}, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+					observeRequest(policy.Observer, execReq, class, resp.StatusCode, lastErr, attempts, false, false, started)
+					return HTTPResult{}, lastErr
 				}
 				continue
 			}
+			observeRequest(policy.Observer, execReq, class, resp.StatusCode, lastErr, attempts, false, false, started)
 			return HTTPResult{}, lastErr
 		}
 
@@ -108,10 +127,13 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 				if blockResult.Retryable && attempt < policy.Retry {
 					lastResult = cloneHTTPResult(result)
 					if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
-						return HTTPResult{}, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+						lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+						observeRequest(policy.Observer, execReq, class, resp.StatusCode, lastErr, attempts, false, true, started)
+						return HTTPResult{}, lastErr
 					}
 					continue
 				}
+				observeRequest(policy.Observer, execReq, class, resp.StatusCode, nil, attempts, false, true, started)
 				return result, nil
 			}
 		}
@@ -119,7 +141,9 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		if resp.StatusCode >= http.StatusInternalServerError && attempt < policy.Retry {
 			lastResult = cloneHTTPResult(result)
 			if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
-				return HTTPResult{}, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+				lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
+				observeRequest(policy.Observer, execReq, class, resp.StatusCode, lastErr, attempts, false, false, started)
+				return HTTPResult{}, lastErr
 			}
 			continue
 		}
@@ -128,6 +152,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 			policy.CacheRuntime.store(execReq, resp, result, time.Now())
 		}
 
+		observeRequest(policy.Observer, execReq, class, resp.StatusCode, nil, attempts, false, false, started)
 		return result, nil
 	}
 
@@ -135,9 +160,12 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		return HTTPResult{}, lastErr
 	}
 	if lastResult.StatusCode != 0 || len(lastResult.Body) > 0 || lastResult.FinalURL != nil || lastResult.Block != nil {
+		observeRequest(policy.Observer, lastReq, class, lastResult.StatusCode, nil, attempts, false, lastResult.Block != nil, started)
 		return lastResult, nil
 	}
-	return HTTPResult{}, sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, nil)
+	lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, nil)
+	observeRequest(policy.Observer, lastReq, class, 0, lastErr, attempts, false, false, started)
+	return HTTPResult{}, lastErr
 }
 
 func freezeRequestForRetries(req *http.Request) (*http.Request, error) {

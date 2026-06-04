@@ -256,10 +256,11 @@ func newTestService(t *testing.T, officialTransport, storeTransport *recordingTr
 }
 
 type recordingTransport struct {
-	mu           sync.Mutex
-	requests     []capturedRequest
-	statuses     []int
-	responseBody string
+	mu             sync.Mutex
+	requests       []capturedRequest
+	statuses       []int
+	responseBody   string
+	responseBodies []string
 }
 
 type capturedRequest struct {
@@ -289,6 +290,10 @@ func (t *recordingTransport) Do(_ context.Context, req *http.Request) (*http.Res
 		t.statuses = t.statuses[1:]
 	}
 	body := t.responseBody
+	if len(t.responseBodies) > 0 {
+		body = t.responseBodies[0]
+		t.responseBodies = t.responseBodies[1:]
+	}
 	if body == "" {
 		body = "ok"
 	}
