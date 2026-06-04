@@ -110,6 +110,23 @@ In normal usage, the built-in `client.Web.*` methods already choose their defaul
 - Referer selector
 - transport hook
 
+## Request Observer
+
+Use `WithRequestObserver(...)` when you need lightweight request metadata for logs or metrics without adding an OpenTelemetry dependency:
+
+```go
+client, err := steam.NewClient(
+    steam.WithRequestObserver(steam.RequestObserverFunc(func(event steam.RequestEvent) {
+        _ = event.TrafficClass
+        _ = event.Path
+        _ = event.StatusCode
+        _ = event.Duration
+    })),
+)
+```
+
+Observer events are emitted after SDK requests complete. They include the traffic class, method, host, path without raw query, status code, error kind, retry attempts, cache hit, block detection, and duration. They do not include raw query strings, headers, bodies, API keys, tokens, cookies, or proxy passwords.
+
 ## Design Rule
 
 Keep traffic behavior close to the SDK boundary.

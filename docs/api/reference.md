@@ -2,6 +2,13 @@
 
 This directory keeps reference-style documentation that is too detailed for the repository homepage.
 
+## Generated Coverage
+
+- [Generated API coverage](coverage.generated.md)
+- [API coverage diff](coverage-diff.md)
+
+The generated coverage reports compare Steam's public `GetSupportedAPIList` inventory with SDK endpoint constants and `api/*` service methods. `extra_sdk` is a drift signal, not an automatic removal request.
+
 ## API Groups
 
 - `client.API.AccountCartService`
@@ -32,6 +39,26 @@ This directory keeps reference-style documentation that is too detailed for the 
 - `client.API.UserReviewsService`
 - `client.API.UserStoreVisitService`
 - `client.API.WishlistService`
+
+## Web Helpers
+
+`client.Web.*` exposes a small read-only Web helper surface outside the official Steam Web API:
+
+- `client.Web.Storefront.GetAppDetails` / `GetAppDetailsRaw`
+- `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
+- `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
+- `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.GetAppDetailsBatch`
+- `client.Web.Community.GetInventory` / `GetInventoryRaw`
+- `client.Web.Community.ListInventory`
+- `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
+- `client.Web.Market.GetPriceOverviewBatch`
+
+Notes:
+- Web helpers are read-only and never inject Steam Web API `key` or `access_token`.
+- Paginator and batch helpers reuse the same timeout, retry, rate limit, body cap, proxy, cookie jar, and traffic policy behavior as their underlying single-item methods.
+- Batch helpers preserve input order and report per-item errors.
+- Community inventory helpers do not log in, refresh cookies, or guarantee access to private inventories.
 
 ## Selected Endpoint Coverage
 
@@ -274,6 +301,9 @@ Notes:
 - `RefererRoute`
 - `TransportHook`
 - `TransportHookFunc`
+- `RequestObserver`
+- `RequestObserverFunc`
+- `RequestEvent`
 - `TrafficPolicy`
 - `TrafficCachePolicy`
 - `TrafficBlockPolicy`
@@ -283,6 +313,7 @@ Notes:
 - `RawHTTPBlockResult`
 - `RawHTTPResult`
 - `WithTrafficPolicy(class TrafficClass, policy TrafficPolicy)`
+- `WithRequestObserver(observer RequestObserver)`
 - `WithTrafficClass(ctx context.Context, class TrafficClass) context.Context`
 - `WithRefererSource(ctx context.Context, rawURL string) context.Context`
 - `NewStaticRefererSelector(rawURL string)`
@@ -300,6 +331,8 @@ Notes:
 - `HeaderProfile` only fills missing request headers and does not override explicit values already set on the request.
 - Referer selectors run before transport execution; an explicit `Referer` header on the request still wins.
 - `TransportHook` runs during client construction after the class-specific base `http.Client` has already been assembled with timeout, proxy routing, and cookie jar settings.
+- `WithRequestObserver(...)` emits sanitized request events after SDK requests complete. Events include traffic class, method, host, path without raw query, status, error kind, attempts, cache hit, block detection, and duration.
+- Request observer events do not include headers, bodies, API keys, tokens, cookies, raw query strings, or proxy passwords.
 
 ## Examples
 

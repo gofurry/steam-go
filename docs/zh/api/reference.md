@@ -2,6 +2,13 @@
 
 本文档记录 `steam-go` 当前公开的 API 分组和使用边界。更完整的方法签名以源码和 Go 文档为准。
 
+## Generated 覆盖报告
+
+- [Generated API 覆盖报告](../../api/coverage.generated.md)
+- [API 覆盖差异](../../api/coverage-diff.md)
+
+这些报告会对比 Steam 公开 `GetSupportedAPIList` inventory、SDK endpoint 常量和 `api/*` service methods。`extra_sdk` 是 drift 信号，不是自动删除要求。
+
 ## API 分组
 
 当前 `client.API.*` 下包含这些服务分组：
@@ -34,6 +41,27 @@
 - `client.API.UserReviewsService`
 - `client.API.UserStoreVisitService`
 - `client.API.WishlistService`
+
+## Web Helper
+
+`client.Web.*` 提供一小组官方 Steam Web API 之外的只读 Web helper：
+
+- `client.Web.Storefront.GetAppDetails` / `GetAppDetailsRaw`
+- `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
+- `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
+- `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.GetAppDetailsBatch`
+- `client.Web.Community.GetInventory` / `GetInventoryRaw`
+- `client.Web.Community.ListInventory`
+- `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
+- `client.Web.Market.GetPriceOverviewBatch`
+
+说明：
+
+- Web helper 只读，不会注入 Steam Web API 的 `key` 或 `access_token`。
+- paginator 和 batch helper 复用底层单项方法的 timeout、retry、rate limit、body cap、proxy、cookie jar 与 traffic policy。
+- batch helper 保持输入顺序，并通过 per-item error 表示单项失败。
+- Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
 
 ## 重点覆盖
 
@@ -90,6 +118,8 @@
 `client.Web.Storefront.*` 默认使用 `TrafficClassPublicStorePage`，`client.Web.Community.*` 默认使用 `TrafficClassCommunityWeb`，`client.Web.Market.*` 默认使用 `TrafficClassMarketWeb`。
 
 另外，`(*steam.Client).DoRawHTTPRequest(...)` 提供了一个面向 addon/raw HTTP 场景的公开入口，让非 typed 服务也能复用根 SDK 的按类别执行链。
+
+`WithRequestObserver(...)` 可以安装轻量 request observer。事件包含 traffic class、method、host、不带 raw query 的 path、status、error kind、attempts、cache hit、block detected 和 duration；不包含 header、body、API key、token、cookie、raw query 或 proxy 密码。
 
 ## 示例
 

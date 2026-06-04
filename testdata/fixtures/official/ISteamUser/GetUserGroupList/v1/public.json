@@ -1,0 +1,11 @@
+{
+  "response": {
+    "success": true,
+    "groups": [
+      {
+        "gid": "103582791429521412",
+        "extra_field": "allowed"
+      }
+    ]
+  }
+}

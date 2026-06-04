@@ -60,3 +60,19 @@ func ExampleNewStaticProxySelector() {
 
 	_ = client
 }
+
+func ExampleWithRequestObserver() {
+	client, err := steam.NewClient(
+		steam.WithRequestObserver(steam.RequestObserverFunc(func(event steam.RequestEvent) {
+			_ = event.TrafficClass
+			_ = event.StatusCode
+			_ = event.Duration
+		})),
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer client.Close()
+
+	_ = client
+}

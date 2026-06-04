@@ -1,0 +1,2263 @@
+{
+  "schema_version": 1,
+  "official_endpoint_count": 63,
+  "sdk_endpoint_count": 92,
+  "status_counts": {
+    "covered": 19,
+    "extra_sdk": 73,
+    "missing": 42,
+    "version_mismatch": 2
+  },
+  "entries": [
+    {
+      "interface": "IAccountCartService",
+      "method": "DeleteCart",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/accountcartservice",
+      "sdk_path": "/IAccountCartService/DeleteCart/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IAccountCartService",
+      "method": "GetCart",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/accountcartservice",
+      "sdk_path": "/IAccountCartService/GetCart/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "BeginAuthSessionViaCredentials",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "device_friendly_name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "account_name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "encrypted_password",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "encryption_timestamp",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "remember_login",
+          "type": "bool",
+          "optional": false
+        },
+        {
+          "name": "platform_type",
+          "type": "{enum}",
+          "optional": false
+        },
+        {
+          "name": "persistence",
+          "type": "{enum}",
+          "optional": true
+        },
+        {
+          "name": "website_id",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "device_details",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "guard_data",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "language",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "qos_level",
+          "type": "int32",
+          "optional": true
+        }
+      ],
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/BeginAuthSessionViaCredentials/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "BeginAuthSessionViaQR",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "device_friendly_name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "platform_type",
+          "type": "{enum}",
+          "optional": false
+        },
+        {
+          "name": "device_details",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "website_id",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/BeginAuthSessionViaQR/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "GetAuthSessionInfo",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "client_id",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "GetAuthSessionRiskInfo",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "client_id",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "language",
+          "type": "uint32",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "GetPasswordRSAPublicKey",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "account_name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/GetPasswordRSAPublicKey/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "NotifyRiskQuizResults",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "client_id",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "results",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "selected_action",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "did_confirm_login",
+          "type": "bool",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "PollAuthSessionStatus",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "token",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "client_id",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "request_id",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "token_to_revoke",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/PollAuthSessionStatus/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "UpdateAuthSessionWithMobileConfirmation",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "version",
+          "type": "int32",
+          "optional": false
+        },
+        {
+          "name": "client_id",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "signature",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "confirm",
+          "type": "bool",
+          "optional": true
+        },
+        {
+          "name": "persistence",
+          "type": "{enum}",
+          "optional": true
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IAuthenticationService",
+      "method": "UpdateAuthSessionWithSteamGuardCode",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "client_id",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "code_type",
+          "type": "{enum}",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IBillingService",
+      "method": "GetRecurringSubscriptionsCount",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/billingservice",
+      "sdk_path": "/IBillingService/GetRecurringSubscriptionsCount/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IBroadcastService",
+      "method": "PostGameDataFrameRTMP",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "token",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "rtmp_token",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "frame_data",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IClientStats_1046930",
+      "method": "ReportEvent",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ICommunityService",
+      "method": "GetApps",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/communityservice",
+      "sdk_path": "/ICommunityService/GetApps/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IContentServerDirectoryService",
+      "method": "GetCDNForVideo",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "property_type",
+          "type": "int32",
+          "optional": false
+        },
+        {
+          "name": "client_ip",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "client_region",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IContentServerDirectoryService",
+      "method": "GetClientUpdateHosts",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "cached_signature",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IContentServerDirectoryService",
+      "method": "GetDepotPatchInfo",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "depotid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "source_manifestid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "target_manifestid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IContentServerDirectoryService",
+      "method": "GetServersForSteamPipe",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "cell_id",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "max_servers",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "ip_override",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "launcher_type",
+          "type": "int32",
+          "optional": true
+        },
+        {
+          "name": "ipv6_public",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "current_connections",
+          "type": "{message}",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IContentServerDirectoryService",
+      "method": "PickSingleContentServer",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "property_type",
+          "type": "int32",
+          "optional": false
+        },
+        {
+          "name": "cell_id",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "client_ip",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IFamilyGroupsService",
+      "method": "GetChangeLog",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/familygroupsservice",
+      "sdk_path": "/IFamilyGroupsService/GetChangeLog/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IFamilyGroupsService",
+      "method": "GetFamilyGroup",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/familygroupsservice",
+      "sdk_path": "/IFamilyGroupsService/GetFamilyGroup/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IFamilyGroupsService",
+      "method": "GetFamilyGroupForUser",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/familygroupsservice",
+      "sdk_path": "/IFamilyGroupsService/GetFamilyGroupForUser/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IFamilyGroupsService",
+      "method": "GetPlaytimeSummary",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/familygroupsservice",
+      "sdk_path": "/IFamilyGroupsService/GetPlaytimeSummary/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IFamilyGroupsService",
+      "method": "GetSharedLibraryApps",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/familygroupsservice",
+      "sdk_path": "/IFamilyGroupsService/GetSharedLibraryApps/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IGCVersion_1046930",
+      "method": "GetClientVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_1046930",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_1269260",
+      "method": "GetClientVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_1269260",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_1422450",
+      "method": "GetClientVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_1422450",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_440",
+      "method": "GetClientVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_440",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_570",
+      "method": "GetClientVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_570",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_583950",
+      "method": "GetClientVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_583950",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGCVersion_730",
+      "method": "GetServerVersion",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGameNotificationsService",
+      "method": "UserCreateSession",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "context",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "title",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "users",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGameNotificationsService",
+      "method": "UserDeleteSession",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "session",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "sessionid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IGameNotificationsService",
+      "method": "UserUpdateSession",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "session",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "sessionid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "title",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "users",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IHelpRequestLogsService",
+      "method": "GetApplicationLogDemand",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IHelpRequestLogsService",
+      "method": "UploadUserApplicationLog",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "log_type",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "version_string",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "log_contents",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "request_id",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ILoyaltyRewardsService",
+      "method": "GetEquippedProfileItems",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/loyaltyrewardsservice",
+      "sdk_path": "/ILoyaltyRewardsService/GetEquippedProfileItems/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ILoyaltyRewardsService",
+      "method": "GetReactionsSummaryForUser",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/loyaltyrewardsservice",
+      "sdk_path": "/ILoyaltyRewardsService/GetReactionsSummaryForUser/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ILoyaltyRewardsService",
+      "method": "GetSummary",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/loyaltyrewardsservice",
+      "sdk_path": "/ILoyaltyRewardsService/GetSummary/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IMobileNotificationService",
+      "method": "GetUserNotificationCounts",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/mobilenotificationservice",
+      "sdk_path": "/IMobileNotificationService/GetUserNotificationCounts/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "INewsService",
+      "method": "ConvertHTMLToBBCode",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/newsservice",
+      "sdk_path": "/INewsService/ConvertHTMLToBBCode/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "ClientGetLastPlayedTimes",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/ClientGetLastPlayedTimes/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetAchievementsProgress",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetAchievementsProgress/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetAnimatedAvatar",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetAnimatedAvatar/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetAvatarFrame",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetAvatarFrame/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetBadges",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetBadges/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetCommunityBadgeProgress",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetCommunityBadgeProgress/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetCommunityPreferences",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetCommunityPreferences/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetFavoriteBadge",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetFavoriteBadge/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetFriendsGameplayInfo",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetFriendsGameplayInfo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetMiniProfileBackground",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetMiniProfileBackground/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetNicknameList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetNicknameList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetOwnedGames",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetOwnedGames/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetPlayerLinkDetails",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetPlayerLinkDetails/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetProfileBackground",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetProfileBackground/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetProfileCustomization",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetProfileCustomization/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetProfileItemsEquipped",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetProfileItemsEquipped/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetProfileItemsOwned",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetProfileItemsOwned/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetProfileThemesAvailable",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetProfileThemesAvailable/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetPurchasedAndUpgradedProfileCustomizations",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetPurchasedAndUpgradedProfileCustomizations/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetPurchasedProfileCustomizations",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetPurchasedProfileCustomizations/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetRecentlyPlayedGames",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetRecentlyPlayedGames/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetSteamLevel",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetSteamLevel/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetSteamLevelDistribution",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetSteamLevelDistribution/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "GetTopAchievementsForGames",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/playerservice",
+      "sdk_path": "/IPlayerService/GetTopAchievementsForGames/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IPlayerService",
+      "method": "RecordOfflinePlaytime",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "ticket",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "play_sessions",
+          "type": "{message}",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IPortal2Leaderboards_620",
+      "method": "GetBucketizedData",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "leaderboardName",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IPublishedFileService",
+      "method": "GetUserVoteSummary",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "publishedfileids",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IQuestService",
+      "method": "GetCommunityInventory",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/questservice",
+      "sdk_path": "/IQuestService/GetCommunityInventory/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IQuestService",
+      "method": "GetNumTradingCardsEarned",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/questservice",
+      "sdk_path": "/IQuestService/GetNumTradingCardsEarned/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISaleFeatureService",
+      "method": "GetFriendsSharedYearInReview",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/salefeatureservice",
+      "sdk_path": "/ISaleFeatureService/GetFriendsSharedYearInReview/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISaleFeatureService",
+      "method": "GetUserYearAchievements",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/salefeatureservice",
+      "sdk_path": "/ISaleFeatureService/GetUserYearAchievements/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISaleFeatureService",
+      "method": "GetUserYearInReview",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/salefeatureservice",
+      "sdk_path": "/ISaleFeatureService/GetUserYearInReview/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamApps",
+      "method": "GetSDRConfig",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/steamapps",
+      "sdk_path": "/ISteamApps/GetSDRConfig/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamApps",
+      "method": "GetServersAtAddress",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "addr",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/steamapps",
+      "sdk_path": "/ISteamApps/GetServersAtAddress/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamApps",
+      "method": "UpToDateCheck",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "version",
+          "type": "uint32",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/steamapps",
+      "sdk_path": "/ISteamApps/UpToDateCheck/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamBroadcast",
+      "method": "PlayerStats",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamBroadcast",
+      "method": "ViewerHeartbeat",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "session,token",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "sessionid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "token",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "stream",
+          "type": "int32",
+          "optional": true
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamChartsService",
+      "method": "GetBestOfYearPages",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamchartsservice",
+      "sdk_path": "/ISteamChartsService/GetBestOfYearPages/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamChartsService",
+      "method": "GetGamesByConcurrentPlayers",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamchartsservice",
+      "sdk_path": "/ISteamChartsService/GetGamesByConcurrentPlayers/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamChartsService",
+      "method": "GetMonthTopAppReleases",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamchartsservice",
+      "sdk_path": "/ISteamChartsService/GetMonthTopAppReleases/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamChartsService",
+      "method": "GetMostPlayedGames",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamchartsservice",
+      "sdk_path": "/ISteamChartsService/GetMostPlayedGames/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamChartsService",
+      "method": "GetTopReleasesPages",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamchartsservice",
+      "sdk_path": "/ISteamChartsService/GetTopReleasesPages/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamChartsService",
+      "method": "GetYearTopAppReleases",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamchartsservice",
+      "sdk_path": "/ISteamChartsService/GetYearTopAppReleases/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamDirectory",
+      "method": "GetCMList",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "cellid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "maxcount",
+          "type": "uint32",
+          "optional": true
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamDirectory",
+      "method": "GetCMListForConnect",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "cellid",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "cmtype",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "realm",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "maxcount",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "qoslevel",
+          "type": "uint32",
+          "optional": true
+        }
+      ],
+      "sdk_package": "api/steamdirectory",
+      "sdk_path": "/ISteamDirectory/GetCMListForConnect/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamDirectory",
+      "method": "GetSteamPipeDomains",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "sdk_package": "api/steamdirectory",
+      "sdk_path": "/ISteamDirectory/GetSteamPipeDomains/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamNews",
+      "method": "GetNewsForApp",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "version_mismatch",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "maxlength",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "enddate",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "count",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "sdk_package": "api/steamnews",
+      "sdk_path": "/ISteamNews/GetNewsForApp/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamNews",
+      "method": "GetNewsForApp",
+      "version": 2,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "maxlength",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "enddate",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "count",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "feeds",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "sdk_package": "api/steamnews",
+      "sdk_path": "/ISteamNews/GetNewsForApp/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamNotificationService",
+      "method": "GetPreferences",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamnotificationservice",
+      "sdk_path": "/ISteamNotificationService/GetPreferences/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamNotificationService",
+      "method": "GetSteamNotifications",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamnotificationservice",
+      "sdk_path": "/ISteamNotificationService/GetSteamNotifications/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamRemoteStorage",
+      "method": "GetCollectionDetails",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "collectioncount",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "publishedfileids[0]",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamRemoteStorage",
+      "method": "GetPublishedFileDetails",
+      "version": 1,
+      "http_method": "POST",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "itemcount",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "publishedfileids[0]",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamUser",
+      "method": "GetFriendList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuser",
+      "sdk_path": "/ISteamUser/GetFriendList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUser",
+      "method": "GetPlayerBans",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuser",
+      "sdk_path": "/ISteamUser/GetPlayerBans/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUser",
+      "method": "GetPlayerSummaries",
+      "version": 2,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuser",
+      "sdk_path": "/ISteamUser/GetPlayerSummaries/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUser",
+      "method": "GetUserGroupList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuser",
+      "sdk_path": "/ISteamUser/GetUserGroupList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserOAuth",
+      "method": "GetFriendList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuseroauth",
+      "sdk_path": "/ISteamUserOAuth/GetFriendList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserOAuth",
+      "method": "GetTokenDetails",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "access_token",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "access_token",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamUserOAuth",
+      "method": "GetUserSummaries",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuseroauth",
+      "sdk_path": "/ISteamUserOAuth/GetUserSummaries/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetGlobalAchievementPercentagesForApp",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "version_mismatch",
+      "parameters": [
+        {
+          "name": "gameid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/steamuserstats",
+      "sdk_path": "/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetGlobalAchievementPercentagesForApp",
+      "version": 2,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "gameid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/steamuserstats",
+      "sdk_path": "/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetGlobalStatsForGame",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "count",
+          "type": "uint32",
+          "optional": false
+        },
+        {
+          "name": "name[0]",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "startdate",
+          "type": "uint32",
+          "optional": true
+        },
+        {
+          "name": "enddate",
+          "type": "uint32",
+          "optional": true
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetNumberOfCurrentPlayers",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "appid",
+          "type": "uint32",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/steamuserstats",
+      "sdk_path": "/ISteamUserStats/GetNumberOfCurrentPlayers/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetPlayerAchievements",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuserstats",
+      "sdk_path": "/ISteamUserStats/GetPlayerAchievements/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetSchemaForGame",
+      "version": 2,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuserstats",
+      "sdk_path": "/ISteamUserStats/GetSchemaForGame/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUserStats",
+      "method": "GetUserStatsForGame",
+      "version": 2,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuserstats",
+      "sdk_path": "/ISteamUserStats/GetUserStatsForGame/v2/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamWebAPIUtil",
+      "method": "GetServerInfo",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "sdk_package": "api/steamwebapiutil",
+      "sdk_path": "/ISteamWebAPIUtil/GetServerInfo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamWebAPIUtil",
+      "method": "GetSupportedAPIList",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "api_key",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "sdk_package": "api/steamwebapiutil",
+      "sdk_path": "/ISteamWebAPIUtil/GetSupportedAPIList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreBrowseService",
+      "method": "GetContentHubConfig",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storebrowseservice",
+      "sdk_path": "/IStoreBrowseService/GetContentHubConfig/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreCatalogService",
+      "method": "GetDevPageLinks",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storecatalogservice",
+      "sdk_path": "/IStoreCatalogService/GetDevPageLinks/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStorePreferencesService",
+      "method": "GetIgnoreList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storepreferencesservice",
+      "sdk_path": "/IStorePreferencesService/GetIgnoreList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreService",
+      "method": "GetAppList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storeservice",
+      "sdk_path": "/IStoreService/GetAppList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreService",
+      "method": "GetGamesFollowed",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/storeservice",
+      "sdk_path": "/IStoreService/GetGamesFollowed/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreService",
+      "method": "GetGamesFollowedCount",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/storeservice",
+      "sdk_path": "/IStoreService/GetGamesFollowedCount/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreService",
+      "method": "GetMostPopularTags",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storeservice",
+      "sdk_path": "/IStoreService/GetMostPopularTags/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreService",
+      "method": "GetRecommendedTagsForUser",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "language",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "country_code",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "favor_rarer_tags",
+          "type": "bool",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IStoreService",
+      "method": "GetUserGameInterestState",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storeservice",
+      "sdk_path": "/IStoreService/GetUserGameInterestState/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreTopSellersService",
+      "method": "GetCountryList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storetopsellersservice",
+      "sdk_path": "/IStoreTopSellersService/GetCountryList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IStoreTopSellersService",
+      "method": "GetWeeklyTopSellers",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/storetopsellersservice",
+      "sdk_path": "/IStoreTopSellersService/GetWeeklyTopSellers/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ITFSystem_440",
+      "method": "GetWorldStatus",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "missing",
+      "sdk_typed": false,
+      "sdk_raw": false
+    },
+    {
+      "interface": "IUserAccountService",
+      "method": "GetUserCountry",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/useraccountservice",
+      "sdk_path": "/IUserAccountService/GetUserCountry/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IUserReviewsService",
+      "method": "GetFriendsRecommendedApp",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/userreviewsservice",
+      "sdk_path": "/IUserReviewsService/GetFriendsRecommendedApp/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IUserStoreVisitService",
+      "method": "GetFrequentlyVisitedPages",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/userstorevisitservice",
+      "sdk_path": "/IUserStoreVisitService/GetFrequentlyVisitedPages/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IUserStoreVisitService",
+      "method": "GetMostVisitedItemsOnStore",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/userstorevisitservice",
+      "sdk_path": "/IUserStoreVisitService/GetMostVisitedItemsOnStore/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IWishlistService",
+      "method": "GetWishlist",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/wishlistservice",
+      "sdk_path": "/IWishlistService/GetWishlist/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IWishlistService",
+      "method": "GetWishlistItemCount",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "unknown",
+      "status": "covered",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        }
+      ],
+      "sdk_package": "api/wishlistservice",
+      "sdk_path": "/IWishlistService/GetWishlistItemCount/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IWishlistService",
+      "method": "GetWishlistItemsOnSale",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/wishlistservice",
+      "sdk_path": "/IWishlistService/GetWishlistItemsOnSale/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "IWishlistService",
+      "method": "GetWishlistSortedFiltered",
+      "version": 1,
+      "http_method": "GET",
+      "auth": "token",
+      "status": "missing",
+      "parameters": [
+        {
+          "name": "steamid",
+          "type": "uint64",
+          "optional": false
+        },
+        {
+          "name": "context",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "data_request",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "sort_order",
+          "type": "{enum}",
+          "optional": true
+        },
+        {
+          "name": "filters",
+          "type": "{message}",
+          "optional": false
+        },
+        {
+          "name": "start_index",
+          "type": "int32",
+          "optional": true
+        },
+        {
+          "name": "page_size",
+          "type": "int32",
+          "optional": true
+        },
+        {
+          "name": "share_token",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "sdk_typed": false,
+      "sdk_raw": false
+    }
+  ]
+}

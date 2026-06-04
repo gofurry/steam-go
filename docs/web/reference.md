@@ -15,6 +15,8 @@
 - `GetAppDetails` / `GetAppDetailsRaw`
 - `GetPackageDetails` / `GetPackageDetailsRaw`
 - `GetAppReviews` / `GetAppReviewsRaw`
+- `ListAppReviews`
+- `GetAppDetailsBatch`
 - default traffic class: `TrafficClassPublicStorePage`
 
 `GetAppDetails` includes typed high-value Store fields such as capsule URLs,
@@ -25,12 +27,14 @@ JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
 ### `client.Web.Community`
 
 - `GetInventory` / `GetInventoryRaw`
+- `ListInventory`
 - default traffic class: `TrafficClassCommunityWeb`
 - inventory access may require caller-supplied cookies through `WithCookieJar(...)` or `WithDefaultCookieJar()`
 
 ### `client.Web.Market`
 
 - `GetPriceOverview` / `GetPriceOverviewRaw`
+- `GetPriceOverviewBatch`
 - default traffic class: `TrafficClassMarketWeb`
 
 ## Request behavior
@@ -38,3 +42,5 @@ JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
 - `client.Web.*` never injects Steam Web API `key` or `access_token`
 - proxy selection, rate limiting, retry, short-cache, block detection, header profiles, referer policies, and cookie jars still flow through the existing client option system
 - no built-in login, cookie refresh, browser fallback, purchase, sell, trade, or other account automation
+- paginator and batch helpers use the same request controls as the underlying single-item methods
+- `WithRequestObserver(...)` emits sanitized request events without raw query strings, headers, bodies, credentials, cookies, or proxy passwords

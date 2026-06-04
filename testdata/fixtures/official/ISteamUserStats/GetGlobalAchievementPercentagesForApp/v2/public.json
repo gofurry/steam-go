@@ -1,0 +1,11 @@
+{
+  "achievementpercentages": {
+    "achievements": [
+      {
+        "name": "ACH_FIXTURE_START",
+        "percent": "87.654321",
+        "extra_field": "allowed"
+      }
+    ]
+  }
+}

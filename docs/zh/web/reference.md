@@ -15,6 +15,8 @@
 - `GetAppDetails` / `GetAppDetailsRaw`
 - `GetPackageDetails` / `GetPackageDetailsRaw`
 - `GetAppReviews` / `GetAppReviewsRaw`
+- `ListAppReviews`
+- `GetAppDetailsBatch`
 - 默认 traffic class：`TrafficClassPublicStorePage`
 
 `GetAppDetails` 已补充高价值商店字段的 typed 结构，包括 capsule URL、截图、
@@ -24,12 +26,14 @@ ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAp
 ### `client.Web.Community`
 
 - `GetInventory` / `GetInventoryRaw`
+- `ListInventory`
 - 默认 traffic class：`TrafficClassCommunityWeb`
 - 如果库存读取需要鉴权，可通过 `WithCookieJar(...)` 或 `WithDefaultCookieJar()` 提供 Cookie
 
 ### `client.Web.Market`
 
 - `GetPriceOverview` / `GetPriceOverviewRaw`
+- `GetPriceOverviewBatch`
 - 默认 traffic class：`TrafficClassMarketWeb`
 
 ## 请求行为
@@ -37,3 +41,5 @@ ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAp
 - `client.Web.*` 不会注入 Steam Web API 的 `key` 或 `access_token`
 - proxy、rate limit、retry、短缓存、block detection、header profile、referer policy 与 cookie jar 仍然复用现有 client option 体系
 - 不提供内建登录、Cookie 刷新、浏览器 fallback、购买、出售、交易或其他账号自动化能力
+- paginator 和 batch helper 复用底层单项方法的同一套请求控制
+- `WithRequestObserver(...)` 只输出脱敏事件，不包含 raw query、header、body、凭据、cookie 或 proxy 密码

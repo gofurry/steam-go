@@ -47,9 +47,9 @@ type Client struct {
 	API *API
 	Web *Web
 
-	httpClients           []*http.Client
-	rawRuntimes           trafficRuntimeSet
-	maxResponseBodyBytes  int64
+	httpClients          []*http.Client
+	rawRuntimes          trafficRuntimeSet
+	maxResponseBodyBytes int64
 }
 
 // API groups all typed Steam Web API services under one stable entrypoint.
@@ -214,6 +214,7 @@ type runtimePolicyConfig struct {
 	headerProfile   *HeaderProfile
 	refererSelector RefererSelector
 	transportHook   TransportHook
+	observer        request.RequestObserver
 	retry           int
 	retryBackoff    request.RetryBackoffConfig
 }
@@ -231,6 +232,7 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		headerProfile:   nil,
 		refererSelector: nil,
 		transportHook:   nil,
+		observer:        cfg.requestObserver,
 		retry:           cfg.retry,
 		retryBackoff:    cfg.retryBackoff,
 	}, cfg.cookieJarConfigured)
@@ -257,6 +259,7 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 			headerProfile:   nil,
 			refererSelector: nil,
 			transportHook:   nil,
+			observer:        cfg.requestObserver,
 			retry:           cfg.retry,
 			retryBackoff:    cfg.retryBackoff,
 		}
@@ -377,6 +380,7 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 				HostControl:    policy.hostControl,
 				SessionControl: policy.sessionControl,
 			}),
+			Observer: policy.observer,
 		},
 	}, nil
 }

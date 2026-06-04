@@ -13,10 +13,10 @@
 
 <p align="center">
   ⭐
-  <a href="https://github.com/gofurry/steam-go">English</a>
+  <a href="https://github.com/gofurry/steam-go/wiki">Wiki</a>
   &nbsp;|&nbsp;
   <a href="https://github.com/gofurry/steam-go/wiki/Steam-Keys-and-Access-Tokens">Steam Keys and Access Tokens</a>&nbsp;|&nbsp;
-  <a href="https://github.com/gofurry/steam-go/wiki/%E9%A6%96%E9%A1%B5">中文Wiki</a>
+  <a href="https://github.com/gofurry/steam-go/blob/main/docs/zh/README.md">中文 README</a>
   &nbsp;|&nbsp;
   <a href="https://github.com/gofurry/steam-go/wiki/Steam-Key-%E4%B8%8E-Access-Token">Steam Key 与 Access Token</a>
   ⭐
@@ -170,3 +170,5 @@ Detailed addon notes: [docs/addons/reference.md](docs/addons/reference.md).
 - [Endpoint stability](docs/governance/endpoint-stability.md)
 - [Endpoint coverage](docs/governance/endpoint-coverage.md)
 - [Release checklist](docs/releases/checklist.md)
+- [Generated API coverage](docs/api/coverage.generated.md)
+- [API coverage diff](docs/api/coverage-diff.md)

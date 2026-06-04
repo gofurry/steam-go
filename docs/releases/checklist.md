@@ -20,8 +20,14 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] `staticcheck ./...`
 - [ ] `govulncheck ./...`
 - [ ] `go run ./internal/tools/apidiffcheck -base <previous-tag> -incompatible`
+- [ ] `go run ./internal/tools/steamapi-sync -output-dir docs/api`
+- [ ] Review generated API coverage drift under `docs/api/coverage-diff.md`.
+- [ ] Fixture decode and raw subtree tests pass.
+- [ ] Golden snapshot tests pass or intentional snapshot changes are reviewed.
+- [ ] Doctor human and JSON output avoid printing secrets.
+- [ ] Paginator, batch helper, and request observer tests pass when these public APIs change.
 - [ ] Examples compile or the release notes explain why they were not checked.
-- [ ] Live smoke examples only run through explicit opt-in.
+- [ ] Live smoke examples only run through explicit opt-in, such as `STEAM_GO_LIVE=1 go test ./examples/live/...`.
 
 ## Documentation
 
@@ -37,6 +43,7 @@ Use this checklist before publishing a `steam-go` release.
 
 - [ ] No real API keys, access tokens, refresh tokens, cookies, proxy passwords, or credential-bearing URLs are committed.
 - [ ] New logs, examples, errors, and diagnostics avoid printing secrets.
+- [ ] Request observer events avoid raw query strings, headers, bodies, credentials, cookies, and proxy passwords.
 - [ ] URL examples use `steam.RedactSensitiveURL(...)` or clearly show redaction.
 - [ ] Error body previews remain bounded.
 - [ ] Examples that need secrets use environment variables or hidden terminal prompts.

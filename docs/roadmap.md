@@ -1,8 +1,8 @@
-# steam-go v1.2.x → v1.3.x 路线图
+# steam-go v1.2.x → v1.3.0-x 路线图
 
 > 目标：把 `steam-go` 从“功能已经比较完整的个人开源 SDK”推进到“可信、可维护、容易采用、能够长期跟随 Steam 上游变化的 Go 工具包”。
 >
-> 范围：本路线图只规划 `v1.2.x` 到 `v1.3.x`，刻意放慢版本节奏，不把之前建议中的内容拆到过多 minor 版本。
+> 范围：本路线图只规划 `v1.2.x` 到 `v1.3.0-x`，刻意放慢版本节奏，不把之前建议中的内容拆到过多 patch/minor 版本。
 >
 > 建议放置路径：`docs/roadmap.md` 或 `docs/releases/roadmap-v1.2-v1.3.md`
 
@@ -21,7 +21,7 @@
 版本节奏建议：
 
 - `v1.2.x`：质量、治理、文档、发布流程、兼容性安全网。
-- `v1.3.x`：自动化维护工具、fixture/live smoke、doctor 工具、有限的高价值 helper。
+- `v1.3.0-x`：自动化维护工具、fixture/live smoke、doctor 工具、有限的高价值 helper。
 - `v1.4+`：暂不纳入本路线图，只作为 backlog，不提前承诺。
 
 ---
@@ -46,7 +46,7 @@
 
 ### 2.2 明确不做的事情
 
-为了避免 scope creep，`v1.2.x → v1.3.x` 不建议做这些事情：
+为了避免 scope creep，`v1.2.x → v1.3.0-x` 不建议做这些事情：
 
 - 不把核心包扩成完整 Steam Store SDK。
 - 不把核心包扩成完整 Steam Community SDK。
@@ -85,9 +85,9 @@
 
 这些 patch 可以按实际工作量合并，不需要机械地每个主题都发一个版本。关键是：`v1.2.x` 不再承担“大功能扩张”的职责。
 
-### 3.2 `v1.3.x`：维护自动化与采用工具阶段
+### 3.2 `v1.3.0-x`：维护自动化与采用工具阶段
 
-`v1.3.x` 的目标是建立长期维护能力，让 Steam 上游变化能被及时发现、评估和跟进。
+`v1.3.0-x` 的目标是建立长期维护能力，让 Steam 上游变化能被及时发现、评估和跟进。
 
 核心关键词：
 
@@ -104,10 +104,12 @@
 | 版本 | 主题 | 说明 |
 |---|---|---|
 | `v1.3.0` | API coverage automation | 引入 `steamapi-sync` 或等价工具，自动生成/更新 coverage diff。 |
-| `v1.3.1` | Fixture & smoke baseline | 建立 fixture corpus、golden decode test、live smoke 报告。 |
-| `v1.3.2` | Doctor command | 提供网络、凭据、代理、Store/Community 可用性诊断工具。 |
-| `v1.3.3` | High-value helpers | 增加有限的 read-only paginator/batch helper 和可观测性 hook。 |
-| `v1.3.x` 后续 patch | Stabilization | 修复自动化工具、fixture、doctor 在真实环境中的问题。 |
+| `v1.3.0-1` | Fixture & smoke baseline | 建立 fixture corpus、golden decode test、live smoke 报告。 |
+| `v1.3.0-2` | Doctor command | 提供网络、凭据、代理、Store/Community 可用性诊断工具。 |
+| `v1.3.0-3` | High-value helpers | 增加有限的 read-only paginator/batch helper 和可观测性 hook。 |
+| `v1.3.0-x` 后续阶段 | Stabilization | 修复自动化工具、fixture、doctor 在真实环境中的问题。 |
+
+这里的 `v1.3.0-1`、`v1.3.0-2` 等是 roadmap 内部阶段编号，不代表必须发布同名 SemVer tag；是否发版可以按完成度合并到一个 `v1.3.0` 或少量 patch release。
 
 ---
 
@@ -198,307 +200,112 @@
 
 ---
 
-# 5. `v1.3.x` 详细计划
+# 5. `v1.3.0-x` 详细计划
 
 ## 5.1 `v1.3.0`：API coverage automation
 
-### 目标
+**Status:** Completed  
+**Scope:** Developer-facing / CI/Release / Documentation  
+**Goal:** 把 endpoint 维护从“人工记忆”升级为“自动发现、自动 diff、自动生成报告”。
 
-把 endpoint 维护从“人工记忆”升级为“自动发现、自动 diff、自动生成报告”。
+### 已完成
 
-### 建议工具：`steamapi-sync`
-
-可以放在：
-
-- `cmd/steamapi-sync`
-- 或 `internal/tools/steamapi-sync`
-- 或 `tools/steamapi-sync`
-
-推荐先作为仓库维护工具，不急着承诺为稳定 public API。
-
-### 功能设计
-
-`steamapi-sync` 做四件事：
-
-1. 调用官方 `ISteamWebAPIUtil/GetSupportedAPIList`。
-2. 生成 Steam 官方 API inventory。
-3. 与仓库当前 `client.API.*` coverage 对比。
-4. 输出 markdown / JSON diff 报告。
-
-输出文件建议：
-
-- `docs/api/coverage.generated.md`
-- `docs/api/coverage.generated.json`
-- `docs/api/coverage-diff.md`
-
-每个 endpoint 记录：
-
-- interface/service name
-- method name
-- version
-- HTTP method
-- parameters
-- auth requirement
-- SDK coverage status
-- typed/raw status
-- stability level
-- docs/example link
-- live smoke status
-
-### GitHub Actions 集成
-
-新增 scheduled job：
-
-- 定期跑 `steamapi-sync`。
-- 若发现新增/变化 endpoint，生成 artifact。
-- 可选：自动开 issue 或创建 PR。
-- 不建议一开始自动改代码，先只生成报告。
+- [x] 新增 `internal/tools/steamapi-sync`，作为本地维护工具，不承诺稳定用户 CLI。
+- [x] 支持从官方 `ISteamWebAPIUtil/GetSupportedAPIList` 拉取 inventory。
+- [x] 支持 `-input <file>` 离线读取 fixture JSON。
+- [x] 支持 `-output-dir docs/api` 生成 coverage Markdown、JSON 和 diff Markdown。
+- [x] 扫描 `internal/endpoint` path 常量，并识别 `api/*` service typed/raw 方法。
+- [x] 以 `interface + method + version` 判定 `covered`、`missing`、`extra_sdk`、`version_mismatch`。
+- [x] 提交 `docs/api/coverage.generated.md`、`docs/api/coverage.generated.json`、`docs/api/coverage-diff.md` 快照。
+- [x] 新增 scheduled coverage drift workflow，发现 drift 时开/更新 GitHub issue，不自动改代码或开 PR。
+- [x] 新增中英文“如何新增 official endpoint”文档。
+- [x] 更新文档索引和 release checklist。
 
 ### 验收标准
 
-- 能生成当前官方 API coverage 报告。
-- 能发现新增、删除、参数变化或版本变化。
-- 报告可读，可用于手工规划后续 endpoint。
-- 不因 Steam 偶发请求失败导致主线 CI 失败。
+- [x] 能生成当前官方 API coverage 报告。
+- [x] 能发现新增、删除、参数变化或版本变化。
+- [x] 报告可读，可用于手工规划后续 endpoint。
+- [x] 官方 drift 不进入主线 CI hard gate。
+- [x] scheduled workflow 只生成 artifact 并开/更新 issue，不自动提交代码。
 
 ---
 
-## 5.2 `v1.3.1`：Fixture corpus & smoke baseline
+## 5.2 `v1.3.0-1`：Fixture corpus & smoke baseline
 
-### 目标
+**Status:** Completed  
+**Scope:** Testing / Stability / Documentation  
+**Goal:** 让 payload drift 能被测试发现，而不是用户运行时报错后才知道。
 
-让 payload drift 能被测试发现，而不是用户运行时报错后才知道。
+### 已完成
 
-### Fixture 目录建议
-
-```text
-testdata/
-  fixtures/
-    official/
-      ISteamUser/GetPlayerSummaries/v2/public.json
-      ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/public.json
-    web/
-      storefront/GetAppDetails/app_550_en.json
-      storefront/GetAppReviews/app_550_en.json
-      market/GetPriceOverview/app_730_item_key.json
-    addons/
-      assets/store_media_app_550.json
-```
-
-### 测试类型
-
-#### 5.2.1 Decode compatibility tests
-
-对 typed response 做 decode test：
-
-- fixture 必须能 decode 到当前 response struct。
-- 可接受额外字段。
-- 不接受已承诺稳定字段 decode 失败。
-
-#### 5.2.2 Raw subtree stability tests
-
-对 `json.RawMessage` 字段做最小检查：
-
-- raw 字段存在时必须是合法 JSON。
-- 文档说明该字段为什么 raw。
-- 不强制检查 raw 内部所有字段。
-
-#### 5.2.3 Golden snapshot tests
-
-对关键 helper 输出做 golden test：
-
-- asset URL generation
-- redaction output
-- coverage generated output
-- doctor diagnostic formatting
-
-#### 5.2.4 Live smoke opt-in
-
-保留 live smoke，但必须 opt-in：
-
-```bash
-STEAM_GO_LIVE=1 go test ./examples/live/...
-```
-
-或：
-
-```bash
-go run ./cmd/steam-go-smoke
-```
-
-live smoke 输出应避免泄露 secret。
+- [x] 新增 root `testdata/fixtures`，覆盖 official API、Storefront、Market 和 assets addon 场景。
+- [x] 新增 root `testdata/golden`，覆盖 redaction 和 asset URL generation。
+- [x] 为 `ISteamUser`、`ISteamUserStats`、`ISteamNews` 增加 typed decode regression tests。
+- [x] 为 Storefront 和 Market 增加 Web fixture decode tests。
+- [x] 为 Storefront `json.RawMessage` 子树增加合法 JSON 检查。
+- [x] 为 assets addon 增加 Store media fixture test。
+- [x] 新增 `examples/live` opt-in smoke test，默认 skip，`STEAM_GO_LIVE=1` 时才触网。
+- [x] 新增中英文 fixture / smoke 维护文档。
+- [x] 更新 release checklist。
 
 ### 验收标准
 
-- 至少 10 个代表性 fixture。
-- 核心 typed endpoint 有 decode regression test。
-- Web volatile payload 有 raw subtree 检查。
-- live smoke 不默认跑，不影响普通贡献者。
+- [x] 至少 10 个代表性 fixture。
+- [x] 核心 typed endpoint 有 decode regression test。
+- [x] Web volatile payload 有 raw subtree 检查。
+- [x] live smoke 不默认跑，不影响普通贡献者。
 
 ---
 
-## 5.3 `v1.3.2`：Doctor command
+## 5.3 `v1.3.0-2`：Doctor command
 
-### 目标
+**Status:** Completed  
+**Scope:** User-facing / Diagnostics / Documentation  
+**Goal:** 提供一个用户可以直接运行的诊断工具，快速判断问题来自 key/token、网络、代理、Steam 上游、cookie 还是 SDK 配置。
 
-提供一个用户可以直接运行的诊断工具，快速判断问题来自 key/token、网络、代理、Steam 上游、cookie 还是 SDK 配置。
+### 已完成
 
-### 建议命令
-
-```bash
-go run ./cmd/steam-go-doctor
-```
-
-或作为 example：
-
-```bash
-go run ./examples/doctor
-```
-
-一开始建议放 `examples/doctor`，成熟后再考虑 `cmd/steam-go-doctor`。
-
-### 检查项
-
-#### 5.3.1 环境与版本
-
-- Go version
-- steam-go module version，若可获取
-- OS / arch
-- timeout / retry / rate limit 配置摘要
-
-#### 5.3.2 官方 API 可达性
-
-- `SteamWebAPIUtil.GetServerInfo`
-- `SteamUser.GetPlayerSummaries`，使用公开 SteamID 示例
-- API key 是否被注入
-- 401 / 403 / 429 / 5xx 分类展示
-
-#### 5.3.3 Web surface 可达性
-
-- Storefront app details
-- App reviews
-- Community inventory public sample，谨慎选择公开库存示例
-- Market price overview
-
-#### 5.3.4 Proxy 检查
-
-- direct mode 是否成功
-- static proxy 是否成功
-- routing proxy 是否按 host/path 生效
-- sticky proxy session key 是否保持选择
-- health-checked proxy 是否出现 cooldown
-
-#### 5.3.5 Credential 检查
-
-- API key 是否存在，但不打印。
-- access token 是否存在，但不打印。
-- cookie jar 是否配置。
-- refresh token 不应通过 flag 明文传入。
-
-#### 5.3.6 输出格式
-
-默认人类可读：
-
-```text
-[OK] official API reachable
-[OK] Storefront reachable
-[WARN] Community inventory requires cookie or public profile
-[FAIL] API key unauthorized: status=401
-```
-
-可选 JSON：
-
-```bash
-go run ./examples/doctor -json
-```
+- [x] 新增 `examples/doctor`，作为诊断 example，不承诺稳定 CLI public API。
+- [x] 支持默认 human output 和 `-json`。
+- [x] 支持 `-timeout`、`-base-url`、`-storefront-base-url`、`-community-base-url`。
+- [x] 检查 Go runtime、请求策略、credential presence 和 proxy mode。
+- [x] 检查 official API、Storefront、Market，以及可选 Community inventory。
+- [x] 凭据读取采用环境变量优先，并兜底 `examples/live` 文件。
+- [x] 输出不打印 API key、access token 或 proxy 密码。
+- [x] 任意 `FAIL` 返回退出码 `1`，`WARN` 不失败。
+- [x] 新增中英文 doctor cookbook 和 `examples/doctor/README.md`。
 
 ### 验收标准
 
-- 用户能用 doctor 快速定位常见网络/代理/凭据问题。
-- 输出默认不泄露 secret。
-- doctor failure 不等同于 SDK failure，文档要解释诊断边界。
+- [x] 用户能用 doctor 快速定位常见网络/代理/凭据问题。
+- [x] 输出默认不泄露 secret。
+- [x] doctor failure 不等同于 SDK failure，文档已解释诊断边界。
 
 ---
 
-## 5.4 `v1.3.3`：High-value helpers
+## 5.4 `v1.3.0-3`：High-value helpers
 
-### 目标
+**Status:** Completed  
+**Scope:** User-facing / Developer-facing / Observability / Documentation  
+**Goal:** 增加少量高频、低风险、只读 helper，避免用户反复手写翻页、批量查询和基础观测胶水。
 
-只增加少量“非常高频、低风险、只读”的 helper，避免 API 膨胀。
+### 已完成
 
-### 推荐 helper
-
-#### 5.4.1 Reviews paginator
-
-场景：Store reviews cursor 翻页很常见，适合 SDK 提供 helper。
-
-建议形式：
-
-- `GetAppReviewsPage`
-- `AppReviewsIterator`
-- 或 `ListAppReviews(ctx, appID, opts, handler)`
-
-优先选择不一次性拉爆内存的 handler/iterator 模式。
-
-#### 5.4.2 Inventory paginator
-
-场景：Community inventory 经常需要翻页，且可能需要 cookie。
-
-建议明确：
-
-- 只读。
-- 不管理登录。
-- 不刷新 cookie。
-- 不保证 private inventory 可访问。
-
-#### 5.4.3 Batch app details / price overview
-
-场景：批量查询 app details、market price overview 很常见。
-
-要求：
-
-- 内置并发限制。
-- 尊重 client rate limit。
-- 返回 per-item error，不因单个失败丢掉整个批次。
-- 支持 context cancellation。
-
-#### 5.4.4 Lightweight observability hook
-
-先提供低依赖 hook，不直接引入 OpenTelemetry：
-
-```go
-type RequestObserver interface {
-    OnRequestStart(...)
-    OnRequestDone(...)
-}
-```
-
-或更简单：
-
-```go
-type RequestObserverFunc func(event RequestEvent)
-```
-
-事件字段建议：
-
-- traffic class
-- method
-- host
-- path template，避免 raw query
-- status code
-- error kind
-- retry attempt
-- cache hit
-- block detected
-- proxy used，脱敏
-- duration
+- [x] 新增 `Storefront.ListAppReviews` handler/page paginator，不一次性聚合全部 reviews。
+- [x] 新增 `Community.ListInventory` handler/page paginator，保持只读，不登录、不刷新 cookie、不保证 private inventory 可访问。
+- [x] 新增 `Storefront.GetAppDetailsBatch`，支持并发限制、context cancellation、输入顺序保持和 per-item error。
+- [x] 新增 `Market.GetPriceOverviewBatch`，支持并发限制、context cancellation、输入顺序保持和 per-item error。
+- [x] 新增 `WithRequestObserver`、`RequestObserverFunc` 和脱敏 `RequestEvent`。
+- [x] 新增 paginator、batch helper 和 observer 的 pkg.go.dev examples。
+- [x] 新增中英文 high-value helpers cookbook，并更新 Web reference、release checklist 和文档索引。
 
 ### 验收标准
 
-- helper 只覆盖高频只读场景。
-- 所有 helper 都有 context、rate limit、body cap、error handling 示例。
-- 不引入账号自动化行为。
-- 可观测性默认无依赖、无输出。
+- [x] helper 只覆盖高频只读场景。
+- [x] 所有 helper 都走现有 context、rate limit、retry、body cap 和 error handling 路径。
+- [x] 不引入账号自动化行为。
+- [x] 可观测性默认无依赖、无输出，且事件不包含 raw query、header、body、凭据、cookie 或 proxy 密码。
 
 ---
 
@@ -544,52 +351,52 @@ type RequestObserverFunc func(event RequestEvent)
 5. [x] Add error handling cookbook.
 6. [x] Add compatibility policy checklist to release process.
 
-## Milestone: `v1.3.0 API coverage automation`
+## Milestone: `v1.3.0 API coverage automation`（Completed）
 
 建议 issues：
 
-1. Implement `steamapi-sync` prototype.
-2. Generate official API inventory JSON.
-3. Generate coverage markdown table.
-4. Compare inventory with existing SDK services.
-5. Add scheduled coverage drift workflow.
-6. Document how to add a new official endpoint.
+1. [x] Implement `steamapi-sync` prototype.
+2. [x] Generate official API inventory JSON.
+3. [x] Generate coverage markdown table.
+4. [x] Compare inventory with existing SDK services.
+5. [x] Add scheduled coverage drift workflow.
+6. [x] Document how to add a new official endpoint.
 
-## Milestone: `v1.3.1 Fixture and smoke baseline`
-
-建议 issues：
-
-1. Create fixture directory structure.
-2. Add decode tests for core official endpoints.
-3. Add fixture tests for Web storefront endpoints.
-4. Add raw subtree validation tests.
-5. Add golden tests for redaction and asset URL helpers.
-6. Add opt-in live smoke documentation.
-7. Add live smoke report template.
-
-## Milestone: `v1.3.2 Doctor command`
+## Milestone: `v1.3.0-1 Fixture and smoke baseline`（Completed）
 
 建议 issues：
 
-1. Add `examples/doctor` skeleton.
-2. Add official API reachability checks.
-3. Add Storefront/Community/Market checks.
-4. Add proxy diagnostics.
-5. Add credential presence checks without printing secrets.
-6. Add JSON output mode.
-7. Add doctor cookbook.
+1. [x] Create fixture directory structure.
+2. [x] Add decode tests for core official endpoints.
+3. [x] Add fixture tests for Web storefront endpoints.
+4. [x] Add raw subtree validation tests.
+5. [x] Add golden tests for redaction and asset URL helpers.
+6. [x] Add opt-in live smoke documentation.
+7. [x] Add live smoke baseline test.
 
-## Milestone: `v1.3.3 High-value helpers`
+## Milestone: `v1.3.0-2 Doctor command`（Completed）
 
 建议 issues：
 
-1. Add reviews paginator.
-2. Add inventory paginator.
-3. Add batch app details helper.
-4. Add batch market price overview helper.
-5. Add lightweight request observer hook.
-6. Add examples for batch and paginator usage.
-7. Add tests for cancellation and partial failures.
+1. [x] Add `examples/doctor` skeleton.
+2. [x] Add official API reachability checks.
+3. [x] Add Storefront/Community/Market checks.
+4. [x] Add proxy diagnostics.
+5. [x] Add credential presence checks without printing secrets.
+6. [x] Add JSON output mode.
+7. [x] Add doctor cookbook.
+
+## Milestone: `v1.3.0-3 High-value helpers`（Completed）
+
+建议 issues：
+
+1. [x] Add reviews paginator.
+2. [x] Add inventory paginator.
+3. [x] Add batch app details helper.
+4. [x] Add batch market price overview helper.
+5. [x] Add lightweight request observer hook.
+6. [x] Add examples for batch and paginator usage.
+7. [x] Add tests for cancellation and partial failures.
 
 ---
 
@@ -621,7 +428,7 @@ type RequestObserverFunc func(event RequestEvent)
 - CI 不依赖非固定 latest 工具链作为主线阻塞项。
 - redaction 示例覆盖生产日志场景。
 
-## 7.3 `v1.3.x` release gate
+## 7.3 `v1.3.0-x` release gate
 
 额外要求：
 
@@ -687,7 +494,7 @@ type RequestObserverFunc func(event RequestEvent)
 应对：
 
 - `v1.2.x` 聚焦质量。
-- `v1.3.x` 聚焦自动化和工具。
+- `v1.3.0-x` 聚焦自动化和工具。
 - 不把每个功能拆成新的 minor。
 - 大部分改进通过 patch release 交付。
 
@@ -734,7 +541,7 @@ type RequestObserverFunc func(event RequestEvent)
 
 这个阶段产出 `v1.3.0`。
 
-## 第四阶段：`v1.3.x` 深化
+## 第四阶段：`v1.3.0-x` 深化
 
 优先做：
 
@@ -746,13 +553,13 @@ type RequestObserverFunc func(event RequestEvent)
 6. batch app details / market price helper。
 7. lightweight observability hook。
 
-这个阶段分多个 `v1.3.x` patch/minor patch 完成，不急着进入 `v1.4`。
+这个阶段分多个 `v1.3.0-x` 内部阶段完成，不急着再切新的 patch 版本或进入 `v1.4`。
 
 ---
 
 # 10. 不急着做的 backlog
 
-这些可以记录，但不建议放进 `v1.2.x → v1.3.x` 承诺范围：
+这些可以记录，但不建议放进 `v1.2.x → v1.3.0-x` 承诺范围：
 
 - 完整 Store SDK。
 - 完整 Community SDK。
@@ -802,14 +609,14 @@ type RequestObserverFunc func(event RequestEvent)
 
 建议把路线图浓缩成一句执行原则：
 
-> `v1.2.x` 让项目可信，`v1.3.x` 让项目可持续维护。
+> `v1.2.x` 让项目可信，`v1.3.0-x` 让项目可持续维护。
 
 更具体地说：
 
 - `v1.2.x` 不急着做新 endpoint，先把仓库治理、CI、文档、安全、兼容性保护做好。
-- `v1.3.x` 不急着做大而全 Store/Community SDK，先做 API drift detection、fixture corpus、doctor command 和少量高频只读 helper。
+- `v1.3.0-x` 不急着做大而全 Store/Community SDK，先做 API drift detection、fixture corpus、doctor command 和少量高频只读 helper。
 - 所有账号相关、交易相关、购买相关、浏览器自动化相关能力都应保持 addon 化、显式 opt-in、强边界文档。
 - 继续坚持 typed outer + raw volatile subtree 的 payload 策略。
 - 继续把 request-control layer 作为核心差异化能力，而不是隐藏在内部实现里。
 
-这条路线能让 `steam-go` 在不快速膨胀版本号的前提下，从 `v1.2.x` 稳健推进到 `v1.3.x`，同时为后续更大的功能扩展打好基础。
+这条路线能让 `steam-go` 在不快速膨胀版本号的前提下，从 `v1.2.x` 稳健推进到 `v1.3.0-x`，同时为后续更大的功能扩展打好基础。

@@ -1,0 +1,77 @@
+name: Steam API Coverage Drift
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  coverage-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.4"
+          cache: true
+
+      - name: Generate coverage snapshot
+        run: |
+          mkdir -p "$RUNNER_TEMP/steamapi-coverage"
+          go run ./internal/tools/steamapi-sync -output-dir "$RUNNER_TEMP/steamapi-coverage"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: steamapi-coverage
+          path: |
+            ${{ runner.temp }}/steamapi-coverage/coverage.generated.md
+            ${{ runner.temp }}/steamapi-coverage/coverage.generated.json
+            ${{ runner.temp }}/steamapi-coverage/coverage-diff.md
+
+      - name: Compare with tracked snapshot
+        id: coverage_diff
+        run: |
+          if cmp -s docs/api/coverage.generated.json "$RUNNER_TEMP/steamapi-coverage/coverage.generated.json"; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update drift issue
+        if: steps.coverage_diff.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Steam Web API coverage drift detected"
+          body_file="$RUNNER_TEMP/steamapi-coverage-issue.md"
+          diff_file="$RUNNER_TEMP/steamapi-coverage.diff"
+
+          diff -u docs/api/coverage.generated.json "$RUNNER_TEMP/steamapi-coverage/coverage.generated.json" > "$diff_file" || true
+
+          {
+            echo "Steam's public GetSupportedAPIList response differs from the tracked coverage snapshot."
+            echo
+            echo "Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "Download the workflow artifact named \`steamapi-coverage\` to inspect the regenerated reports."
+            echo
+            echo '```diff'
+            head -n 200 "$diff_file"
+            echo '```'
+          } > "$body_file"
+
+          issue_number="$(gh issue list --state open --search "$title in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)"
+          if [ -z "$issue_number" ]; then
+            gh issue create --title "$title" --body-file "$body_file"
+          else
+            gh issue comment "$issue_number" --body-file "$body_file"
+          fi

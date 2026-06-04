@@ -1,0 +1,28 @@
+{
+  "response": {
+    "players": [
+      {
+        "steamid": "76561198000000001",
+        "communityvisibilitystate": 3,
+        "profilestate": 1,
+        "personaname": "Fixture Player",
+        "commentpermission": 1,
+        "profileurl": "https://steamcommunity.com/id/fixture-player/",
+        "avatar": "https://cdn.example.test/avatar.jpg",
+        "avatarmedium": "https://cdn.example.test/avatar_medium.jpg",
+        "avatarfull": "https://cdn.example.test/avatar_full.jpg",
+        "avatarhash": "abcdef0123456789",
+        "lastlogoff": 1700000100,
+        "personastate": 1,
+        "primaryclanid": "103582791429521412",
+        "timecreated": 1200000000,
+        "personastateflags": 0,
+        "realname": "Fixture User",
+        "loccountrycode": "US",
+        "locstatecode": "WA",
+        "loccityid": 12345,
+        "extra_field": "allowed"
+      }
+    ]
+  }
+}

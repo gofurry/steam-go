@@ -22,6 +22,8 @@ if err != nil {
 fmt.Println(reviews.QuerySummary.TotalReviews)
 ```
 
+需要按 cursor 翻页时，使用 `ListAppReviews`。参见：[高价值只读 Helper](high-value-helpers.md)。
+
 ## 应用详情
 
 ```go
@@ -38,8 +40,11 @@ if app, ok := details["440"]; ok && app.Success {
 }
 ```
 
+需要查询多个 AppID 时，使用 `GetAppDetailsBatch`。参见：[高价值只读 Helper](high-value-helpers.md)。
+
 ## 说明
 
 - `client.Web.*` 不会注入 Steam Web API `key` 或 `access_token`。
 - Go 方法签名稳定，但上游 Store / Community / Market payload 非官方且可能漂移。
 - Inventory 可能需要调用方通过 `WithCookieJar(...)` 或 `WithDefaultCookieJar()` 提供 cookie。
+- paginator 和 batch helper 复用底层单项方法的同一套请求控制。

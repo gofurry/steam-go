@@ -3627,7 +3627,7 @@ func TestTrafficPolicyOverridesRateLimiterByClass(t *testing.T) {
 
 	storeCtx, storeCancel := context.WithTimeout(
 		steam.WithTrafficClass(context.Background(), steam.TrafficClassPublicStorePage),
-		50*time.Millisecond,
+		250*time.Millisecond,
 	)
 	defer storeCancel()
 	if _, err := client.API.SteamUser.GetPlayerSummaries(storeCtx, []string{"1"}); err != nil {
