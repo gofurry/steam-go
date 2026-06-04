@@ -1,0 +1,124 @@
+{
+  "550": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Left 4 Dead 2 Fixture",
+      "steam_appid": 550,
+      "required_age": "0",
+      "is_free": false,
+      "controller_support": "full",
+      "detailed_description": "Fixture details",
+      "about_the_game": "Fixture about text",
+      "short_description": "Fixture co-op action",
+      "supported_languages": "English",
+      "header_image": "https://cdn.example.test/apps/550/header.jpg",
+      "capsule_image": "https://cdn.example.test/apps/550/capsule.jpg",
+      "capsule_imagev5": "https://cdn.example.test/apps/550/capsule_v5.jpg",
+      "website": "https://example.test/app/550",
+      "pc_requirements": {
+        "minimum": "Fixture minimum",
+        "recommended": "Fixture recommended"
+      },
+      "mac_requirements": [],
+      "developers": ["Valve"],
+      "publishers": ["Valve"],
+      "price_overview": {
+        "currency": "USD",
+        "initial": 999,
+        "final": 499,
+        "discount_percent": 50,
+        "initial_formatted": "$9.99",
+        "final_formatted": "$4.99"
+      },
+      "platforms": {
+        "windows": true,
+        "mac": true,
+        "linux": true
+      },
+      "metacritic": {
+        "score": 89,
+        "url": "https://example.test/metacritic"
+      },
+      "categories": [
+        {
+          "id": 1,
+          "description": "Multi-player"
+        }
+      ],
+      "genres": [
+        {
+          "id": "1",
+          "description": "Action"
+        }
+      ],
+      "screenshots": [
+        {
+          "id": 1,
+          "path_thumbnail": "https://cdn.example.test/apps/550/ss_1_thumb.jpg",
+          "path_full": "https://cdn.example.test/apps/550/ss_1_full.jpg"
+        }
+      ],
+      "movies": [
+        {
+          "id": 2,
+          "name": "Fixture Trailer",
+          "thumbnail": "https://cdn.example.test/apps/550/movie_thumb.jpg",
+          "webm": {
+            "480": "https://cdn.example.test/apps/550/movie_480.webm",
+            "max": "https://cdn.example.test/apps/550/movie_max.webm"
+          },
+          "mp4": {
+            "480": "https://cdn.example.test/apps/550/movie_480.mp4",
+            "max": "https://cdn.example.test/apps/550/movie_max.mp4"
+          },
+          "dash_av1": "https://cdn.example.test/apps/550/movie_av1.mpd",
+          "dash_h264": "https://cdn.example.test/apps/550/movie_h264.mpd",
+          "hls_h264": "https://cdn.example.test/apps/550/movie_h264.m3u8",
+          "highlight": true
+        }
+      ],
+      "recommendations": {
+        "total": 10
+      },
+      "achievements": {
+        "total": 1,
+        "highlighted": [
+          {
+            "icon": "https://cdn.example.test/apps/550/achievement.jpg",
+            "localized_name": "Fixture Achievement",
+            "name": "ACH_FIXTURE",
+            "path": "https://cdn.example.test/apps/550/achievement.jpg"
+          }
+        ]
+      },
+      "packages": [469],
+      "package_groups": [
+        {
+          "name": "default",
+          "title": "Buy Fixture"
+        }
+      ],
+      "release_date": {
+        "coming_soon": false,
+        "date": "16 Nov, 2009"
+      },
+      "support_info": {
+        "url": "https://example.test/support",
+        "email": ""
+      },
+      "background": "https://cdn.example.test/apps/550/background.jpg",
+      "background_raw": "https://cdn.example.test/apps/550/background_raw.jpg",
+      "content_descriptors": {
+        "ids": [2],
+        "notes": "Fixture notes"
+      },
+      "ratings": {
+        "usk": {
+          "rating": "18"
+        }
+      },
+      "extra_field": "allowed"
+    }
+  }
+}

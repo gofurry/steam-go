@@ -1,0 +1,54 @@
+{
+  "550": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Left 4 Dead 2 Fixture",
+      "steam_appid": 550,
+      "required_age": 0,
+      "is_free": false,
+      "short_description": "Fixture co-op action",
+      "header_image": "https://cdn.example.test/apps/550/header.jpg",
+      "developers": ["Valve"],
+      "publishers": ["Valve"],
+      "platforms": {
+        "windows": true,
+        "mac": true,
+        "linux": true
+      },
+      "screenshots": [
+        {
+          "id": 1,
+          "path_thumbnail": "https://cdn.example.test/apps/550/ss_1_thumb.jpg",
+          "path_full": "https://cdn.example.test/apps/550/ss_1_full.jpg"
+        },
+        {
+          "id": 2,
+          "path_thumbnail": "https://cdn.example.test/apps/550/ss_2_thumb.jpg",
+          "path_full": "https://cdn.example.test/apps/550/ss_2_full.jpg"
+        }
+      ],
+      "movies": [
+        {
+          "id": 3,
+          "name": "Fixture Trailer",
+          "thumbnail": "https://cdn.example.test/apps/550/movie_thumb.jpg",
+          "webm": {
+            "480": "https://cdn.example.test/apps/550/movie_480.webm",
+            "max": "https://cdn.example.test/apps/550/movie_max.webm"
+          },
+          "mp4": {
+            "480": "https://cdn.example.test/apps/550/movie_480.mp4",
+            "max": "https://cdn.example.test/apps/550/movie_max.mp4"
+          },
+          "dash_av1": "https://cdn.example.test/apps/550/movie_av1.mpd",
+          "dash_h264": "https://cdn.example.test/apps/550/movie_h264.mpd",
+          "hls_h264": "https://cdn.example.test/apps/550/movie_h264.m3u8",
+          "highlight": true
+        }
+      ],
+      "background": "https://cdn.example.test/apps/550/background.jpg",
+      "background_raw": "https://cdn.example.test/apps/550/background_raw.jpg"
+    }
+  }
+}

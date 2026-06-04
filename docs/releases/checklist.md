@@ -22,8 +22,10 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] `go run ./internal/tools/apidiffcheck -base <previous-tag> -incompatible`
 - [ ] `go run ./internal/tools/steamapi-sync -output-dir docs/api`
 - [ ] Review generated API coverage drift under `docs/api/coverage-diff.md`.
+- [ ] Fixture decode and raw subtree tests pass.
+- [ ] Golden snapshot tests pass or intentional snapshot changes are reviewed.
 - [ ] Examples compile or the release notes explain why they were not checked.
-- [ ] Live smoke examples only run through explicit opt-in.
+- [ ] Live smoke examples only run through explicit opt-in, such as `STEAM_GO_LIVE=1 go test ./examples/live/...`.
 
 ## Documentation
 

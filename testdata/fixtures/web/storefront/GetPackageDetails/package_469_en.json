@@ -1,0 +1,49 @@
+{
+  "469": {
+    "success": true,
+    "data": {
+      "packageid": 469,
+      "name": "Valve Complete Pack Fixture",
+      "header_image": "https://cdn.example.test/packages/469/header.jpg",
+      "small_logo": "https://cdn.example.test/packages/469/logo.jpg",
+      "page_content": "Fixture package content",
+      "apps": [
+        {
+          "id": 550,
+          "name": "Left 4 Dead 2 Fixture"
+        }
+      ],
+      "price": {
+        "currency": "USD",
+        "initial": 9999,
+        "final": 4999,
+        "discount_percent": 50,
+        "individual": 12999
+      },
+      "platforms": {
+        "windows": true,
+        "mac": true,
+        "linux": true
+      },
+      "categories": [
+        {
+          "id": 1,
+          "description": "Multi-player"
+        }
+      ],
+      "genres": [
+        {
+          "id": "1",
+          "description": "Action"
+        }
+      ],
+      "release_date": {
+        "coming_soon": false,
+        "date": "Fixture date"
+      },
+      "details": {
+        "license": "fixture"
+      }
+    }
+  }
+}

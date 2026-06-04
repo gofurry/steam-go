@@ -1,0 +1,22 @@
+[
+  {
+    "app_id": 550,
+    "kind": "header",
+    "url": "https://shared.steamstatic.com/store_item_assets/steam/apps/550/header.jpg"
+  },
+  {
+    "app_id": 550,
+    "kind": "header_localized",
+    "url": "https://shared.steamstatic.com/store_item_assets/steam/apps/550/header_schinese.jpg"
+  },
+  {
+    "app_id": 550,
+    "kind": "library_hero",
+    "url": "https://shared.steamstatic.com/store_item_assets/steam/apps/550/library_hero.jpg"
+  },
+  {
+    "app_id": 550,
+    "kind": "community_icon_jpg",
+    "url": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/550/abcdef0123456789.jpg"
+  }
+]

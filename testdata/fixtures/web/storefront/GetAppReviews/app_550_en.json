@@ -1,0 +1,39 @@
+{
+  "success": 1,
+  "query_summary": {
+    "num_reviews": 1,
+    "review_score": 8,
+    "review_score_desc": "Very Positive",
+    "total_positive": 10,
+    "total_negative": 2,
+    "total_reviews": 12
+  },
+  "cursor": "fixture-cursor",
+  "reviews": [
+    {
+      "recommendationid": "fixture-review-1",
+      "author": {
+        "steamid": "76561198000000002",
+        "num_games_owned": 50,
+        "num_reviews": 3,
+        "playtime_forever": 120,
+        "playtime_last_two_weeks": 5,
+        "playtime_at_review": 100,
+        "last_played": 1700000000
+      },
+      "review": "Fixture review body.",
+      "timestamp_created": 1700000000,
+      "timestamp_updated": 1700000100,
+      "voted_up": true,
+      "votes_up": 1,
+      "votes_funny": 0,
+      "weighted_vote_score": "0.5",
+      "steam_purchase": true,
+      "received_for_free": false,
+      "written_during_early_access": false,
+      "developer_response": "",
+      "primarily_steam_deck": false,
+      "extra_field": "allowed"
+    }
+  ]
+}

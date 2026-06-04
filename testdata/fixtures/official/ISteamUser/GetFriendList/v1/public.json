@@ -1,0 +1,12 @@
+{
+  "friendslist": {
+    "friends": [
+      {
+        "steamid": "76561198000000002",
+        "relationship": "friend",
+        "friend_since": 1600000000,
+        "extra_field": "allowed"
+      }
+    ]
+  }
+}

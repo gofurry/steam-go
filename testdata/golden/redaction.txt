@@ -1,0 +1,5 @@
+url=https://store.steampowered.com/api/appdetails?appids=550&cc=US
+proxy=http://proxy.example:8080
+authorization=[REDACTED]
+cookie=[REDACTED]
+content-type=application/json

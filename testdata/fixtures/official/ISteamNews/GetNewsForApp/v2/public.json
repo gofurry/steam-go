@@ -1,0 +1,23 @@
+{
+  "appnews": {
+    "appid": 550,
+    "newsitems": [
+      {
+        "gid": "fixture-news-1",
+        "title": "Fixture Update",
+        "url": "https://store.steampowered.com/news/app/550/view/fixture",
+        "is_external_url": false,
+        "author": "Valve",
+        "contents": "Fixture news body.",
+        "feedlabel": "Community Announcements",
+        "date": 1700000000,
+        "feedname": "steam_community_announcements",
+        "feed_type": 1,
+        "appid": 550,
+        "tags": ["patch", "fixture"],
+        "extra_field": "allowed"
+      }
+    ],
+    "count": 1
+  }
+}
