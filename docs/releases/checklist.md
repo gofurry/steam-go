@@ -24,6 +24,7 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] Review generated API coverage drift under `docs/api/coverage-diff.md`.
 - [ ] Fixture decode and raw subtree tests pass.
 - [ ] Golden snapshot tests pass or intentional snapshot changes are reviewed.
+- [ ] Doctor human and JSON output avoid printing secrets.
 - [ ] Examples compile or the release notes explain why they were not checked.
 - [ ] Live smoke examples only run through explicit opt-in, such as `STEAM_GO_LIVE=1 go test ./examples/live/...`.
 

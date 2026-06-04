@@ -260,84 +260,27 @@
 
 ## 5.3 `v1.3.0-2`：Doctor command
 
-### 目标
+**Status:** Completed  
+**Scope:** User-facing / Diagnostics / Documentation  
+**Goal:** 提供一个用户可以直接运行的诊断工具，快速判断问题来自 key/token、网络、代理、Steam 上游、cookie 还是 SDK 配置。
 
-提供一个用户可以直接运行的诊断工具，快速判断问题来自 key/token、网络、代理、Steam 上游、cookie 还是 SDK 配置。
+### 已完成
 
-### 建议命令
-
-```bash
-go run ./cmd/steam-go-doctor
-```
-
-或作为 example：
-
-```bash
-go run ./examples/doctor
-```
-
-一开始建议放 `examples/doctor`，成熟后再考虑 `cmd/steam-go-doctor`。
-
-### 检查项
-
-#### 5.3.1 环境与版本
-
-- Go version
-- steam-go module version，若可获取
-- OS / arch
-- timeout / retry / rate limit 配置摘要
-
-#### 5.3.2 官方 API 可达性
-
-- `SteamWebAPIUtil.GetServerInfo`
-- `SteamUser.GetPlayerSummaries`，使用公开 SteamID 示例
-- API key 是否被注入
-- 401 / 403 / 429 / 5xx 分类展示
-
-#### 5.3.3 Web surface 可达性
-
-- Storefront app details
-- App reviews
-- Community inventory public sample，谨慎选择公开库存示例
-- Market price overview
-
-#### 5.3.4 Proxy 检查
-
-- direct mode 是否成功
-- static proxy 是否成功
-- routing proxy 是否按 host/path 生效
-- sticky proxy session key 是否保持选择
-- health-checked proxy 是否出现 cooldown
-
-#### 5.3.5 Credential 检查
-
-- API key 是否存在，但不打印。
-- access token 是否存在，但不打印。
-- cookie jar 是否配置。
-- refresh token 不应通过 flag 明文传入。
-
-#### 5.3.6 输出格式
-
-默认人类可读：
-
-```text
-[OK] official API reachable
-[OK] Storefront reachable
-[WARN] Community inventory requires cookie or public profile
-[FAIL] API key unauthorized: status=401
-```
-
-可选 JSON：
-
-```bash
-go run ./examples/doctor -json
-```
+- [x] 新增 `examples/doctor`，作为诊断 example，不承诺稳定 CLI public API。
+- [x] 支持默认 human output 和 `-json`。
+- [x] 支持 `-timeout`、`-base-url`、`-storefront-base-url`、`-community-base-url`。
+- [x] 检查 Go runtime、请求策略、credential presence 和 proxy mode。
+- [x] 检查 official API、Storefront、Market，以及可选 Community inventory。
+- [x] 凭据读取采用环境变量优先，并兜底 `examples/live` 文件。
+- [x] 输出不打印 API key、access token 或 proxy 密码。
+- [x] 任意 `FAIL` 返回退出码 `1`，`WARN` 不失败。
+- [x] 新增中英文 doctor cookbook 和 `examples/doctor/README.md`。
 
 ### 验收标准
 
-- 用户能用 doctor 快速定位常见网络/代理/凭据问题。
-- 输出默认不泄露 secret。
-- doctor failure 不等同于 SDK failure，文档要解释诊断边界。
+- [x] 用户能用 doctor 快速定位常见网络/代理/凭据问题。
+- [x] 输出默认不泄露 secret。
+- [x] doctor failure 不等同于 SDK failure，文档已解释诊断边界。
 
 ---
 
@@ -488,17 +431,17 @@ type RequestObserverFunc func(event RequestEvent)
 6. [x] Add opt-in live smoke documentation.
 7. [x] Add live smoke baseline test.
 
-## Milestone: `v1.3.0-2 Doctor command`
+## Milestone: `v1.3.0-2 Doctor command`（Completed）
 
 建议 issues：
 
-1. Add `examples/doctor` skeleton.
-2. Add official API reachability checks.
-3. Add Storefront/Community/Market checks.
-4. Add proxy diagnostics.
-5. Add credential presence checks without printing secrets.
-6. Add JSON output mode.
-7. Add doctor cookbook.
+1. [x] Add `examples/doctor` skeleton.
+2. [x] Add official API reachability checks.
+3. [x] Add Storefront/Community/Market checks.
+4. [x] Add proxy diagnostics.
+5. [x] Add credential presence checks without printing secrets.
+6. [x] Add JSON output mode.
+7. [x] Add doctor cookbook.
 
 ## Milestone: `v1.3.0-3 High-value helpers`
 
