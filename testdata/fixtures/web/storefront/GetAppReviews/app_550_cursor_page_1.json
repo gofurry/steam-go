@@ -1,0 +1,56 @@
+{
+  "success": 1,
+  "query_summary": {
+    "num_reviews": 2,
+    "review_score": 8,
+    "review_score_desc": "Very Positive",
+    "total_positive": 10,
+    "total_negative": 2,
+    "total_reviews": 12
+  },
+  "cursor": "AoIIPw%3D%3D",
+  "reviews": [
+    {
+      "recommendationid": "1001",
+      "author": {
+        "steamid": "76561190000000001",
+        "num_games_owned": 42,
+        "num_reviews": 3,
+        "playtime_forever": 120,
+        "playtime_last_two_weeks": 5,
+        "playtime_at_review": 110,
+        "last_played": 1700000100
+      },
+      "review": "fixture review one",
+      "timestamp_created": 1700000000,
+      "timestamp_updated": 1700000100,
+      "voted_up": true,
+      "votes_up": 1,
+      "votes_funny": 0,
+      "weighted_vote_score": "0.75",
+      "steam_purchase": true,
+      "received_for_free": false,
+      "written_during_early_access": false,
+      "developer_response": "",
+      "primarily_steam_deck": false
+    },
+    {
+      "recommendationid": "1002",
+      "author": {
+        "steamid": "76561190000000002"
+      },
+      "review": "fixture review two",
+      "timestamp_created": 1700000200,
+      "timestamp_updated": 1700000200,
+      "voted_up": true,
+      "votes_up": 2,
+      "votes_funny": 1,
+      "weighted_vote_score": 0.5,
+      "steam_purchase": false,
+      "received_for_free": true,
+      "written_during_early_access": false,
+      "developer_response": "",
+      "primarily_steam_deck": true
+    }
+  ]
+}

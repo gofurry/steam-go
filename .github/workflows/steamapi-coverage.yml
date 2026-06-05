@@ -54,24 +54,90 @@ jobs:
           title="Steam Web API coverage drift detected"
           body_file="$RUNNER_TEMP/steamapi-coverage-issue.md"
           diff_file="$RUNNER_TEMP/steamapi-coverage.diff"
+          summary_file="$RUNNER_TEMP/steamapi-coverage-summary.md"
 
           diff -u docs/api/coverage.generated.json "$RUNNER_TEMP/steamapi-coverage/coverage.generated.json" > "$diff_file" || true
+          python - <<'PY' > "$summary_file"
+          import json
+          import os
+          from pathlib import Path
+
+          tracked = json.loads(Path("docs/api/coverage.generated.json").read_text())
+          current = json.loads((Path(os.environ["RUNNER_TEMP"]) / "steamapi-coverage" / "coverage.generated.json").read_text())
+
+          def counts(report):
+              items = report.get("status_counts", {})
+              return " ".join(f"`{key}={items[key]}`" for key in sorted(items))
+
+          def rows(report, status, limit=12):
+              entries = [entry for entry in report.get("entries", []) if entry.get("status") == status]
+              out = []
+              for entry in entries[:limit]:
+                  sdk = entry.get("sdk_package") or "-"
+                  path = entry.get("sdk_path") or "-"
+                  out.append(f"| `{entry.get('interface')}` | `{entry.get('method')}` | {entry.get('version')} | `{sdk}` | `{path}` |")
+              if len(entries) > limit:
+                  out.append(f"| ... | ... | ... | ... | {len(entries) - limit} more |")
+              if not out:
+                  out.append("| - | - | - | - | - |")
+              return "\n".join(out)
+
+          print("## Status Counts")
+          print()
+          print(f"- Tracked: {counts(tracked)}")
+          print(f"- New: {counts(current)}")
+          print()
+          for status in ("missing", "version_mismatch", "extra_sdk"):
+              print(f"## {status} Summary")
+              print()
+              print("| Interface | Method | Version | SDK | SDK Path |")
+              print("|---|---|---:|---|---|")
+              print(rows(current, status))
+              print()
+          PY
 
           {
             echo "Steam's public GetSupportedAPIList response differs from the tracked coverage snapshot."
             echo
             echo "Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo
-            echo "Download the workflow artifact named \`steamapi-coverage\` to inspect the regenerated reports."
+            echo "Download the workflow artifact named \`steamapi-coverage\` from the workflow run to inspect regenerated reports."
+            echo
+            echo "Triage reference: \`docs/api/coverage-triage.md\`"
+            echo
+            cat "$summary_file"
+            echo "## Triage Checklist"
+            echo
+            echo "- [ ] Download the \`steamapi-coverage\` artifact."
+            echo "- [ ] Review regenerated \`coverage-diff.md\`."
+            echo "- [ ] Compare \`missing\`, \`version_mismatch\`, and \`extra_sdk\` entries against \`docs/api/coverage-triage.md\`."
+            echo "- [ ] Update tracked coverage snapshots if the upstream drift is intentional."
+            echo "- [ ] Update triage notes before planning new endpoint work."
+            echo "- [ ] Close this issue after the drift is classified or tracked."
+            echo
+            echo "## JSON Diff Preview"
             echo
             echo '```diff'
             head -n 200 "$diff_file"
             echo '```'
           } > "$body_file"
 
+          gh label create maintenance --color "6f42c1" --description "Repository maintenance work" || true
+          gh label create steam-api-drift --color "0969da" --description "Steam Web API inventory changed upstream" || true
+          gh label create needs-triage --color "fbca04" --description "Needs maintainer triage" || true
+
           issue_number="$(gh issue list --state open --search "$title in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)"
           if [ -z "$issue_number" ]; then
-            gh issue create --title "$title" --body-file "$body_file"
+            gh issue create \
+              --title "$title" \
+              --body-file "$body_file" \
+              --label maintenance \
+              --label steam-api-drift \
+              --label needs-triage || \
+            gh issue create \
+              --title "$title" \
+              --body-file "$body_file"
           else
+            gh issue edit "$issue_number" --add-label "maintenance,steam-api-drift,needs-triage" || true
             gh issue comment "$issue_number" --body-file "$body_file"
           fi

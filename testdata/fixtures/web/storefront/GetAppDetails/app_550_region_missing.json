@@ -1,0 +1,33 @@
+{
+  "550": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Left 4 Dead 2 Region Fixture",
+      "steam_appid": 550,
+      "required_age": 0,
+      "is_free": false,
+      "short_description": "Regional fixture with sparse optional fields",
+      "header_image": "https://cdn.example.test/apps/550/header_region.jpg",
+      "pc_requirements": "",
+      "linux_requirements": null,
+      "developers": [],
+      "publishers": [],
+      "price_overview": {
+        "currency": "JPY",
+        "initial": 120000,
+        "final": 90000,
+        "discount_percent": 25,
+        "initial_formatted": "¥ 1,200",
+        "final_formatted": "¥ 900"
+      },
+      "platforms": {
+        "windows": true,
+        "mac": false,
+        "linux": true
+      },
+      "package_groups": [],
+      "ratings": {}
+    }
+  }
+}

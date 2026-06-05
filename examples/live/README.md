@@ -57,6 +57,33 @@ Run one service-specific smoke command, for example:
 - `go run ./examples/live/webmarket`
 - `go run ./examples/live/webcommunity`
 
+## Opt-in Smoke Report
+
+The package-level smoke test stays offline by default:
+
+```bash
+go test ./examples/live/...
+```
+
+Set `STEAM_GO_LIVE=1` to run the low-risk live baseline for `steamwebapiutil` and `webstorefront`:
+
+```bash
+STEAM_GO_LIVE=1 go test ./examples/live/...
+```
+
+For release diagnostics, you can archive JSON and human-readable reports:
+
+```bash
+STEAM_GO_LIVE=1 \
+STEAM_GO_LIVE_REPORT=tmp/live-smoke.json \
+STEAM_GO_LIVE_REPORT_HUMAN=tmp/live-smoke.txt \
+go test ./examples/live/...
+```
+
+If `STEAM_GO_LIVE` is not `1`, the test still skips without network access. When a report path is set in that skipped mode, the report contains `SKIP` and the skipped reason.
+
+Report fields are intentionally small: check name, status, message, duration, redacted proxy mode, and skipped reason. Reports must not include API keys, access tokens, cookies, raw URLs, raw headers, raw bodies, or proxy passwords.
+
 ## Notes
 
 - These programs are intended for manual validation, not CI.

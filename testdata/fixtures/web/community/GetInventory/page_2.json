@@ -1,0 +1,17 @@
+{
+  "success": 1,
+  "assets": [
+    {
+      "appid": 730,
+      "contextid": "2",
+      "assetid": "101",
+      "classid": "201",
+      "instanceid": "0",
+      "amount": "1"
+    }
+  ],
+  "descriptions": [],
+  "total_inventory_count": 2,
+  "more_items": false,
+  "last_assetid": "101"
+}
