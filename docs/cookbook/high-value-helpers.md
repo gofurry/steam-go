@@ -3,6 +3,10 @@
 These helpers cover common read-only workflows without expanding `client.Web.*`
 into a full Store or Community SDK.
 
+This page is a quick overview. For production boundaries, see
+[Batch and pagination](batch-and-pagination.md) and
+[Request observability](observability.md).
+
 ## Reviews Paginator
 
 ```go
@@ -71,6 +75,10 @@ prices, err := client.Web.Market.GetPriceOverviewBatch(
 
 Batch helpers keep input order and return per-item errors.
 
+`MaxConcurrent` only limits helper-local concurrency. Pair batch helpers with
+`WithSafeDefaults()`, `WithTrafficPolicy(...)`, and context timeouts for
+request rate, retry, and cancellation behavior.
+
 ## Request Observer
 
 ```go
@@ -85,3 +93,5 @@ Observer events are sanitized. They do not include raw query strings, headers,
 bodies, API keys, tokens, cookies, or proxy passwords. Keep the callback fast;
 do not perform slow logging or network I/O inside the observer.
 
+For async channel observers, panic-safe wrappers, and metrics label guidance,
+see [Request observability](observability.md).

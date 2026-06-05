@@ -112,10 +112,10 @@
 - [x] 扩展 fixture corpus，优先覆盖 reviews cursor、inventory pagination、market `success=false`、Storefront 字段缺失/地区差异。
 - [x] 文档化 doctor JSON schema，明确字段、退出码、secret redaction 和脚本消费边界。
 - [x] 让 opt-in live smoke 输出可归档报告，包含 human summary、JSON report、skipped reason 和 redacted network info。
-- [ ] 补 observability cookbook，说明同步 observer、异步 channel observer、panic-safe wrapper、metrics label 建议。
-- [ ] 补 batch/paginator cookbook，强调 `MaxConcurrent` 不等于安全请求速率，建议配合 `WithSafeDefaults()` / `WithTrafficPolicy(...)`。
+- [x] 补 observability cookbook，说明同步 observer、异步 channel observer、panic-safe wrapper、metrics label 建议。
+- [x] 补 batch/paginator cookbook，强调 `MaxConcurrent` 不等于安全请求速率，建议配合 `WithSafeDefaults()` / `WithTrafficPolicy(...)`。
 - [x] 补 paginator edge-case tests：重复 cursor、空页、handler error、context cancellation、`MaxPages<0`。
-- [ ] 增加 request observer 轻量 benchmark：no observer、no-op observer、counter observer。
+- [x] 增加 request observer 轻量 benchmark：no observer、no-op observer、counter observer。
 - [x] 更新 release checklist，加入 GitHub Release、Go module proxy、pkg.go.dev 可见性检查。
 
 ### Acceptance Criteria
@@ -126,9 +126,9 @@
 - [x] coverage drift issue 可以直接用于维护 triage。
 - [x] doctor JSON 输出有文档化结构。
 - [x] live smoke 仍为 opt-in，且输出不泄露 secret。
-- [ ] observer、batch、paginator 的安全边界和性能边界写清楚。
-- [ ] 不引入新的重依赖。
-- [ ] 不引入 breaking change。
+- [x] observer、batch、paginator 的安全边界和性能边界写清楚。
+- [x] 不引入新的重依赖。
+- [x] 不引入 breaking change。
 
 ### Notes
 
