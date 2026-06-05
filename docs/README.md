@@ -7,6 +7,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API reference](api/reference.md)
 - [Generated API coverage](api/coverage.generated.md)
 - [API coverage diff](api/coverage-diff.md)
+- [API coverage triage](api/coverage-triage.md)
 - [Addon reference](addons/reference.md)
 - [Web reference](web/reference.md)
 - Cookbook:
@@ -37,6 +38,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API 参考](zh/api/reference.md)
 - [Generated API 覆盖报告](api/coverage.generated.md)
 - [API 覆盖差异](api/coverage-diff.md)
+- [API 覆盖 Triage](api/coverage-triage.md)
 - [Addon 参考](zh/addons/reference.md)
 - Cookbook:
   - [基础官方 API](zh/cookbook/basic-api.md)

@@ -106,9 +106,9 @@
 - [x] 新增 `docs/zh/releases/v1.3.0.md`。
 - [x] 更新 `docs/README.md` 与 `docs/zh/README.md` 的 release notes 索引。
 - [x] 填充 `docs/code-audit.md`，记录 `v1.3.0` 审计范围、结论、风险和后续动作。
-- [ ] 新增 `docs/api/coverage-triage.md`，对 coverage diff 做第一版人工分类。
-- [ ] 增强 coverage drift issue 输出：status counts、missing/version_mismatch/extra_sdk 摘要、triage checklist、artifact 链接。
-- [ ] 为 coverage drift issue 自动打 `maintenance`、`steam-api-drift`、`needs-triage` 标签。
+- [x] 新增 `docs/api/coverage-triage.md`，对 coverage diff 做第一版人工分类。
+- [x] 增强 coverage drift issue 输出：status counts、missing/version_mismatch/extra_sdk 摘要、triage checklist、artifact 链接。
+- [x] 为 coverage drift issue 自动打 `maintenance`、`steam-api-drift`、`needs-triage` 标签。
 - [ ] 扩展 fixture corpus，优先覆盖 reviews cursor、inventory pagination、market `success=false`、Storefront 字段缺失/地区差异。
 - [ ] 文档化 doctor JSON schema，明确字段、退出码、secret redaction 和脚本消费边界。
 - [ ] 让 opt-in live smoke 输出可归档报告，包含 human summary、JSON report、skipped reason 和 redacted network info。
@@ -122,8 +122,8 @@
 
 - [x] `v1.3.0` release notes 中英文可达。
 - [x] `docs/code-audit.md` 有可审核内容，不再是占位文档。
-- [ ] `coverage-triage.md` 至少覆盖 P1/P2 候选 endpoint。
-- [ ] coverage drift issue 可以直接用于维护 triage。
+- [x] `coverage-triage.md` 至少覆盖 P1/P2 候选 endpoint。
+- [x] coverage drift issue 可以直接用于维护 triage。
 - [ ] doctor JSON 输出有文档化结构。
 - [ ] live smoke 仍为 opt-in，且输出不泄露 secret。
 - [ ] observer、batch、paginator 的安全边界和性能边界写清楚。
