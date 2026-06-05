@@ -55,7 +55,8 @@
 
 ### `v1.2.x` - Trust and Adoption Foundation
 
-**Status:** Completed  
+**Status:** Completed
+
 **Scope:** Documentation / Security / Compatibility / CI / Release
 
 已完成：
@@ -68,7 +69,8 @@
 
 ### `v1.3.0` - Maintenance Automation and Adoption Helpers
 
-**Status:** Completed  
+**Status:** Completed
+
 **Scope:** Developer-facing / Testing / Diagnostics / User-facing helpers / Documentation
 
 已完成：
@@ -85,8 +87,9 @@
 
 ## 4. `v1.3.1` - Stabilization and Release Closure
 
-**Status:** Planned  
-**Scope:** Release / Documentation / Testing / Maintenance automation / Diagnostics  
+**Status:** In progress
+
+**Scope:** Release / Documentation / Testing / Maintenance automation / Diagnostics
 **Goal:** 不新增大功能，补齐 `v1.3.0` 的发布闭环、审计记录和维护自动化稳定化。
 
 ### Focus
@@ -99,10 +102,10 @@
 
 ### Tasks
 
-- [ ] 新增 `docs/releases/v1.3.0.md`。
-- [ ] 新增 `docs/zh/releases/v1.3.0.md`。
-- [ ] 更新 `docs/README.md` 与 `docs/zh/README.md` 的 release notes 索引。
-- [ ] 填充 `docs/code-audit.md`，记录 `v1.3.0` 审计范围、结论、风险和后续动作。
+- [x] 新增 `docs/releases/v1.3.0.md`。
+- [x] 新增 `docs/zh/releases/v1.3.0.md`。
+- [x] 更新 `docs/README.md` 与 `docs/zh/README.md` 的 release notes 索引。
+- [x] 填充 `docs/code-audit.md`，记录 `v1.3.0` 审计范围、结论、风险和后续动作。
 - [ ] 新增 `docs/api/coverage-triage.md`，对 coverage diff 做第一版人工分类。
 - [ ] 增强 coverage drift issue 输出：status counts、missing/version_mismatch/extra_sdk 摘要、triage checklist、artifact 链接。
 - [ ] 为 coverage drift issue 自动打 `maintenance`、`steam-api-drift`、`needs-triage` 标签。
@@ -113,12 +116,12 @@
 - [ ] 补 batch/paginator cookbook，强调 `MaxConcurrent` 不等于安全请求速率，建议配合 `WithSafeDefaults()` / `WithTrafficPolicy(...)`。
 - [ ] 补 paginator edge-case tests：重复 cursor、空页、handler error、context cancellation、`MaxPages<0`。
 - [ ] 增加 request observer 轻量 benchmark：no observer、no-op observer、counter observer。
-- [ ] 更新 release checklist，加入 GitHub Release、Go module proxy、pkg.go.dev 可见性检查。
+- [x] 更新 release checklist，加入 GitHub Release、Go module proxy、pkg.go.dev 可见性检查。
 
 ### Acceptance Criteria
 
-- [ ] `v1.3.0` release notes 中英文可达。
-- [ ] `docs/code-audit.md` 有可审核内容，不再是占位文档。
+- [x] `v1.3.0` release notes 中英文可达。
+- [x] `docs/code-audit.md` 有可审核内容，不再是占位文档。
 - [ ] `coverage-triage.md` 至少覆盖 P1/P2 候选 endpoint。
 - [ ] coverage drift issue 可以直接用于维护 triage。
 - [ ] doctor JSON 输出有文档化结构。
@@ -137,8 +140,9 @@
 
 ## 5. `v1.3.2` - Forward Look
 
-**Status:** Planned / Candidate  
-**Scope:** Feature selection / Addon candidate / Diagnostics candidate / Official endpoint candidate  
+**Status:** Planned / Candidate
+
+**Scope:** Feature selection / Addon candidate / Diagnostics candidate / Official endpoint candidate
 **Goal:** 只在 `v1.3.1` 稳定后，从经过 triage 的候选中选择 1 到 2 个主题推进，不做大爆炸版本。
 
 ### Candidate A: 精选官方 Endpoint 扩展

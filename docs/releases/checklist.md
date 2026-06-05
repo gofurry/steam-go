@@ -64,3 +64,12 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] List validation commands that passed.
 - [ ] Mention known limitations or deferred work.
 - [ ] Tag and publish only after the checklist is complete.
+
+## Post-release Distribution
+
+- [ ] Push the release tag to GitHub.
+- [ ] Publish the GitHub Release.
+- [ ] Confirm `go list -m -versions github.com/gofurry/steam-go` includes the new version.
+- [ ] Confirm `go get github.com/gofurry/steam-go@<version>` succeeds in a clean temporary module.
+- [ ] Confirm pkg.go.dev shows the new version.
+- [ ] Confirm README badges and release links point at the expected version.
