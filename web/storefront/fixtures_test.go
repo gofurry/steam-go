@@ -20,6 +20,22 @@ func TestFixtureAppDetailsDecodesAndRawSubtreesAreJSON(t *testing.T) {
 	assertRawJSON(t, "ratings", app.Ratings)
 }
 
+func TestFixtureAppDetailsRegionMissingFieldsDecodes(t *testing.T) {
+	t.Parallel()
+
+	var envelope AppDetailsEnvelope
+	readFixtureJSON(t, filepath.Join("web", "storefront", "GetAppDetails", "app_550_region_missing.json"), &envelope)
+	app := envelope["550"].Data
+	if app.Name != "Left 4 Dead 2 Region Fixture" || app.PriceOverview == nil {
+		t.Fatalf("unexpected sparse app details fixture: %#v", app)
+	}
+	if app.PriceOverview.Currency != "JPY" || app.PCRequirements == nil || app.PCRequirements.Minimum != "" {
+		t.Fatalf("unexpected regional fields: %#v", app)
+	}
+	assertRawJSON(t, "package_groups", app.PackageGroups)
+	assertRawJSON(t, "ratings", app.Ratings)
+}
+
 func TestFixturePackageDetailsDecodesAndRawSubtreeIsJSON(t *testing.T) {
 	t.Parallel()
 
@@ -39,6 +55,25 @@ func TestFixtureAppReviewsDecodes(t *testing.T) {
 	readFixtureJSON(t, filepath.Join("web", "storefront", "GetAppReviews", "app_550_en.json"), &resp)
 	if resp.QuerySummary.TotalReviews != 12 || resp.Reviews[0].WeightedVoteScore.Float64() != 0.5 {
 		t.Fatalf("unexpected reviews fixture: %#v", resp)
+	}
+}
+
+func TestFixtureAppReviewsCursorPagesDecode(t *testing.T) {
+	t.Parallel()
+
+	var page1 AppReviewsResponse
+	readFixtureJSON(t, filepath.Join("web", "storefront", "GetAppReviews", "app_550_cursor_page_1.json"), &page1)
+	if page1.Cursor != "AoIIPw%3D%3D" || len(page1.Reviews) != 2 {
+		t.Fatalf("unexpected reviews cursor page 1: %#v", page1)
+	}
+	if page1.Reviews[0].WeightedVoteScore.Float64() != 0.75 || page1.Reviews[1].WeightedVoteScore.Float64() != 0.5 {
+		t.Fatalf("unexpected weighted scores: %#v", page1.Reviews)
+	}
+
+	var page2 AppReviewsResponse
+	readFixtureJSON(t, filepath.Join("web", "storefront", "GetAppReviews", "app_550_cursor_page_2.json"), &page2)
+	if page2.Cursor != page1.Cursor || len(page2.Reviews) != 0 {
+		t.Fatalf("unexpected reviews cursor page 2: %#v", page2)
 	}
 }
 

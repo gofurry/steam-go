@@ -1,0 +1,50 @@
+{
+  "success": 1,
+  "assets": [
+    {
+      "appid": 730,
+      "contextid": "2",
+      "assetid": "100",
+      "classid": "200",
+      "instanceid": "0",
+      "amount": "1"
+    }
+  ],
+  "descriptions": [
+    {
+      "appid": 730,
+      "classid": "200",
+      "instanceid": "0",
+      "name": "Fixture Rifle",
+      "market_name": "Fixture Rifle",
+      "market_hash_name": "Fixture Rifle | Test",
+      "type": "Rifle",
+      "icon_url": "icon_fixture",
+      "tradable": 1,
+      "marketable": 1,
+      "commodity": 0,
+      "descriptions": [
+        {
+          "type": "text",
+          "value": "synthetic fixture"
+        }
+      ],
+      "actions": [
+        {
+          "link": "steam://fixture"
+        }
+      ],
+      "tags": [
+        {
+          "category": "Quality",
+          "internal_name": "Normal",
+          "localized_category_name": "Quality",
+          "localized_tag_name": "Normal"
+        }
+      ]
+    }
+  ],
+  "total_inventory_count": 2,
+  "more_items": true,
+  "last_assetid": "101"
+}

@@ -86,6 +86,82 @@ func TestListAppReviewsHonorsContextCancellation(t *testing.T) {
 	}
 }
 
+func TestListAppReviewsStopsOnRepeatedCursor(t *testing.T) {
+	t.Parallel()
+
+	store := &recordingTransport{
+		statuses: []int{http.StatusOK, http.StatusOK, http.StatusOK},
+		responseBodies: []string{
+			`{"success":1,"query_summary":{"num_reviews":1},"cursor":"repeat","reviews":[{"recommendationid":"1","author":{"steamid":"2"}}]}`,
+			`{"success":1,"query_summary":{"num_reviews":1},"cursor":"repeat","reviews":[{"recommendationid":"2","author":{"steamid":"3"}}]}`,
+			`{"success":1,"query_summary":{"num_reviews":1},"cursor":"unused","reviews":[{"recommendationid":"3","author":{"steamid":"4"}}]}`,
+		},
+	}
+	service := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, store, 1024)
+
+	var pages []AppReviewsPage
+	err := service.ListAppReviews(context.Background(), 550, nil, func(page AppReviewsPage) error {
+		pages = append(pages, page)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("ListAppReviews returned error: %v", err)
+	}
+	if len(pages) != 2 {
+		t.Fatalf("expected 2 pages before repeated cursor stop, got %d", len(pages))
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if len(store.requests) != 2 {
+		t.Fatalf("expected repeated cursor to stop without third request, got %d requests", len(store.requests))
+	}
+}
+
+func TestListAppReviewsStopsOnEmptyPage(t *testing.T) {
+	t.Parallel()
+
+	store := &recordingTransport{
+		statuses: []int{http.StatusOK, http.StatusOK},
+		responseBodies: []string{
+			`{"success":1,"query_summary":{"num_reviews":0},"cursor":"next","reviews":[]}`,
+			`{"success":1,"query_summary":{"num_reviews":1},"cursor":"unused","reviews":[{"recommendationid":"1","author":{"steamid":"2"}}]}`,
+		},
+	}
+	service := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, store, 1024)
+
+	pages := 0
+	err := service.ListAppReviews(context.Background(), 550, nil, func(AppReviewsPage) error {
+		pages++
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("ListAppReviews returned error: %v", err)
+	}
+	if pages != 1 {
+		t.Fatalf("expected one empty page callback, got %d", pages)
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if len(store.requests) != 1 {
+		t.Fatalf("expected empty page to stop without second request, got %d requests", len(store.requests))
+	}
+}
+
+func TestListAppReviewsRejectsNegativeMaxPages(t *testing.T) {
+	t.Parallel()
+
+	service := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, &recordingTransport{statuses: []int{http.StatusOK}}, 1024)
+	err := service.ListAppReviews(context.Background(), 550, &ListAppReviewsOptions{MaxPages: -1}, func(AppReviewsPage) error {
+		t.Fatal("handler should not run for invalid max pages")
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected max pages validation error")
+	}
+}
+
 func TestGetAppDetailsBatchPreservesOrderAndPerItemErrors(t *testing.T) {
 	t.Parallel()
 
