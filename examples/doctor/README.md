@@ -7,7 +7,46 @@ go run ./examples/doctor
 go run ./examples/doctor -json
 ```
 
-The command exits with code `1` when any check reports `FAIL`. `WARN` means a check was skipped or needs attention, but does not make the command fail.
+## JSON Output
+
+`-json` prints a report with two top-level fields:
+
+```json
+{
+  "summary": {
+    "ok": 3,
+    "warn": 1,
+    "fail": 0
+  },
+  "checks": [
+    {
+      "category": "official_api",
+      "name": "steamwebapiutil.get_server_info",
+      "status": "OK",
+      "message": "reachable",
+      "detail": "optional redacted detail"
+    }
+  ]
+}
+```
+
+`summary.ok`, `summary.warn`, and `summary.fail` count final check statuses. Each check contains:
+
+- `category`: `environment`, `credential`, `official_api`, `web`, or `proxy`.
+- `name`: stable check name inside this example.
+- `status`: `OK`, `WARN`, or `FAIL`.
+- `message`: short result text.
+- `detail`: optional redacted context.
+
+This JSON is useful for scripts and release diagnostics, but `examples/doctor` remains an example rather than a stable CLI product.
+
+## Exit Codes
+
+- `0`: all checks are `OK` or `WARN`.
+- `1`: at least one check reports `FAIL`.
+- `2`: flag parsing, configuration, or output rendering failed.
+
+`WARN` means a check was skipped or needs attention, but does not make the command fail.
 
 ## Credentials
 
@@ -25,6 +64,8 @@ When environment variables are empty, doctor falls back to files under `examples
 - `proxy.txt`
 
 Secrets are reported only as present or missing. Proxy URLs are redacted before output.
+
+Doctor output must not include API keys, access tokens, cookies, raw headers, raw query strings, or proxy passwords.
 
 ## Checks
 

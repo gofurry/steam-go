@@ -110,8 +110,8 @@
 - [x] 增强 coverage drift issue 输出：status counts、missing/version_mismatch/extra_sdk 摘要、triage checklist、artifact 链接。
 - [x] 为 coverage drift issue 自动打 `maintenance`、`steam-api-drift`、`needs-triage` 标签。
 - [x] 扩展 fixture corpus，优先覆盖 reviews cursor、inventory pagination、market `success=false`、Storefront 字段缺失/地区差异。
-- [ ] 文档化 doctor JSON schema，明确字段、退出码、secret redaction 和脚本消费边界。
-- [ ] 让 opt-in live smoke 输出可归档报告，包含 human summary、JSON report、skipped reason 和 redacted network info。
+- [x] 文档化 doctor JSON schema，明确字段、退出码、secret redaction 和脚本消费边界。
+- [x] 让 opt-in live smoke 输出可归档报告，包含 human summary、JSON report、skipped reason 和 redacted network info。
 - [ ] 补 observability cookbook，说明同步 observer、异步 channel observer、panic-safe wrapper、metrics label 建议。
 - [ ] 补 batch/paginator cookbook，强调 `MaxConcurrent` 不等于安全请求速率，建议配合 `WithSafeDefaults()` / `WithTrafficPolicy(...)`。
 - [x] 补 paginator edge-case tests：重复 cursor、空页、handler error、context cancellation、`MaxPages<0`。
@@ -124,8 +124,8 @@
 - [x] `docs/code-audit.md` 有可审核内容，不再是占位文档。
 - [x] `coverage-triage.md` 至少覆盖 P1/P2 候选 endpoint。
 - [x] coverage drift issue 可以直接用于维护 triage。
-- [ ] doctor JSON 输出有文档化结构。
-- [ ] live smoke 仍为 opt-in，且输出不泄露 secret。
+- [x] doctor JSON 输出有文档化结构。
+- [x] live smoke 仍为 opt-in，且输出不泄露 secret。
 - [ ] observer、batch、paginator 的安全边界和性能边界写清楚。
 - [ ] 不引入新的重依赖。
 - [ ] 不引入 breaking change。
