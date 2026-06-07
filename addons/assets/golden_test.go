@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -26,7 +27,11 @@ func TestAssetURLGolden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read golden: %v", err)
 	}
-	if string(gotJSON) != string(want) {
+	if string(gotJSON) != normalizeGoldenLineEndings(string(want)) {
 		t.Fatalf("asset URL golden mismatch\ngot:\n%s\nwant:\n%s", gotJSON, want)
 	}
+}
+
+func normalizeGoldenLineEndings(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
 }

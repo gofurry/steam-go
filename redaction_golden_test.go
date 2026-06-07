@@ -30,7 +30,11 @@ func TestRedactionGolden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read golden: %v", err)
 	}
-	if got != string(want) {
+	if got != normalizeGoldenLineEndings(string(want)) {
 		t.Fatalf("redaction golden mismatch\ngot:\n%s\nwant:\n%s", got, want)
 	}
+}
+
+func normalizeGoldenLineEndings(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
 }
