@@ -162,6 +162,36 @@ go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/
 go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
 ```
 
+## `addons/markup`
+
+Use `addons/markup` when you need to convert and sanitize Steam BBCode or HTML content before storing, indexing, or rendering it.
+
+What it does:
+
+- converts common Steam BBCode tags such as `[b]`, `[i]`, `[url]`, `[img]`, `[list]`, `[olist]`, `[video]`, and `[youtube]`
+- replaces `{STEAM_CLAN_IMAGE}` with the Steam clan image CDN base
+- sanitizes generated or existing HTML with safe defaults
+- provides plain-text and summary helpers for indexing and metadata
+
+What it does not do:
+
+- it does not fetch Steam content
+- it does not decide which sanitized tags your application should render
+- it does not preserve unsafe scripts, event handlers, or JavaScript URLs
+
+Example:
+
+```go
+html, err := markup.CleanSteamContent(`[b]Patch[/b] {STEAM_CLAN_IMAGE}/abc.png`)
+text, err := markup.Summary(html, 120)
+```
+
+Runnable example:
+
+```bash
+go run ./examples/markup
+```
+
 ## `addons/freeclaim`
 
 Use `addons/freeclaim` when you want one addon-level bridge for Store promotion discovery and one explicit free-license claim.

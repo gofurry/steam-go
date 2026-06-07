@@ -2,7 +2,7 @@
 
 > 目标：在 `v1.3.0` 已完成治理、文档、诊断、API coverage automation、fixture/smoke、只读 Web helper 与 request observer 的基础上，继续放慢版本节奏，把维护体系稳定下来。
 >
-> 当前策略：`v1.3.1` 承接发布闭环与稳定化补丁；`v1.3.2` 只保留前瞻候选，不提前承诺新的大版本。
+> 当前策略：`v1.3.2` 已作为小范围能力补丁落地 Store events 与 Steam 内容清洗；原前瞻候选顺延到 `v1.3.3`，继续避免提前承诺新的大版本。
 
 ---
 
@@ -18,7 +18,7 @@
 
 结论：
 
-> `v1.3.1` 做稳定化与发布闭环，`v1.3.2` 作为下一阶段前瞻候选。先让维护系统变稳，再决定是否扩功能。
+> `v1.3.1` 做稳定化与发布闭环，`v1.3.2` 补齐采集器急需的 Store events 与 markup 能力，`v1.3.3` 再承接下一阶段前瞻候选。
 
 ---
 
@@ -138,12 +138,52 @@
 
 ---
 
-## 5. `v1.3.2` - Forward Look
+## 5. `v1.3.2` - Store Events and Markup Utilities
+
+**Status:** Completed
+
+**Scope:** User-facing helper / Addon / Documentation / Testing
+**Goal:** 为采集器和下游内容处理补齐 Steam Store events 读取、BBCode/HTML 清洗、纯文本摘要能力，同时保持核心 SDK 边界克制。
+
+### Focus
+
+- Store events JSON endpoint
+- Steam BBCode / HTML content cleaning
+- raw payload preservation for volatile fields
+- bilingual docs and release notes
+
+### Tasks
+
+- [x] 新增 `Web.Storefront.GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`。
+- [x] 为 Store events 提供稳定 typed subset，并为 event 与 announcement 保留 `json.RawMessage`。
+- [x] 新增 `addons/markup`，支持 Steam BBCode 转 HTML、HTML sanitize、plain text、summary helper。
+- [x] 支持 `{STEAM_CLAN_IMAGE}`、Steam list item closure `[/*]`、Steam escaped URL/text 等真实内容格式。
+- [x] 新增 `examples/markup` 可运行示例。
+- [x] 新增中英文 v1.3.2 release notes，并更新 docs 索引。
+- [x] 增加单元测试和跨平台 golden 换行归一化。
+
+### Acceptance Criteria
+
+- [x] `go test ./...` 通过。
+- [x] `go run ./examples/markup` 通过。
+- [x] 新 public API 有文档入口。
+- [x] 新 Web surface 仍保持 read-only，并保留 raw payload 应对上游字段波动。
+- [x] `addons/markup` 不污染核心 client API。
+- [x] 不引入账号自动化、购买、交易、绕过 upstream 限制等能力。
+
+### Notes
+
+- `v1.3.2` 是兼容性加法版本，不包含 breaking change。
+- 原 roadmap 中的 forward-look 候选计划顺延到 `v1.3.3`。
+
+---
+
+## 6. `v1.3.3` - Forward Look
 
 **Status:** Planned / Candidate
 
 **Scope:** Feature selection / Addon candidate / Diagnostics candidate / Official endpoint candidate
-**Goal:** 只在 `v1.3.1` 稳定后，从经过 triage 的候选中选择 1 到 2 个主题推进，不做大爆炸版本。
+**Goal:** 只在 `v1.3.2` 稳定后，从经过 triage 的候选中选择 1 到 2 个主题推进，不做大爆炸版本。
 
 ### Candidate A: 精选官方 Endpoint 扩展
 
@@ -211,7 +251,7 @@
 
 ---
 
-## 6. Release Gate
+## 7. Release Gate
 
 每个 release 前至少满足：
 
@@ -238,11 +278,11 @@
 
 ---
 
-## 7. 进入 `v1.3.2` 的条件
+## 8. 进入 `v1.3.3` 的条件
 
-只有满足下面条件，才开始推进 `v1.3.2` 候选：
+只有满足下面条件，才开始推进 `v1.3.3` 候选：
 
-- [ ] `v1.3.1` release closure 完成。
+- [ ] `v1.3.2` release closure 完成。
 - [ ] `coverage-triage.md` 有可执行分类。
 - [ ] doctor JSON schema 和 live smoke 报告稳定。
 - [ ] observer、batch、paginator 的真实使用边界已文档化。
@@ -250,12 +290,12 @@
 
 ---
 
-## 8. 最终建议
+## 9. 最终建议
 
 `steam-go` 当前路线是合理的，但应该进一步收敛版本节奏。
 
 建议执行原则：
 
-> `v1.3.1` 先固定发布闭环和维护体系；`v1.3.2` 再从 triage 结果中选择少量明确主题。不要急着进入新的 minor 版本。
+> `v1.3.2` 先完成 Store events 与 markup 这类明确、低风险、采集器依赖的补丁；`v1.3.3` 再从 triage 结果中选择少量明确主题。不要急着进入新的 minor 版本。
 
 这样可以让 `steam-go` 在不快速膨胀版本号的前提下，继续保持可信、可维护、边界清晰。

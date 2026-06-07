@@ -149,6 +149,36 @@ go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/
 go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
 ```
 
+## `addons/markup`
+
+当你需要在存储、索引或渲染前转换并清洗 Steam BBCode / HTML 内容时，可以使用 `addons/markup`。
+
+它负责：
+
+- 转换常见 Steam BBCode 标签，例如 `[b]`、`[i]`、`[url]`、`[img]`、`[list]`、`[olist]`、`[video]`、`[youtube]`
+- 将 `{STEAM_CLAN_IMAGE}` 替换为 Steam clan image CDN 前缀
+- 使用安全默认策略清洗生成的 HTML 或已有 HTML
+- 提供纯文本和摘要 helper，适合搜索索引和 metadata
+
+它不负责：
+
+- 请求 Steam 内容
+- 替业务决定哪些清洗后的标签应该展示
+- 保留不安全脚本、事件属性或 JavaScript URL
+
+示例：
+
+```go
+html, err := markup.CleanSteamContent(`[b]Patch[/b] {STEAM_CLAN_IMAGE}/abc.png`)
+text, err := markup.Summary(html, 120)
+```
+
+可运行示例：
+
+```bash
+go run ./examples/markup
+```
+
 ## `addons/freeclaim`
 
 当你想做限免搜索、免费 package 解析，或者显式领取一个免费 license 时，可以使用 `addons/freeclaim`。

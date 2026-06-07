@@ -15,6 +15,7 @@
 - `GetAppDetails` / `GetAppDetailsRaw`
 - `GetPackageDetails` / `GetPackageDetailsRaw`
 - `GetAppReviews` / `GetAppReviewsRaw`
+- `GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`
 - `ListAppReviews`
 - `GetAppDetailsBatch`
 - default traffic class: `TrafficClassPublicStorePage`
@@ -23,6 +24,10 @@
 screenshots, movies/trailers, background URLs, highlighted achievements,
 recommendations, Metacritic, support info, content descriptors, and ratings raw
 JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
+
+`GetAdjacentPartnerEvents` wraps the public Store events JSON endpoint used by
+Steam partner news pages. The method exposes a stable typed subset and preserves
+raw nested payloads for callers that need fields not yet typed by the SDK.
 
 ### `client.Web.Community`
 

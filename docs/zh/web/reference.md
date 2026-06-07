@@ -15,6 +15,7 @@
 - `GetAppDetails` / `GetAppDetailsRaw`
 - `GetPackageDetails` / `GetPackageDetailsRaw`
 - `GetAppReviews` / `GetAppReviewsRaw`
+- `GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`
 - `ListAppReviews`
 - `GetAppDetailsBatch`
 - 默认 traffic class：`TrafficClassPublicStorePage`
@@ -22,6 +23,10 @@
 `GetAppDetails` 已补充高价值商店字段的 typed 结构，包括 capsule URL、截图、
 视频 / trailer、背景图、高亮成就、推荐数、Metacritic、支持信息、内容描述和
 ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAppDetailsRaw`。
+
+`GetAdjacentPartnerEvents` 封装公开 Store events JSON 接口，适合读取 Steam
+商店新闻 / 活动页附近的 partner event。方法提供稳定 typed 子集，并保留嵌套
+raw payload，方便调用方读取 SDK 暂未 typed 的字段。
 
 ### `client.Web.Community`
 
