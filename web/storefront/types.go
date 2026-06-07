@@ -55,6 +55,32 @@ type AppDetailsData struct {
 	Ratings             json.RawMessage          `json:"ratings,omitempty"`
 }
 
+// DecodeRatings decodes the app details ratings raw subtree into a typed map.
+func (d AppDetailsData) DecodeRatings() (StoreRatings, error) {
+	if len(d.Ratings) == 0 {
+		return nil, nil
+	}
+
+	var ratings StoreRatings
+	if err := json.Unmarshal(d.Ratings, &ratings); err != nil {
+		return nil, err
+	}
+	return ratings, nil
+}
+
+// SteamGermanyRequiredAge returns ratings.steam_germany.required_age when present.
+func (d AppDetailsData) SteamGermanyRequiredAge() (string, bool, error) {
+	ratings, err := d.DecodeRatings()
+	if err != nil {
+		return "", false, err
+	}
+	rating, ok := ratings["steam_germany"]
+	if !ok || rating.RequiredAge == "" {
+		return "", false, nil
+	}
+	return rating.RequiredAge, true, nil
+}
+
 // PackageDetailsEnvelope is the keyed Storefront package details payload.
 type PackageDetailsEnvelope map[string]PackageDetailsResult
 
@@ -231,6 +257,28 @@ type StoreSupportInfo struct {
 type StoreContentDescriptors struct {
 	IDs   []int  `json:"ids,omitempty"`
 	Notes string `json:"notes,omitempty"`
+}
+
+// StoreRatings is the typed Storefront app ratings payload keyed by rating board.
+type StoreRatings map[string]StoreRating
+
+// StoreRating is one rating board payload. Raw preserves board-specific fields.
+type StoreRating struct {
+	Rating      string          `json:"rating,omitempty"`
+	RequiredAge string          `json:"required_age,omitempty"`
+	Raw         json.RawMessage `json:"-"`
+}
+
+// UnmarshalJSON stores each rating board's raw payload while decoding common fields.
+func (r *StoreRating) UnmarshalJSON(data []byte) error {
+	type storeRating StoreRating
+	var decoded storeRating
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*r = StoreRating(decoded)
+	r.Raw = append(r.Raw[:0], data...)
+	return nil
 }
 
 // StorePrice is one Storefront price overview payload.

@@ -24,6 +24,8 @@
 screenshots, movies/trailers, background URLs, highlighted achievements,
 recommendations, Metacritic, support info, content descriptors, and ratings raw
 JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
+Use `AppDetailsData.DecodeRatings` for common rating board fields and
+`AppDetailsData.SteamGermanyRequiredAge` for Steam Germany age requirements.
 
 `GetAdjacentPartnerEvents` wraps the public Store events JSON endpoint used by
 Steam partner news pages. The method exposes a stable typed subset and preserves

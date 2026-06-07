@@ -18,6 +18,13 @@ func TestFixtureAppDetailsDecodesAndRawSubtreesAreJSON(t *testing.T) {
 	}
 	assertRawJSON(t, "package_groups", app.PackageGroups)
 	assertRawJSON(t, "ratings", app.Ratings)
+	requiredAge, ok, err := app.SteamGermanyRequiredAge()
+	if err != nil {
+		t.Fatalf("SteamGermanyRequiredAge returned error: %v", err)
+	}
+	if !ok || requiredAge != "18" {
+		t.Fatalf("unexpected steam germany required age: %q ok=%v", requiredAge, ok)
+	}
 }
 
 func TestFixtureAppDetailsRegionMissingFieldsDecodes(t *testing.T) {

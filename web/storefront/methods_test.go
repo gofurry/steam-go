@@ -21,7 +21,7 @@ func TestGetAppDetailsBuildsRequestAndDecodesResponse(t *testing.T) {
 	official := &recordingTransport{statuses: []int{http.StatusOK}}
 	store := &recordingTransport{
 		statuses:     []int{http.StatusOK},
-		responseBody: `{"550":{"success":true,"data":{"type":"game","name":"Left 4 Dead 2","steam_appid":550,"required_age":"0","is_free":false,"controller_support":"full","detailed_description":"details","about_the_game":"about","short_description":"coop","supported_languages":"English","header_image":"header.jpg","capsule_image":"capsule.jpg","capsule_imagev5":"capsulev5.jpg","website":"https://example.test","pc_requirements":{"minimum":"min","recommended":"rec"},"mac_requirements":[],"developers":["Valve"],"publishers":["Valve"],"price_overview":{"currency":"USD","initial":999,"final":499,"discount_percent":50,"initial_formatted":"$9.99","final_formatted":"$4.99"},"platforms":{"windows":true,"mac":true,"linux":true},"metacritic":{"score":89,"url":"https://metacritic.test"},"categories":[{"id":1,"description":"Multi-player"}],"genres":[{"id":"1","description":"Action"}],"screenshots":[{"id":1,"path_thumbnail":"thumb.jpg","path_full":"full.jpg"}],"movies":[{"id":2,"name":"Trailer","thumbnail":"movie.jpg","webm":{"480":"480.webm","max":"max.webm"},"mp4":{"480":"480.mp4","max":"max.mp4"},"dash_av1":"av1.mpd","dash_h264":"h264.mpd","hls_h264":"h264.m3u8","highlight":true}],"recommendations":{"total":10},"achievements":{"total":1,"highlighted":[{"icon":"a.jpg","localized_name":"Done","name":"DONE","path":"https://example.test/a.jpg"}]},"packages":[469],"package_groups":[{"name":"default"}],"release_date":{"coming_soon":false,"date":"16 Nov, 2009"},"support_info":{"url":"https://support.test","email":""},"background":"bg.jpg","background_raw":"bg_raw.jpg","content_descriptors":{"ids":[2],"notes":"notes"},"ratings":{"usk":{"rating":"18"}}}}}`,
+		responseBody: `{"550":{"success":true,"data":{"type":"game","name":"Left 4 Dead 2","steam_appid":550,"required_age":"0","is_free":false,"controller_support":"full","detailed_description":"details","about_the_game":"about","short_description":"coop","supported_languages":"English","header_image":"header.jpg","capsule_image":"capsule.jpg","capsule_imagev5":"capsulev5.jpg","website":"https://example.test","pc_requirements":{"minimum":"min","recommended":"rec"},"mac_requirements":[],"developers":["Valve"],"publishers":["Valve"],"price_overview":{"currency":"USD","initial":999,"final":499,"discount_percent":50,"initial_formatted":"$9.99","final_formatted":"$4.99"},"platforms":{"windows":true,"mac":true,"linux":true},"metacritic":{"score":89,"url":"https://metacritic.test"},"categories":[{"id":1,"description":"Multi-player"}],"genres":[{"id":"1","description":"Action"}],"screenshots":[{"id":1,"path_thumbnail":"thumb.jpg","path_full":"full.jpg"}],"movies":[{"id":2,"name":"Trailer","thumbnail":"movie.jpg","webm":{"480":"480.webm","max":"max.webm"},"mp4":{"480":"480.mp4","max":"max.mp4"},"dash_av1":"av1.mpd","dash_h264":"h264.mpd","hls_h264":"h264.m3u8","highlight":true}],"recommendations":{"total":10},"achievements":{"total":1,"highlighted":[{"icon":"a.jpg","localized_name":"Done","name":"DONE","path":"https://example.test/a.jpg"}]},"packages":[469],"package_groups":[{"name":"default"}],"release_date":{"coming_soon":false,"date":"16 Nov, 2009"},"support_info":{"url":"https://support.test","email":""},"background":"bg.jpg","background_raw":"bg_raw.jpg","content_descriptors":{"ids":[2],"notes":"notes"},"ratings":{"steam_germany":{"required_age":"18"},"usk":{"rating":"18"}}}}}`,
 	}
 	service := newTestService(t, official, store, 16*1024)
 
@@ -50,6 +50,13 @@ func TestGetAppDetailsBuildsRequestAndDecodesResponse(t *testing.T) {
 	}
 	if got := resp["550"].Data.Achievements.Highlighted[0].Path; got != "https://example.test/a.jpg" {
 		t.Fatalf("unexpected achievement path: %q", got)
+	}
+	requiredAge, ok, err := resp["550"].Data.SteamGermanyRequiredAge()
+	if err != nil {
+		t.Fatalf("SteamGermanyRequiredAge returned error: %v", err)
+	}
+	if !ok || requiredAge != "18" {
+		t.Fatalf("unexpected steam germany required age: %q ok=%v", requiredAge, ok)
 	}
 
 	official.mu.Lock()

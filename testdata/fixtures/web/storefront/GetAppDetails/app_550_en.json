@@ -114,6 +114,9 @@
         "notes": "Fixture notes"
       },
       "ratings": {
+        "steam_germany": {
+          "required_age": "18"
+        },
         "usk": {
           "rating": "18"
         }
