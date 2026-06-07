@@ -10,6 +10,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API coverage triage](api/coverage-triage.md)
 - [Addon reference](addons/reference.md)
 - [Web reference](web/reference.md)
+- [Storefront appdetails rate-limit experiment](experiments/store-rate-limit-20260607.md)
 - Cookbook:
   - [Basic official API](cookbook/basic-api.md)
   - [Steam OpenID](cookbook/auth-openid.md)
@@ -43,6 +44,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API 覆盖差异](api/coverage-diff.md)
 - [API 覆盖 Triage](api/coverage-triage.md)
 - [Addon 参考](zh/addons/reference.md)
+- [Storefront appdetails 限流实验](zh/experiments/store-rate-limit-20260607.md)
 - Cookbook:
   - [基础官方 API](zh/cookbook/basic-api.md)
   - [Steam OpenID](zh/cookbook/auth-openid.md)

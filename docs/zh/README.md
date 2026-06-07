@@ -137,6 +137,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 
 - 真实外部流量建议先用 `WithSafeDefaults()`，再根据场景调整 timeout、retry 和 rate limit。
 - 区域、host 或 session 行为需要不同网络路径时，使用 `WithProxySelector(...)` 或 `WithTrafficPolicy(...)`。
+- official API 流量和 Storefront 页面类流量应使用独立 traffic policy。2026-06-07 的 Storefront appdetails 复现实验中，请求约 220-230 次后开始出现 `429`，随后转为 `403`；生产可先按约 `1 request / 2 seconds`、`burst=1` 作为更安全的 Store 起点。
 - 不要记录可能包含 `key`、`access_token`、cookie 或 proxy 凭据的原始 URL。优先使用 `steam.RedactSensitiveURL(...)`。
 - 需要更严格响应体上限时，使用 `WithMaxResponseBodyBytes(...)`。
 - live smoke 凭据和 Web cookie 不应进入 Git；示例通过环境变量或隐藏输入读取敏感值。
@@ -170,6 +171,8 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 - [Web 参考](web/reference.md)
 - [Addon 参考](addons/reference.md)
 - [Cookbook](cookbook/basic-api.md)
+- [限流策略](wiki/限流策略.md)
+- [Storefront appdetails 限流实验](experiments/store-rate-limit-20260607.md)
 - [Doctor 诊断](cookbook/doctor.md)
 - [高价值只读 Helper](cookbook/high-value-helpers.md)
 - [批量查询与翻页](cookbook/batch-and-pagination.md)

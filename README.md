@@ -136,6 +136,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 
 - Start with `WithSafeDefaults()` for real external traffic, then tune timeout, retry, and rate limit per workload.
 - Use `WithProxySelector(...)` or `WithTrafficPolicy(...)` when region, host, or session behavior needs different network paths.
+- Keep official API traffic and Storefront page-like traffic on separate traffic policies. In a 2026-06-07 Storefront appdetails experiment, repeated runs started returning `429` around 220-230 requests and then `403`; a conservative Store budget such as `1 request / 2 seconds` with `burst=1` is a safer starting point.
 - Do not log raw URLs that may contain `key`, `access_token`, cookies, or proxy credentials. Use `steam.RedactSensitiveURL(...)`.
 - Use `WithMaxResponseBodyBytes(...)` when callers need a stricter response body cap.
 - Keep live smoke credentials and web cookies out of Git; examples use environment variables or hidden terminal prompts for sensitive values.
@@ -166,6 +167,8 @@ Detailed addon notes: [docs/addons/reference.md](docs/addons/reference.md).
 - [Web reference](docs/web/reference.md)
 - [Addon reference](docs/addons/reference.md)
 - [Cookbook](docs/cookbook/basic-api.md)
+- [Rate limiting strategy](docs/wiki/en/Rate-Limiting-Strategy.md)
+- [Storefront appdetails rate-limit experiment](docs/experiments/store-rate-limit-20260607.md)
 - [Compatibility policy](docs/governance/compatibility.md)
 - [Endpoint stability](docs/governance/endpoint-stability.md)
 - [Endpoint coverage](docs/governance/endpoint-coverage.md)
