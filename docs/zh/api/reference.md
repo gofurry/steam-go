@@ -50,9 +50,11 @@
 - `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
 - `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
 - `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.CollectAppReviews`
 - `client.Web.Storefront.GetAppDetailsBatch`
 - `client.Web.Community.GetInventory` / `GetInventoryRaw`
 - `client.Web.Community.ListInventory`
+- `community.JoinInventoryDescriptions`
 - `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
 - `client.Web.Market.GetPriceOverviewBatch`
 
@@ -60,6 +62,8 @@
 
 - Web helper 只读，不会注入 Steam Web API 的 `key` 或 `access_token`。
 - paginator 和 batch helper 复用底层单项方法的 timeout、retry、rate limit、body cap、proxy、cookie jar 与 traffic policy。
+- `CollectAppReviews` 必须显式设置 `MaxPages` 或 `MaxReviews`。
+- `JoinInventoryDescriptions` 是纯本地 helper，不会发起请求。
 - batch helper 保持输入顺序，并通过 per-item error 表示单项失败。
 - Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
 
@@ -102,6 +106,8 @@
 - `addons/a2s/master`
 - `addons/a2s/scanner`
 - `addons/assets`
+- `addons/markup`
+- `addons/vdf`
 - `addons/websession`
 - `addons/freeclaim`
 
@@ -109,6 +115,7 @@
 
 - `addons/websession.NewClientFromSteamClient(...)` 和 `addons/freeclaim.NewClientFromSteamClient(...)` 会复用根 SDK 的按分类 `WithTrafficPolicy(...)` 执行链。
 - `addons/assets` 提供纯 URL 构造 helper，以及显式调用的商店媒体发现、验证、读取和下载 helper；它不创建 client。
+- `addons/vdf` 是对 `github.com/gofurry/vdf-go` 的轻量桥接；它只解析调用方显式提供的文本 VDF / KeyValues 输入，不自动扫描本机 Steam 安装目录。
 - 旧的 addon `NewClient(...)` 构造器仍然保留，继续作为手动模式，依赖调用方提供的 `http.Client`、proxy、timeout、base URL 和 `CookieJar`。
 
 ## Proxy 和 Traffic Policy
@@ -128,6 +135,7 @@
 - addon 手动示例：`go run ./examples/openid`
 - addon 手动示例：`go run ./examples/websession`
 - addon 手动示例：`go run ./examples/assets -app-ids 550,107100`
+- addon 手动示例：`go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - addon 手动示例：`go run ./examples/freeclaim`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

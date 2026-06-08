@@ -23,6 +23,18 @@ err := client.Web.Storefront.ListAppReviews(
 
 Paginator 每页调用一次 handler，不会把所有 reviews 聚合进内存。handler 应尽快处理并返回；需要提前停止时直接返回 error。
 
+如果确实需要小规模内存聚合，可以使用有界 collector：
+
+```go
+collection, err := client.Web.Storefront.CollectAppReviews(
+	ctx,
+	550,
+	&storefront.CollectAppReviewsOptions{MaxPages: 2, MaxReviews: 150},
+)
+```
+
+`CollectAppReviews` 在没有 `MaxPages` 或 `MaxReviews` 时会拒绝执行。
+
 ## Inventory 翻页
 
 ```go
@@ -42,6 +54,10 @@ err := client.Web.Community.ListInventory(
 ```
 
 Inventory 翻页只读，不负责登录、不刷新 cookie，也不保证能访问 private inventory。
+
+需要把 `assets` 和匹配的 `descriptions` 配对时，可以在 `GetInventory` 后调用
+`community.JoinInventoryDescriptions(response)`。这个 join 是纯本地处理，并保持
+asset 原始顺序。
 
 ## 批量 App Details
 
@@ -82,4 +98,4 @@ prices, err := client.Web.Market.GetPriceOverviewBatch(
 - 使用 `WithTrafficPolicy(...)` 配置不同 surface 的 retry、rate limit、cache、block detection、proxy 或 session control。
 - `MaxConcurrent` 只限制 helper 内部并发，不等于安全请求速率。
 - 每个 batch 或 paginator 调用都应带 context timeout 或 cancellation。
-- 不希望无限遍历上游结果时，应显式设置 `MaxPages`。
+- 不希望无限遍历上游结果时，应显式设置 `MaxPages` 或 `MaxReviews`。

@@ -39,7 +39,7 @@
 - Safe defaults for external traffic with bounded response bodies and URL redaction helpers
 - Typed responses for stable payloads, with raw methods and `json.RawMessage` for volatile subtrees
 - Rotating and health-checked API key providers for resilient `401/429` handling
-- Addons for OpenID, web sessions, assets, free-claim workflows, and A2S without bloating the core SDK
+- Addons for OpenID, web sessions, assets, markup, VDF, free-claim workflows, and A2S without bloating the core SDK
 
 ## Installation
 
@@ -156,6 +156,8 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 | `addons/websession` | Manual Steam web-login session flow |
 | `addons/freeclaim` | Read-only free promotion discovery plus explicit single-package claim |
 | `addons/assets` | Store / Library asset URL construction, verification, reading, and downloading |
+| `addons/markup` | Steam BBCode / HTML conversion, sanitizing, and plain-text summaries |
+| `addons/vdf` | Valve VDF / KeyValues text parsing via `github.com/gofurry/vdf-go` |
 | `addons/a2s` | A2S server queries through `github.com/gofurry/a2s-go` |
 
 Detailed addon notes: [docs/addons/reference.md](docs/addons/reference.md).

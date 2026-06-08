@@ -23,6 +23,25 @@ err := client.Web.Storefront.ListAppReviews(
 )
 ```
 
+## 有界 Reviews 聚合
+
+```go
+collection, err := client.Web.Storefront.CollectAppReviews(
+	context.Background(),
+	550,
+	&storefront.CollectAppReviewsOptions{MaxPages: 2, MaxReviews: 150},
+)
+if err != nil {
+	panic(err)
+}
+for _, review := range collection.Reviews {
+	fmt.Println(review.RecommendationID)
+}
+```
+
+`CollectAppReviews` 必须设置 `MaxPages` 或 `MaxReviews`。它适合小规模有界读取；
+如果希望逐页处理且不把 reviews 留在内存中，继续使用 `ListAppReviews`。
+
 ## Inventory 翻页
 
 ```go
@@ -42,6 +61,25 @@ err := client.Web.Community.ListInventory(
 ```
 
 Inventory 翻页只读，不负责登录、不刷新 cookie，也不保证能访问 private inventory。
+
+## Inventory Description Join
+
+```go
+inv, err := client.Web.Community.GetInventory(ctx, "76561198370695025", 730, "2", nil)
+if err != nil {
+	panic(err)
+}
+items := community.JoinInventoryDescriptions(inv)
+for _, item := range items {
+	if item.Description == nil {
+		continue
+	}
+	fmt.Println(item.Asset.AssetID, item.Description.MarketHashName)
+}
+```
+
+Join helper 是纯本地能力，只把 `assets` 与 `descriptions` 配对；它不获取价格、
+不判断市场状态、不交易、不出售，也不做账号自动化。
 
 ## 批量查询
 

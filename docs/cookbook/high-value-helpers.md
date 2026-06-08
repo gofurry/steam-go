@@ -23,6 +23,26 @@ err := client.Web.Storefront.ListAppReviews(
 )
 ```
 
+## Bounded Reviews Collector
+
+```go
+collection, err := client.Web.Storefront.CollectAppReviews(
+	context.Background(),
+	550,
+	&storefront.CollectAppReviewsOptions{MaxPages: 2, MaxReviews: 150},
+)
+if err != nil {
+	panic(err)
+}
+for _, review := range collection.Reviews {
+	fmt.Println(review.RecommendationID)
+}
+```
+
+`CollectAppReviews` requires `MaxPages` or `MaxReviews`. It is useful for small
+bounded reads; use `ListAppReviews` when you want streaming page-by-page
+processing without retaining reviews in memory.
+
 ## Inventory Paginator
 
 ```go
@@ -43,6 +63,26 @@ err := client.Web.Community.ListInventory(
 
 Inventory pagination is read-only. It does not log in, refresh cookies, or
 guarantee access to private inventories.
+
+## Inventory Description Join
+
+```go
+inv, err := client.Web.Community.GetInventory(ctx, "76561198370695025", 730, "2", nil)
+if err != nil {
+	panic(err)
+}
+items := community.JoinInventoryDescriptions(inv)
+for _, item := range items {
+	if item.Description == nil {
+		continue
+	}
+	fmt.Println(item.Asset.AssetID, item.Description.MarketHashName)
+}
+```
+
+The join helper is local-only. It pairs `assets` with `descriptions` and does
+not fetch prices, inspect market state, trade, sell, or automate account
+behavior.
 
 ## Batch Lookups
 

@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/gofurry/vdf-go v1.0.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	golang.org/x/net v0.55.0
 )

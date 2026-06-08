@@ -23,6 +23,18 @@ err := client.Web.Storefront.ListAppReviews(
 
 The paginator calls the handler once per page and does not accumulate all reviews in memory. Keep the handler fast and return an error to stop early.
 
+When you intentionally want a small in-memory result, use the bounded collector:
+
+```go
+collection, err := client.Web.Storefront.CollectAppReviews(
+	ctx,
+	550,
+	&storefront.CollectAppReviewsOptions{MaxPages: 2, MaxReviews: 150},
+)
+```
+
+`CollectAppReviews` rejects calls without `MaxPages` or `MaxReviews`.
+
 ## Inventory Paginator
 
 ```go
@@ -42,6 +54,10 @@ err := client.Web.Community.ListInventory(
 ```
 
 Inventory pagination is read-only. It does not log in, refresh cookies, or guarantee access to private inventories.
+
+Use `community.JoinInventoryDescriptions(response)` after `GetInventory` when
+you need assets paired with their matching descriptions. The join is local-only
+and preserves asset order.
 
 ## Batch App Details
 
@@ -82,4 +98,4 @@ Batch helpers preserve input order. A single item failure is returned in that it
 - Use `WithTrafficPolicy(...)` for per-surface retry, rate limit, cache, block detection, proxy, or session controls.
 - `MaxConcurrent` only limits helper-local parallelism. It is not a safe request rate by itself.
 - Use context timeout or cancellation for every batch or paginator call.
-- Keep `MaxPages` explicit for workflows that should not walk unbounded upstream result sets.
+- Keep `MaxPages` or `MaxReviews` explicit for workflows that should not walk unbounded upstream result sets.

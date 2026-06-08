@@ -1,28 +1,12 @@
 # steam-go Roadmap
 
-> 目标：在 `v1.3.0` 已完成治理、文档、诊断、API coverage automation、fixture/smoke、只读 Web helper 与 request observer 的基础上，继续放慢版本节奏，把维护体系稳定下来。
+> 目标：保持 `steam-go` 的版本节奏克制、边界清晰、可维护。
 >
-> 当前策略：`v1.3.2` 已作为小范围能力补丁落地 Store events 与 Steam 内容清洗；原前瞻候选顺延到 `v1.3.3`，继续避免提前承诺新的大版本。
+> 当前基线：`v1.3.3` 已完成 `addons/vdf`、bounded reviews collector、inventory description join，并继续保持只读 Web helper 与 addon 分层。
 
 ---
 
-## 1. Roadmap 判断
-
-当前 roadmap 的方向是合理的：`steam-go` 已经完成从“API 封装库”到“有治理、诊断、自动化和安全边界的 Go SDK”的关键跃迁，下一步不应该继续快速堆 endpoint 或扩大 Web surface。
-
-需要调整的是版本节奏和篇幅：
-
-- 之前拆出的多个稳定化阶段都属于 `v1.3.0` 之后的同一类收尾工作，拆得过细会让版本号走太快。
-- 下一阶段功能扩展前瞻仍然有价值，但不应现在固定成新的 minor 版本承诺。
-- 旧 roadmap 中大量解释性内容、候选细节和重复原则可以压缩成可执行清单。
-
-结论：
-
-> `v1.3.1` 做稳定化与发布闭环，`v1.3.2` 补齐采集器急需的 Store events 与 markup 能力，`v1.3.3` 再承接下一阶段前瞻候选。
-
----
-
-## 2. 产品边界
+## 1. Product Boundary
 
 `steam-go` 继续定位为：
 
@@ -51,207 +35,62 @@
 
 ---
 
-## 3. 已完成基线
+## 2. Current Position
 
-### `v1.2.x` - Trust and Adoption Foundation
+当前 `v1.3.x` 已经覆盖：
 
-**Status:** Completed
+- 官方 Steam Web API 的稳定 typed service surface。
+- 只读 Web helper：Storefront、Community inventory、Market JSON。
+- 高价值 helper：reviews pagination / bounded collection、inventory description join、batch app details、batch market price。
+- addon：OpenID、websession、freeclaim、assets、markup、vdf、A2S。
+- 请求控制：timeout、retry、rate limit、proxy、traffic policy、request observer、safe defaults。
+- 维护能力：API coverage automation、fixture corpus、opt-in live smoke、doctor、release checklist、bilingual docs。
 
-**Scope:** Documentation / Security / Compatibility / CI / Release
+下一阶段继续优先：
 
-已完成：
-
-- [x] 仓库治理文件：`SECURITY.md`、`CONTRIBUTING.md`、issue templates、PR template。
-- [x] README 入口化，中英文 cookbook 补齐。
-- [x] release checklist、兼容性策略、API diff 本地工具。
-- [x] credential safety、redaction helper、error handling 文档。
-- [x] pkg.go.dev examples。
-
-### `v1.3.0` - Maintenance Automation and Adoption Helpers
-
-**Status:** Completed
-
-**Scope:** Developer-facing / Testing / Diagnostics / User-facing helpers / Documentation
-
-已完成：
-
-- [x] `internal/tools/steamapi-sync`：生成官方 API inventory、coverage Markdown/JSON 和 coverage diff。
-- [x] scheduled coverage drift workflow：发现 drift 时开/更新 GitHub issue，不自动改代码。
-- [x] fixture corpus、golden regression、opt-in live smoke baseline。
-- [x] `examples/doctor`：网络、凭据、代理、official API、Storefront、Community、Market 诊断。
-- [x] 高价值只读 helper：`ListAppReviews`、`ListInventory`、`GetAppDetailsBatch`、`GetPriceOverviewBatch`。
-- [x] `WithRequestObserver`、`RequestObserverFunc`、脱敏 `RequestEvent`。
-- [x] 中英文 docs、Web reference、cookbook、release checklist 同步。
+- 小步兼容增强。
+- 文档和示例质量。
+- 测试与 release hygiene。
+- 明确边界的只读 helper。
+- 不扩大账号自动化和高风险 Web surface。
 
 ---
 
-## 4. `v1.3.1` - Stabilization and Release Closure
+## 3. Version Plan
 
-**Status:** In progress
+### `v1.3.4` - TBD
 
-**Scope:** Release / Documentation / Testing / Maintenance automation / Diagnostics
-**Goal:** 不新增大功能，补齐 `v1.3.0` 的发布闭环、审计记录和维护自动化稳定化。
+**Status:** Planned / TBD
 
-### Focus
+**Scope:** TBD
+**Goal:** 待定；只在有明确用户需求、边界、测试计划和文档入口后进入实现。
 
-- `v1.3.0` release closure
-- coverage triage
-- fixture / smoke / doctor 稳定化
-- request observer 与 batch/paginator 使用边界
-- 分发验证与文档一致性
+#### Candidate Rules
 
-### Tasks
+- 候选必须是兼容性加法。
+- 候选必须有明确用户场景，不为覆盖率或想象需求扩张。
+- 新 Web helper 必须只读，并明确 unofficial / volatile 边界。
+- 新 paginator / collector / batch helper 必须显式限制请求规模。
+- 新 addon 必须保持独立边界，不污染 root `Client` 依赖。
+- 不新增账号自动化、购买、交易、出售、browser fallback 或绕过 upstream 限制的能力。
 
-- [x] 新增 `docs/releases/v1.3.0.md`。
-- [x] 新增 `docs/zh/releases/v1.3.0.md`。
-- [x] 更新 `docs/README.md` 与 `docs/zh/README.md` 的 release notes 索引。
-- [x] 填充 `docs/code-audit.md`，记录 `v1.3.0` 审计范围、结论、风险和后续动作。
-- [x] 新增 `docs/api/coverage-triage.md`，对 coverage diff 做第一版人工分类。
-- [x] 增强 coverage drift issue 输出：status counts、missing/version_mismatch/extra_sdk 摘要、triage checklist、artifact 链接。
-- [x] 为 coverage drift issue 自动打 `maintenance`、`steam-api-drift`、`needs-triage` 标签。
-- [x] 扩展 fixture corpus，优先覆盖 reviews cursor、inventory pagination、market `success=false`、Storefront 字段缺失/地区差异。
-- [x] 文档化 doctor JSON schema，明确字段、退出码、secret redaction 和脚本消费边界。
-- [x] 让 opt-in live smoke 输出可归档报告，包含 human summary、JSON report、skipped reason 和 redacted network info。
-- [x] 补 observability cookbook，说明同步 observer、异步 channel observer、panic-safe wrapper、metrics label 建议。
-- [x] 补 batch/paginator cookbook，强调 `MaxConcurrent` 不等于安全请求速率，建议配合 `WithSafeDefaults()` / `WithTrafficPolicy(...)`。
-- [x] 补 paginator edge-case tests：重复 cursor、空页、handler error、context cancellation、`MaxPages<0`。
-- [x] 增加 request observer 轻量 benchmark：no observer、no-op observer、counter observer。
-- [x] 更新 release checklist，加入 GitHub Release、Go module proxy、pkg.go.dev 可见性检查。
+#### Tasks
 
-### Acceptance Criteria
+- [ ] 收集真实需求或维护痛点。
+- [ ] 选择 1 个小主题进入 `v1.3.4`，或保持待定。
+- [ ] 为选中主题补测试、文档和 release notes。
 
-- [x] `v1.3.0` release notes 中英文可达。
-- [x] `docs/code-audit.md` 有可审核内容，不再是占位文档。
-- [x] `coverage-triage.md` 至少覆盖 P1/P2 候选 endpoint。
-- [x] coverage drift issue 可以直接用于维护 triage。
-- [x] doctor JSON 输出有文档化结构。
-- [x] live smoke 仍为 opt-in，且输出不泄露 secret。
-- [x] observer、batch、paginator 的安全边界和性能边界写清楚。
-- [x] 不引入新的重依赖。
-- [x] 不引入 breaking change。
+#### Acceptance Criteria
 
-### Notes
-
-- `v1.3.1` 可以包含兼容的文档、测试、维护工具和小补丁。
-- 除非修复 `v1.3.0` 暴露出来的问题，否则不主动新增 endpoint。
-- Go module / pkg.go.dev 分发验证应在 tag 发布后完成并记录。
+- [ ] 主题边界清楚。
+- [ ] 测试覆盖核心行为和边界条件。
+- [ ] README / docs / cookbook / release notes 中英文同步。
+- [ ] 不引入 breaking change。
+- [ ] 不引入未审视的重依赖。
 
 ---
 
-## 5. `v1.3.2` - Store Events and Markup Utilities
-
-**Status:** Completed
-
-**Scope:** User-facing helper / Addon / Documentation / Testing
-**Goal:** 为采集器和下游内容处理补齐 Steam Store events 读取、BBCode/HTML 清洗、纯文本摘要能力，同时保持核心 SDK 边界克制。
-
-### Focus
-
-- Store events JSON endpoint
-- Steam BBCode / HTML content cleaning
-- raw payload preservation for volatile fields
-- bilingual docs and release notes
-
-### Tasks
-
-- [x] 新增 `Web.Storefront.GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`。
-- [x] 为 Store events 提供稳定 typed subset，并为 event 与 announcement 保留 `json.RawMessage`。
-- [x] 新增 `addons/markup`，支持 Steam BBCode 转 HTML、HTML sanitize、plain text、summary helper。
-- [x] 支持 `{STEAM_CLAN_IMAGE}`、Steam list item closure `[/*]`、Steam escaped URL/text 等真实内容格式。
-- [x] 新增 `examples/markup` 可运行示例。
-- [x] 新增中英文 v1.3.2 release notes，并更新 docs 索引。
-- [x] 增加单元测试和跨平台 golden 换行归一化。
-
-### Acceptance Criteria
-
-- [x] `go test ./...` 通过。
-- [x] `go run ./examples/markup` 通过。
-- [x] 新 public API 有文档入口。
-- [x] 新 Web surface 仍保持 read-only，并保留 raw payload 应对上游字段波动。
-- [x] `addons/markup` 不污染核心 client API。
-- [x] 不引入账号自动化、购买、交易、绕过 upstream 限制等能力。
-
-### Notes
-
-- `v1.3.2` 是兼容性加法版本，不包含 breaking change。
-- 原 roadmap 中的 forward-look 候选计划顺延到 `v1.3.3`。
-
----
-
-## 6. `v1.3.3` - Forward Look
-
-**Status:** Planned / Candidate
-
-**Scope:** Feature selection / Addon candidate / Diagnostics candidate / Official endpoint candidate
-**Goal:** 只在 `v1.3.2` 稳定后，从经过 triage 的候选中选择 1 到 2 个主题推进，不做大爆炸版本。
-
-### Candidate A: 精选官方 Endpoint 扩展
-
-适合条件：`coverage-triage.md` 已经成熟，有明确 P1 endpoint。
-
-选择标准：
-
-- 官方 Steam Web API。
-- 只读或低风险。
-- 通用性强，不是极窄游戏特定接口。
-- 认证边界清楚。
-- 可用本地 fixture 测试。
-- payload 稳定，或能采用 typed outer + `json.RawMessage`。
-
-不选：
-
-- mutating endpoint。
-- partner / publisher sensitive endpoint。
-- 需要特殊权限且无法稳定测试的 endpoint。
-- purchase、trade、sell、bulk automation 相关 endpoint。
-
-### Candidate B: Observability Addon or Cookbook Adapter
-
-适合条件：真实用户需要接入 metrics/tracing。
-
-方向：
-
-- 优先 cookbook adapter。
-- 如果需要代码，考虑 `addons/otel` 或 `addons/prommetrics`。
-- addon 只消费 sanitized `RequestEvent`。
-- 不把重依赖放进核心包。
-- 控制 metrics label 基数。
-
-### Candidate C: Doctor 产品化
-
-适合条件：用户反馈集中在网络、代理、凭据、区域和上游可用性排查。
-
-方向：
-
-- 保留 `examples/doctor` 作为学习入口。
-- 评估是否新增 `cmd/steam-go-doctor`。
-- 固化 JSON schema。
-- 支持输出 redacted report。
-- 不支持自动登录、cookie 刷新或 browser fallback。
-
-### Candidate D: 小幅 Web Helper 增强
-
-适合条件：现有 paginator/batch helper 在真实使用中暴露明确重复需求。
-
-可考虑：
-
-- Reviews collector helper，但必须要求显式 `MaxPages` 或 `MaxReviews`。
-- Inventory asset/description join helper。
-- Storefront app details 的稳定字段补 typed。
-- App details batch 合并请求，前提是 upstream 多 appids 行为稳定且测试覆盖明确。
-
-### Acceptance Criteria
-
-- [ ] 只选择 1 到 2 个主题进入实现。
-- [ ] 每个主题都有明确边界、测试计划和文档入口。
-- [ ] 新 endpoint 必须来自 `coverage-triage.md`。
-- [ ] 新 helper 不默认无限抓取。
-- [ ] 新 addon 不污染核心依赖。
-- [ ] 不做账号自动化、不绕过 upstream 限制。
-
----
-
-## 7. Release Gate
+## 4. Release Gate
 
 每个 release 前至少满足：
 
@@ -275,27 +114,3 @@
 - [ ] `go list -m -versions github.com/gofurry/steam-go` 能看到新版本。
 - [ ] `go get github.com/gofurry/steam-go@<version>` 正常。
 - [ ] pkg.go.dev 展示最新版本。
-
----
-
-## 8. 进入 `v1.3.3` 的条件
-
-只有满足下面条件，才开始推进 `v1.3.3` 候选：
-
-- [ ] `v1.3.2` release closure 完成。
-- [ ] `coverage-triage.md` 有可执行分类。
-- [ ] doctor JSON schema 和 live smoke 报告稳定。
-- [ ] observer、batch、paginator 的真实使用边界已文档化。
-- [ ] 没有未处理的兼容性或 secret safety 问题。
-
----
-
-## 9. 最终建议
-
-`steam-go` 当前路线是合理的，但应该进一步收敛版本节奏。
-
-建议执行原则：
-
-> `v1.3.2` 先完成 Store events 与 markup 这类明确、低风险、采集器依赖的补丁；`v1.3.3` 再从 triage 结果中选择少量明确主题。不要急着进入新的 minor 版本。
-
-这样可以让 `steam-go` 在不快速膨胀版本号的前提下，继续保持可信、可维护、边界清晰。

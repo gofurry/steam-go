@@ -192,6 +192,40 @@ Runnable example:
 go run ./examples/markup
 ```
 
+## `addons/vdf`
+
+Use `addons/vdf` when a steam-go-based tool needs to parse Valve Data Format
+(VDF / KeyValues) text files.
+
+What it does:
+
+- bridges `github.com/gofurry/vdf-go`
+- parses text VDF / KeyValues files
+- supports common Steam text files such as `libraryfolders.vdf` and `appmanifest_*.acf`
+- preserves duplicate keys and node order through the upstream document model
+- provides read, query, marshal, and small editing helpers
+
+What it does not do:
+
+- it does not implement binary VDF
+- it does not parse `shortcuts.vdf`
+- it does not scan Steam installations automatically
+- it does not read user directories unless the caller explicitly passes a path
+- it does not extract accounts, tokens, cookies, or sessions
+
+Example:
+
+```go
+doc, err := vdf.ParseFile("steamapps/appmanifest_730.acf")
+appid := doc.Path("AppState", "appid").AsString()
+```
+
+Runnable example:
+
+```bash
+go run ./examples/vdf -file "C:\\Program Files (x86)\\Steam\\steamapps\\appmanifest_730.acf" -key AppState
+```
+
 ## `addons/freeclaim`
 
 Use `addons/freeclaim` when you want one addon-level bridge for Store promotion discovery and one explicit free-license claim.

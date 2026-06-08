@@ -130,3 +130,42 @@ func TestListInventoryRejectsNegativeMaxPages(t *testing.T) {
 		t.Fatal("expected max pages validation error")
 	}
 }
+
+func TestJoinInventoryDescriptionsPreservesOrderAndMatchesDescriptions(t *testing.T) {
+	t.Parallel()
+
+	resp := InventoryResponse{
+		Assets: []InventoryAsset{
+			{AppID: 730, AssetID: "asset-1", ClassID: "class-a", InstanceID: "0"},
+			{AppID: 730, AssetID: "asset-2", ClassID: "class-missing", InstanceID: "0"},
+			{AppID: 730, AssetID: "asset-3", ClassID: "class-b", InstanceID: "1"},
+		},
+		Descriptions: []InventoryItem{
+			{AppID: 730, ClassID: "class-b", InstanceID: "1", Name: "Second"},
+			{AppID: 730, ClassID: "class-a", InstanceID: "0", Name: "First"},
+			{AppID: 730, ClassID: "class-a", InstanceID: "0", Name: "Duplicate ignored"},
+		},
+	}
+
+	joined := JoinInventoryDescriptions(resp)
+	if len(joined) != 3 {
+		t.Fatalf("expected 3 joined items, got %d", len(joined))
+	}
+	if joined[0].Asset.AssetID != "asset-1" || joined[0].Description == nil || joined[0].Description.Name != "First" {
+		t.Fatalf("unexpected first joined item: %#v", joined[0])
+	}
+	if joined[1].Asset.AssetID != "asset-2" || joined[1].Description != nil {
+		t.Fatalf("expected missing description for second item, got %#v", joined[1])
+	}
+	if joined[2].Asset.AssetID != "asset-3" || joined[2].Description == nil || joined[2].Description.Name != "Second" {
+		t.Fatalf("unexpected third joined item: %#v", joined[2])
+	}
+}
+
+func TestJoinInventoryDescriptionsReturnsNilForEmptyAssets(t *testing.T) {
+	t.Parallel()
+
+	if got := JoinInventoryDescriptions(InventoryResponse{}); got != nil {
+		t.Fatalf("expected nil for empty assets, got %#v", got)
+	}
+}

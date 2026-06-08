@@ -162,6 +162,89 @@ func TestListAppReviewsRejectsNegativeMaxPages(t *testing.T) {
 	}
 }
 
+func TestCollectAppReviewsRequiresExplicitLimit(t *testing.T) {
+	t.Parallel()
+
+	service := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, &recordingTransport{statuses: []int{http.StatusOK}}, 1024)
+	if _, err := service.CollectAppReviews(context.Background(), 550, nil); err == nil {
+		t.Fatal("expected nil options validation error")
+	}
+	if _, err := service.CollectAppReviews(context.Background(), 550, &CollectAppReviewsOptions{}); err == nil {
+		t.Fatal("expected missing limit validation error")
+	}
+	if _, err := service.CollectAppReviews(context.Background(), 550, &CollectAppReviewsOptions{MaxReviews: -1}); err == nil {
+		t.Fatal("expected max reviews validation error")
+	}
+}
+
+func TestCollectAppReviewsStopsAtMaxReviewsAndDoesNotMutateOptions(t *testing.T) {
+	t.Parallel()
+
+	store := &recordingTransport{
+		statuses: []int{http.StatusOK, http.StatusOK},
+		responseBodies: []string{
+			`{"success":1,"query_summary":{"num_reviews":2,"total_reviews":3},"cursor":"next","reviews":[{"recommendationid":"1","author":{"steamid":"2"}},{"recommendationid":"2","author":{"steamid":"3"}}]}`,
+			`{"success":1,"query_summary":{"num_reviews":1,"total_reviews":3},"cursor":"unused","reviews":[{"recommendationid":"3","author":{"steamid":"4"}}]}`,
+		},
+	}
+	service := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, store, 1024)
+	opts := &CollectAppReviewsOptions{
+		Query: GetAppReviewsOptions{
+			Cursor: "start",
+		},
+		MaxReviews: 2,
+	}
+
+	collection, err := service.CollectAppReviews(context.Background(), 550, opts)
+	if err != nil {
+		t.Fatalf("CollectAppReviews returned error: %v", err)
+	}
+	if len(collection.Reviews) != 2 {
+		t.Fatalf("expected 2 reviews, got %d", len(collection.Reviews))
+	}
+	if collection.Pages != 1 || collection.LastCursor != "next" || !collection.Truncated {
+		t.Fatalf("unexpected collection metadata: %#v", collection)
+	}
+	if opts.Query.Cursor != "start" || opts.Query.NumPerPage != 0 {
+		t.Fatalf("CollectAppReviews mutated options: %#v", opts.Query)
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if len(store.requests) != 1 {
+		t.Fatalf("expected one request after max reviews stop, got %d", len(store.requests))
+	}
+	assertQuery(t, store.requests[0].query, "cursor", "start")
+	assertQuery(t, store.requests[0].query, "num_per_page", "2")
+}
+
+func TestCollectAppReviewsStopsAtMaxPages(t *testing.T) {
+	t.Parallel()
+
+	store := &recordingTransport{
+		statuses: []int{http.StatusOK, http.StatusOK},
+		responseBodies: []string{
+			`{"success":1,"query_summary":{"num_reviews":1,"total_reviews":2},"cursor":"next","reviews":[{"recommendationid":"1","author":{"steamid":"2"}}]}`,
+			`{"success":1,"query_summary":{"num_reviews":1,"total_reviews":2},"cursor":"unused","reviews":[{"recommendationid":"2","author":{"steamid":"3"}}]}`,
+		},
+	}
+	service := newTestService(t, &recordingTransport{statuses: []int{http.StatusOK}}, store, 1024)
+
+	collection, err := service.CollectAppReviews(context.Background(), 550, &CollectAppReviewsOptions{MaxPages: 1})
+	if err != nil {
+		t.Fatalf("CollectAppReviews returned error: %v", err)
+	}
+	if len(collection.Reviews) != 1 || collection.Pages != 1 || !collection.Truncated {
+		t.Fatalf("unexpected collection: %#v", collection)
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if len(store.requests) != 1 {
+		t.Fatalf("expected one request after max pages stop, got %d", len(store.requests))
+	}
+}
+
 func TestGetAppDetailsBatchPreservesOrderAndPerItemErrors(t *testing.T) {
 	t.Parallel()
 

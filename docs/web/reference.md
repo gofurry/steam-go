@@ -17,6 +17,7 @@
 - `GetAppReviews` / `GetAppReviewsRaw`
 - `GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`
 - `ListAppReviews`
+- `CollectAppReviews`
 - `GetAppDetailsBatch`
 - default traffic class: `TrafficClassPublicStorePage`
 
@@ -31,12 +32,20 @@ Use `AppDetailsData.DecodeRatings` for common rating board fields and
 Steam partner news pages. The method exposes a stable typed subset and preserves
 raw nested payloads for callers that need fields not yet typed by the SDK.
 
+`CollectAppReviews` builds on `ListAppReviews` and accumulates reviews into
+memory only when callers provide an explicit `MaxPages` or `MaxReviews` bound.
+
 ### `client.Web.Community`
 
 - `GetInventory` / `GetInventoryRaw`
 - `ListInventory`
+- `JoinInventoryDescriptions`
 - default traffic class: `TrafficClassCommunityWeb`
 - inventory access may require caller-supplied cookies through `WithCookieJar(...)` or `WithDefaultCookieJar()`
+
+`JoinInventoryDescriptions` is local-only. It pairs inventory assets with their
+matching descriptions by `appid`, `classid`, and `instanceid` without issuing
+network requests or performing market, trade, pricing, or account automation.
 
 ### `client.Web.Market`
 

@@ -48,15 +48,19 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 - `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
 - `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
 - `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.CollectAppReviews`
 - `client.Web.Storefront.GetAppDetailsBatch`
 - `client.Web.Community.GetInventory` / `GetInventoryRaw`
 - `client.Web.Community.ListInventory`
+- `community.JoinInventoryDescriptions`
 - `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
 - `client.Web.Market.GetPriceOverviewBatch`
 
 Notes:
 - Web helpers are read-only and never inject Steam Web API `key` or `access_token`.
 - Paginator and batch helpers reuse the same timeout, retry, rate limit, body cap, proxy, cookie jar, and traffic policy behavior as their underlying single-item methods.
+- `CollectAppReviews` requires an explicit `MaxPages` or `MaxReviews` bound.
+- `JoinInventoryDescriptions` is local-only and does not issue requests.
 - Batch helpers preserve input order and report per-item errors.
 - Community inventory helpers do not log in, refresh cookies, or guarantee access to private inventories.
 
@@ -253,6 +257,8 @@ Additional rules:
 - `addons/a2s/master`
 - `addons/a2s/scanner`
 - `addons/assets`
+- `addons/markup`
+- `addons/vdf`
 - `addons/openid`
 - `addons/websession`
 - `addons/freeclaim`
@@ -261,6 +267,7 @@ Additional rules:
 Notes:
 - `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` reuse the root SDK per-class `WithTrafficPolicy(...)` execution stack.
 - `addons/assets` has pure URL builders plus explicit Store media discovery, verification, read, and download helpers; it does not create a client.
+- `addons/vdf` is a thin bridge to `github.com/gofurry/vdf-go`; it parses only caller-provided text VDF / KeyValues input and does not scan local Steam installations.
 - The legacy addon `NewClient(...)` constructors remain manual mode and still rely on caller-supplied `http.Client`, proxy, timeout, base URL, and `CookieJar`.
 
 ## Proxy Helpers
@@ -343,6 +350,7 @@ Notes:
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
 - `go run ./examples/websession`
 - `go run ./examples/assets -app-ids 550,107100`
+- `go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`
