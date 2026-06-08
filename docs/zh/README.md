@@ -40,7 +40,7 @@
 - 提供适合外部请求的安全默认值、响应体大小上限和 URL 脱敏 helper
 - 稳定 payload 使用 typed response，高波动 subtree 使用 raw method 或 `json.RawMessage`
 - 支持 API key 轮换与健康检查，降低 `401/429` 对重试链路的影响
-- OpenID、websession、freeclaim、assets、A2S 等能力通过 addon 扩展，不膨胀核心 SDK
+- OpenID、websession、freeclaim、assets、markup、VDF、A2S 等能力通过 addon 扩展，不膨胀核心 SDK
 
 ## 安装
 
@@ -157,6 +157,8 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 | `addons/websession` | 手动 Steam网页登录态流程 |
 | `addons/freeclaim` | 只读限免发现，以及显式单 package 领取 |
 | `addons/assets` | Store / Library 资源 URL 构造、验证、读取和下载 |
+| `addons/markup` | Steam BBCode / HTML 转换、清洗和纯文本摘要 |
+| `addons/vdf` | 通过 `github.com/gofurry/vdf-go` 解析 Valve VDF / KeyValues 文本文件 |
 | `addons/a2s` | 通过 `github.com/gofurry/a2s-go` 查询 A2S 服务器 |
 
 详细 addon 说明：[addons/reference.md](addons/reference.md)。

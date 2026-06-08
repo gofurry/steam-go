@@ -179,6 +179,39 @@ text, err := markup.Summary(html, 120)
 go run ./examples/markup
 ```
 
+## `addons/vdf`
+
+当基于 `steam-go` 的工具还需要解析 Valve Data Format（VDF / KeyValues）文本文件时，可以使用 `addons/vdf`。
+
+它负责：
+
+- 桥接 `github.com/gofurry/vdf-go`
+- 解析文本 VDF / KeyValues 文件
+- 支持 `libraryfolders.vdf`、`appmanifest_*.acf` 等常见 Steam 文本文件
+- 通过上游文档模型保留重复 key 和节点顺序
+- 提供读取、查询、marshal 和小幅编辑 helper
+
+它不负责：
+
+- 实现 binary VDF
+- 解析 `shortcuts.vdf`
+- 自动扫描 Steam 安装目录
+- 在调用方未显式传入路径时读取用户目录
+- 提取账号、token、cookie 或 session
+
+示例：
+
+```go
+doc, err := vdf.ParseFile("steamapps/appmanifest_730.acf")
+appid := doc.Path("AppState", "appid").AsString()
+```
+
+可运行示例：
+
+```bash
+go run ./examples/vdf -file "C:\\Program Files (x86)\\Steam\\steamapps\\appmanifest_730.acf" -key AppState
+```
+
 ## `addons/freeclaim`
 
 当你想做限免搜索、免费 package 解析，或者显式领取一个免费 license 时，可以使用 `addons/freeclaim`。

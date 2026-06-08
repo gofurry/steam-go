@@ -2,6 +2,8 @@ github.com/aymerick/douceur v0.2.0 h1:Mv+mAeH1Q+n9Fr+oyamOlAkUNPWPlA8PPGR0QAaYuP
 github.com/aymerick/douceur v0.2.0/go.mod h1:wlT5vV2O3h55X9m7iVYN0TBM0NH/MmbLnd30/FjWUq4=
 github.com/gofurry/a2s-go v1.0.2 h1:8rWjiP/a1twdnvDPdwX9yJ8TU9u+ITgYjgyuGN5ltFM=
 github.com/gofurry/a2s-go v1.0.2/go.mod h1:6dnNmRMDsFDBST+8gKtk4KrKPTinIRiaF8qp+GzfR78=
+github.com/gofurry/vdf-go v1.0.0 h1:P+7a3pq+vmwY5cyaFTL2SjQjzwxjBKv1DNBbfnBcbsQ=
+github.com/gofurry/vdf-go v1.0.0/go.mod h1:9tv+Oo2bhK3/npm4BCaN5nCtJYjnVXm1/LaKn+zY+58=
 github.com/gorilla/css v1.0.1 h1:ntNaBIghp6JmvWnxbZKANoLyuXTPZ4cAMlo6RyhlbO8=
 github.com/gorilla/css v1.0.1/go.mod h1:BvnYkspnSzMmwRK+b8/xgNPLiIuNZr6vbZBTPQ2A3b0=
 github.com/microcosm-cc/bluemonday v1.0.27 h1:MpEUotklkwCSLeH+Qdx1VJgNqLlpY2KXwXFM08ygZfk=

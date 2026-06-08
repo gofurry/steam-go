@@ -79,3 +79,6 @@ Out of Scope 表示当前不承诺。
 - `addons/a2s`
 - `addons/a2s/master`
 - `addons/a2s/scanner`
+- `addons/assets`
+- `addons/markup`
+- `addons/vdf`

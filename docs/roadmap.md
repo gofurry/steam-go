@@ -2,7 +2,7 @@
 
 > 目标：在 `v1.3.0` 已完成治理、文档、诊断、API coverage automation、fixture/smoke、只读 Web helper 与 request observer 的基础上，继续放慢版本节奏，把维护体系稳定下来。
 >
-> 当前策略：`v1.3.2` 已作为小范围能力补丁落地 Store events 与 Steam 内容清洗；原前瞻候选顺延到 `v1.3.3`，继续避免提前承诺新的大版本。
+> 当前策略：`v1.3.2` 已作为小范围能力补丁落地 Store events 与 Steam 内容清洗；`v1.3.3` 固定为 Candidate D + `addons/vdf`，继续以兼容小步补丁推进，不提前承诺新的大版本。
 
 ---
 
@@ -18,7 +18,7 @@
 
 结论：
 
-> `v1.3.1` 做稳定化与发布闭环，`v1.3.2` 补齐采集器急需的 Store events 与 markup 能力，`v1.3.3` 再承接下一阶段前瞻候选。
+> `v1.3.1` 做稳定化与发布闭环，`v1.3.2` 补齐采集器急需的 Store events 与 markup 能力，`v1.3.3` 固定为 Candidate D + vdf addon，避免候选池继续发散。
 
 ---
 
@@ -178,76 +178,48 @@
 
 ---
 
-## 6. `v1.3.3` - Forward Look
+## 6. `v1.3.3` - Candidate D + VDF Addon
 
-**Status:** Planned / Candidate
+**Status:** In progress
 
-**Scope:** Feature selection / Addon candidate / Diagnostics candidate / Official endpoint candidate
-**Goal:** 只在 `v1.3.2` 稳定后，从经过 triage 的候选中选择 1 到 2 个主题推进，不做大爆炸版本。
+**Scope:** Addon / User-facing helper / Documentation / Testing
+**Goal:** 固定 `v1.3.3` 为一个克制的兼容补丁：新增 `addons/vdf` 轻桥接，并只保留 Candidate D 的小幅 Web helper 增强空间。
 
-### Candidate A: 精选官方 Endpoint 扩展
+### Focus
 
-适合条件：`coverage-triage.md` 已经成熟，有明确 P1 endpoint。
+- `addons/vdf` text VDF / KeyValues bridge
+- Candidate D 小幅 Web helper 增强
+- addon scope / non-goals 文档化
+- 最小但可验证的测试和示例
 
-选择标准：
+### Tasks
 
-- 官方 Steam Web API。
-- 只读或低风险。
-- 通用性强，不是极窄游戏特定接口。
-- 认证边界清楚。
-- 可用本地 fixture 测试。
-- payload 稳定，或能采用 typed outer + `json.RawMessage`。
-
-不选：
-
-- mutating endpoint。
-- partner / publisher sensitive endpoint。
-- 需要特殊权限且无法稳定测试的 endpoint。
-- purchase、trade、sell、bulk automation 相关 endpoint。
-
-### Candidate B: Observability Addon or Cookbook Adapter
-
-适合条件：真实用户需要接入 metrics/tracing。
-
-方向：
-
-- 优先 cookbook adapter。
-- 如果需要代码，考虑 `addons/otel` 或 `addons/prommetrics`。
-- addon 只消费 sanitized `RequestEvent`。
-- 不把重依赖放进核心包。
-- 控制 metrics label 基数。
-
-### Candidate C: Doctor 产品化
-
-适合条件：用户反馈集中在网络、代理、凭据、区域和上游可用性排查。
-
-方向：
-
-- 保留 `examples/doctor` 作为学习入口。
-- 评估是否新增 `cmd/steam-go-doctor`。
-- 固化 JSON schema。
-- 支持输出 redacted report。
-- 不支持自动登录、cookie 刷新或 browser fallback。
-
-### Candidate D: 小幅 Web Helper 增强
-
-适合条件：现有 paginator/batch helper 在真实使用中暴露明确重复需求。
-
-可考虑：
-
-- Reviews collector helper，但必须要求显式 `MaxPages` 或 `MaxReviews`。
-- Inventory asset/description join helper。
-- Storefront app details 的稳定字段补 typed。
-- App details batch 合并请求，前提是 upstream 多 appids 行为稳定且测试覆盖明确。
+- [x] 引入 `github.com/gofurry/vdf-go v1.0.0`。
+- [x] 新增 `addons/vdf` 包，re-export `vdf-go` 的核心类型、parse option、encode option、parse/marshal/write 函数。
+- [x] 为 `addons/vdf` 增加 GoDoc，明确只处理文本 VDF / KeyValues。
+- [x] 增加 `addons/vdf` bridge tests 和 example tests。
+- [x] 增加 `examples/vdf` 可运行示例。
+- [x] 更新 root README、中文 README 和中英文 addon reference。
+- [ ] 评估 Candidate D 的唯一小幅 Web helper 主题，优先从 reviews collector、inventory join、Storefront typed field 补齐中选择一个。
+- [ ] Candidate D helper 必须显式限制翻页或批量范围，不允许默认无限抓取。
+- [ ] 新增或更新 `docs/releases/v1.3.3.md` 与 `docs/zh/releases/v1.3.3.md`。
 
 ### Acceptance Criteria
 
-- [ ] 只选择 1 到 2 个主题进入实现。
-- [ ] 每个主题都有明确边界、测试计划和文档入口。
-- [ ] 新 endpoint 必须来自 `coverage-triage.md`。
-- [ ] 新 helper 不默认无限抓取。
-- [ ] 新 addon 不污染核心依赖。
-- [ ] 不做账号自动化、不绕过 upstream 限制。
+- [x] `go test ./...` 通过。
+- [x] `go run ./examples/vdf -file <caller-provided-vdf> -key <top-level-key>` 可运行。
+- [x] `addons/vdf` 不重新实现 parser，只桥接 `vdf-go`。
+- [x] `addons/vdf` 不自动扫描 Steam 安装目录。
+- [x] `addons/vdf` 不读取账号、token、cookie、session。
+- [x] `addons/vdf` 不承诺 binary VDF 或 `shortcuts.vdf`。
+- [ ] Candidate D helper 若进入本版本，必须有测试、文档和明确上限。
+- [ ] 不新增账号自动化、购买、交易、绕过 upstream 限制等能力。
+
+### Notes
+
+- 原 Candidate A/B/C 不进入 `v1.3.3`，后续如果有真实需求再重新排期。
+- `addons/vdf` 是对独立稳定库的轻桥接，不把 `steam-go` 扩展成本地 Steam 扫描工具。
+- 如果 Candidate D 在实现前没有足够明确的真实需求，`v1.3.3` 可以只发布 `addons/vdf` 与相关文档。
 
 ---
 
@@ -278,14 +250,15 @@
 
 ---
 
-## 8. 进入 `v1.3.3` 的条件
+## 8. `v1.3.3` 执行约束
 
-只有满足下面条件，才开始推进 `v1.3.3` 候选：
+`v1.3.3` 已进入 Candidate D + vdf addon 执行态，后续只按下面约束继续推进：
 
-- [ ] `v1.3.2` release closure 完成。
-- [ ] `coverage-triage.md` 有可执行分类。
-- [ ] doctor JSON schema 和 live smoke 报告稳定。
-- [ ] observer、batch、paginator 的真实使用边界已文档化。
+- [x] 候选范围从 A/B/C/D 收敛为 Candidate D + `addons/vdf`。
+- [x] vdf 能力必须保持 addon 化，不进入 root `Client` 或 `client.Web.*`。
+- [x] vdf 能力必须复用 `vdf-go`，不在本仓库重写 parser。
+- [ ] Candidate D 只能选择一个小幅 Web helper 主题，不能重新打开大候选池。
+- [ ] Candidate D helper 必须有显式分页、批量或请求上限。
 - [ ] 没有未处理的兼容性或 secret safety 问题。
 
 ---
@@ -296,6 +269,6 @@
 
 建议执行原则：
 
-> `v1.3.2` 先完成 Store events 与 markup 这类明确、低风险、采集器依赖的补丁；`v1.3.3` 再从 triage 结果中选择少量明确主题。不要急着进入新的 minor 版本。
+> `v1.3.2` 先完成 Store events 与 markup 这类明确、低风险、采集器依赖的补丁；`v1.3.3` 固定为 Candidate D + vdf addon。不要重新打开大候选池，也不要急着进入新的 minor 版本。
 
 这样可以让 `steam-go` 在不快速膨胀版本号的前提下，继续保持可信、可维护、边界清晰。
