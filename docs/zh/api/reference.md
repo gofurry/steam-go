@@ -50,9 +50,11 @@
 - `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
 - `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
 - `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.CollectAppReviews`
 - `client.Web.Storefront.GetAppDetailsBatch`
 - `client.Web.Community.GetInventory` / `GetInventoryRaw`
 - `client.Web.Community.ListInventory`
+- `community.JoinInventoryDescriptions`
 - `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
 - `client.Web.Market.GetPriceOverviewBatch`
 
@@ -60,6 +62,8 @@
 
 - Web helper 只读，不会注入 Steam Web API 的 `key` 或 `access_token`。
 - paginator 和 batch helper 复用底层单项方法的 timeout、retry、rate limit、body cap、proxy、cookie jar 与 traffic policy。
+- `CollectAppReviews` 必须显式设置 `MaxPages` 或 `MaxReviews`。
+- `JoinInventoryDescriptions` 是纯本地 helper，不会发起请求。
 - batch helper 保持输入顺序，并通过 per-item error 表示单项失败。
 - Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
 

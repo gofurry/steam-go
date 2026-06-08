@@ -2,6 +2,7 @@ package storefront
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	sdkerrors "github.com/gofurry/steam-go/internal/errors"
@@ -15,6 +16,13 @@ type ListAppReviewsOptions struct {
 	MaxPages int
 }
 
+// CollectAppReviewsOptions controls bounded Storefront review collection.
+type CollectAppReviewsOptions struct {
+	Query      GetAppReviewsOptions
+	MaxPages   int
+	MaxReviews int
+}
+
 // AppReviewsPage is one Storefront reviews page.
 type AppReviewsPage struct {
 	Page     int
@@ -25,6 +33,15 @@ type AppReviewsPage struct {
 
 // AppReviewsPageHandler handles one Storefront reviews page.
 type AppReviewsPageHandler func(AppReviewsPage) error
+
+// AppReviewsCollection is the accumulated result from CollectAppReviews.
+type AppReviewsCollection struct {
+	Reviews      []AppReview
+	Pages        int
+	LastCursor   string
+	QuerySummary StoreReviewQuerySummary
+	Truncated    bool
+}
 
 // GetAppDetailsBatchOptions controls batch app details lookups.
 type GetAppDetailsBatchOptions struct {
@@ -87,6 +104,72 @@ func (s *Service) ListAppReviews(ctx context.Context, appID uint32, opts *ListAp
 		cursor = nextCursor
 	}
 	return nil
+}
+
+var errStopReviewCollection = errors.New("stop app review collection")
+
+// CollectAppReviews accumulates Storefront app review pages into memory with an
+// explicit caller-provided bound.
+//
+// Callers must set MaxPages or MaxReviews. This helper is read-only, but it can
+// still issue multiple Storefront requests, so production callers should pair it
+// with conservative traffic policy, rate limits, and context deadlines.
+func (s *Service) CollectAppReviews(ctx context.Context, appID uint32, opts *CollectAppReviewsOptions) (AppReviewsCollection, error) {
+	if opts == nil {
+		return AppReviewsCollection{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "app reviews collection limits are required", nil, nil)
+	}
+	if opts.MaxPages < 0 {
+		return AppReviewsCollection{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max pages must not be negative", nil, nil)
+	}
+	if opts.MaxReviews < 0 {
+		return AppReviewsCollection{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max reviews must not be negative", nil, nil)
+	}
+	if opts.MaxPages == 0 && opts.MaxReviews == 0 {
+		return AppReviewsCollection{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "max pages or max reviews is required", nil, nil)
+	}
+
+	query := cloneGetAppReviewsOptions(opts.Query)
+	if opts.MaxReviews > 0 && query.NumPerPage == 0 && opts.MaxReviews < defaultReviewNumPerPage {
+		query.NumPerPage = opts.MaxReviews
+	}
+
+	collection := AppReviewsCollection{}
+	err := s.ListAppReviews(ctx, appID, &ListAppReviewsOptions{
+		Query:    query,
+		MaxPages: opts.MaxPages,
+	}, func(page AppReviewsPage) error {
+		collection.Pages = page.Page
+		collection.LastCursor = page.Response.Cursor
+		collection.QuerySummary = page.Response.QuerySummary
+
+		pageReviews := page.Reviews
+		if opts.MaxReviews > 0 {
+			remaining := opts.MaxReviews - len(collection.Reviews)
+			if remaining <= 0 {
+				collection.Truncated = true
+				return errStopReviewCollection
+			}
+			if len(pageReviews) > remaining {
+				collection.Reviews = append(collection.Reviews, pageReviews[:remaining]...)
+				collection.Truncated = true
+				return errStopReviewCollection
+			}
+		}
+
+		collection.Reviews = append(collection.Reviews, pageReviews...)
+		if opts.MaxReviews > 0 && len(collection.Reviews) >= opts.MaxReviews {
+			collection.Truncated = true
+			return errStopReviewCollection
+		}
+		if opts.MaxPages > 0 && page.Page >= opts.MaxPages && len(page.Reviews) > 0 && page.Response.Cursor != "" && page.Response.Cursor != page.Cursor {
+			collection.Truncated = true
+		}
+		return nil
+	})
+	if errors.Is(err, errStopReviewCollection) {
+		return collection, nil
+	}
+	return collection, err
 }
 
 // GetAppDetailsBatch fetches app details while preserving input order and per-item errors.

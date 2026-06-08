@@ -48,15 +48,19 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 - `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
 - `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
 - `client.Web.Storefront.ListAppReviews`
+- `client.Web.Storefront.CollectAppReviews`
 - `client.Web.Storefront.GetAppDetailsBatch`
 - `client.Web.Community.GetInventory` / `GetInventoryRaw`
 - `client.Web.Community.ListInventory`
+- `community.JoinInventoryDescriptions`
 - `client.Web.Market.GetPriceOverview` / `GetPriceOverviewRaw`
 - `client.Web.Market.GetPriceOverviewBatch`
 
 Notes:
 - Web helpers are read-only and never inject Steam Web API `key` or `access_token`.
 - Paginator and batch helpers reuse the same timeout, retry, rate limit, body cap, proxy, cookie jar, and traffic policy behavior as their underlying single-item methods.
+- `CollectAppReviews` requires an explicit `MaxPages` or `MaxReviews` bound.
+- `JoinInventoryDescriptions` is local-only and does not issue requests.
 - Batch helpers preserve input order and report per-item errors.
 - Community inventory helpers do not log in, refresh cookies, or guarantee access to private inventories.
 

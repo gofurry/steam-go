@@ -34,6 +34,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.2.1 release notes](releases/v1.2.1.md)
 - [v1.3.0 release notes](releases/v1.3.0.md)
 - [v1.3.2 release notes](releases/v1.3.2.md)
+- [v1.3.3 release notes](releases/v1.3.3.md)
 - [Release checklist](releases/checklist.md)
 
 ## Chinese
@@ -68,6 +69,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.2.1 Release Notes](zh/releases/v1.2.1.md)
 - [v1.3.0 Release Notes](zh/releases/v1.3.0.md)
 - [v1.3.2 Release Notes](zh/releases/v1.3.2.md)
+- [v1.3.3 Release Notes](zh/releases/v1.3.3.md)
 
 ## Chinese-only Operational Docs
 

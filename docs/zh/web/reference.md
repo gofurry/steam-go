@@ -17,6 +17,7 @@
 - `GetAppReviews` / `GetAppReviewsRaw`
 - `GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`
 - `ListAppReviews`
+- `CollectAppReviews`
 - `GetAppDetailsBatch`
 - 默认 traffic class：`TrafficClassPublicStorePage`
 
@@ -30,12 +31,20 @@ ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAp
 商店新闻 / 活动页附近的 partner event。方法提供稳定 typed 子集，并保留嵌套
 raw payload，方便调用方读取 SDK 暂未 typed 的字段。
 
+`CollectAppReviews` 基于 `ListAppReviews` 聚合 reviews，但必须由调用方显式设置
+`MaxPages` 或 `MaxReviews`，避免默认无限抓取。
+
 ### `client.Web.Community`
 
 - `GetInventory` / `GetInventoryRaw`
 - `ListInventory`
+- `JoinInventoryDescriptions`
 - 默认 traffic class：`TrafficClassCommunityWeb`
 - 如果库存读取需要鉴权，可通过 `WithCookieJar(...)` 或 `WithDefaultCookieJar()` 提供 Cookie
+
+`JoinInventoryDescriptions` 是纯本地 helper。它按 `appid`、`classid` 和
+`instanceid` 把 inventory assets 与 descriptions 配对，不发起网络请求，也不做市场、
+交易、定价或账号自动化。
 
 ### `client.Web.Market`
 
