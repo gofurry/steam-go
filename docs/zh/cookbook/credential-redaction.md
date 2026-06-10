@@ -23,6 +23,14 @@ safeHeaders := steam.RedactSensitiveHeaders(req.Header)
 
 `RedactSensitiveHeaders(...)` 返回 clone，不会修改原始 header map。
 
+## 文本脱敏
+
+```go
+safeText := steam.RedactSensitiveText(logLine)
+```
+
+`RedactSensitiveText(...)` 是面向日志、诊断和 report 的 best-effort helper，可处理 URL-like、cookie-like、authorization 和 proxy URL 片段。
+
 ## 敏感值
 
 不要记录或粘贴：

@@ -453,6 +453,71 @@ func TestDoRawHTTPRequestHostPolicyAllowsOnlyConfiguredHosts(t *testing.T) {
 	expectKind(t, err, steam.ErrorKindRequestBuild)
 }
 
+func TestSuffixRawHTTPHostPolicyMatchesBoundarySafely(t *testing.T) {
+	t.Parallel()
+
+	policy, err := steam.NewSuffixRawHTTPHostPolicy("steamstatic.com")
+	if err != nil {
+		t.Fatalf("NewSuffixRawHTTPHostPolicy returned error: %v", err)
+	}
+
+	tests := []struct {
+		rawURL string
+		allow  bool
+	}{
+		{rawURL: "https://steamstatic.com/path", allow: true},
+		{rawURL: "https://shared.steamstatic.com/path", allow: true},
+		{rawURL: "https://shared.steamstatic.com:443/path", allow: true},
+		{rawURL: "https://evilsteamstatic.com/path", allow: false},
+		{rawURL: "https://steamstatic.com.evil.example/path", allow: false},
+	}
+	for _, tc := range tests {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, tc.rawURL, nil)
+		if err != nil {
+			t.Fatalf("NewRequestWithContext returned error: %v", err)
+		}
+		err = policy.Allow(req)
+		if tc.allow && err != nil {
+			t.Fatalf("expected %s to be allowed: %v", tc.rawURL, err)
+		}
+		if !tc.allow && err == nil {
+			t.Fatalf("expected %s to be rejected", tc.rawURL)
+		}
+	}
+}
+
+func TestNewSuffixRawHTTPHostPolicyRejectsInvalidSuffixes(t *testing.T) {
+	t.Parallel()
+
+	tests := []string{
+		"",
+		"*",
+		"*.steamstatic.com",
+		"steamstatic.com/path",
+		"steamstatic.com?x=1",
+		"https://steamstatic.com/path",
+		"steamstatic.com:443",
+	}
+	for _, suffix := range tests {
+		if _, err := steam.NewSuffixRawHTTPHostPolicy(suffix); err == nil {
+			t.Fatalf("expected suffix %q to be rejected", suffix)
+		}
+	}
+}
+
+func TestSteamStaticRawHTTPHostPolicyAllowsCommonStaticHosts(t *testing.T) {
+	t.Parallel()
+
+	policy := steam.NewSteamStaticRawHTTPHostPolicy()
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://cdn.cloudflare.steamstatic.com/path", nil)
+	if err != nil {
+		t.Fatalf("NewRequestWithContext returned error: %v", err)
+	}
+	if err := policy.Allow(req); err != nil {
+		t.Fatalf("expected steamstatic host to be allowed: %v", err)
+	}
+}
+
 func TestNewAllowedRawHTTPHostPolicyRejectsInvalidHosts(t *testing.T) {
 	t.Parallel()
 

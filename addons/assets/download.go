@@ -156,11 +156,15 @@ func appDownloadPath(dir string, mode StoreMode, appID uint32, name string) stri
 }
 
 func downloadRequests(ctx context.Context, client *http.Client, overwrite OverwriteMode, concurrency int, requests []downloadRequest) ([]DownloadResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if concurrency <= 0 {
 		concurrency = 1
 	}
 	results := make([]DownloadResult, len(requests))
 	errs := make([]error, len(requests))
+	submitted := make([]bool, len(requests))
 
 	jobs := make(chan int)
 	var wg sync.WaitGroup
@@ -175,11 +179,27 @@ func downloadRequests(ctx context.Context, client *http.Client, overwrite Overwr
 			}
 		}()
 	}
+enqueue:
 	for index := range requests {
-		jobs <- index
+		select {
+		case <-ctx.Done():
+			break enqueue
+		case jobs <- index:
+			submitted[index] = true
+		}
 	}
 	close(jobs)
 	wg.Wait()
+
+	if err := ctx.Err(); err != nil {
+		for index, ok := range submitted {
+			if ok {
+				continue
+			}
+			results[index] = canceledDownloadResult(requests[index], err)
+			errs[index] = err
+		}
+	}
 
 	joined := make([]error, 0)
 	for _, err := range errs {
@@ -188,6 +208,19 @@ func downloadRequests(ctx context.Context, client *http.Client, overwrite Overwr
 		}
 	}
 	return results, errors.Join(joined...)
+}
+
+func canceledDownloadResult(req downloadRequest, err error) DownloadResult {
+	return DownloadResult{
+		AppID:  req.item.AppID,
+		Kind:   req.item.Kind,
+		ID:     req.item.ID,
+		Name:   req.item.Name,
+		URL:    req.url,
+		Path:   req.path,
+		Status: DownloadStatusFailed,
+		Error:  err.Error(),
+	}
 }
 
 func downloadRequestOne(ctx context.Context, client *http.Client, overwrite OverwriteMode, req downloadRequest) (DownloadResult, error) {

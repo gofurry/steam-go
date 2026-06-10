@@ -135,3 +135,36 @@ func TestRedactSensitiveHeadersNil(t *testing.T) {
 		t.Fatalf("expected nil header, got %#v", got)
 	}
 }
+
+func TestRedactSensitiveTextRedactsCommonCredentialFragments(t *testing.T) {
+	t.Parallel()
+
+	raw := strings.Join([]string{
+		"request failed",
+		"https://api.steampowered.com/path?api_key=api-secret&ok=1",
+		"Cookie: sessionid=session-secret; steamLoginSecure=login-secret",
+		"Authorization: Bearer bearer-secret",
+		"proxy=http://user:proxy-secret@127.0.0.1:7897",
+	}, " ")
+
+	got := steam.RedactSensitiveText(raw)
+	for _, secret := range []string{"api-secret", "session-secret", "login-secret", "bearer-secret", "proxy-secret"} {
+		if strings.Contains(got, secret) {
+			t.Fatalf("RedactSensitiveText leaked %q in %q", secret, got)
+		}
+	}
+	for _, want := range []string{"api_key=[REDACTED]", "sessionid=[REDACTED]", "steamLoginSecure=[REDACTED]", "Authorization: Bearer [REDACTED]", "http://[REDACTED]@127.0.0.1:7897"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("RedactSensitiveText missing %q in %q", want, got)
+		}
+	}
+}
+
+func TestRedactSensitiveTextLeavesSafeText(t *testing.T) {
+	t.Parallel()
+
+	raw := "market lookup finished status=200 appid=730"
+	if got := steam.RedactSensitiveText(raw); got != raw {
+		t.Fatalf("safe text changed: got %q want %q", got, raw)
+	}
+}

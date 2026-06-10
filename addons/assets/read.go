@@ -151,11 +151,15 @@ type readRequest struct {
 }
 
 func readRequests(ctx context.Context, client *http.Client, maxBytes int64, concurrency int, requests []readRequest) ([]ReadResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if concurrency <= 0 {
 		concurrency = 1
 	}
 	results := make([]ReadResult, len(requests))
 	errs := make([]error, len(requests))
+	submitted := make([]bool, len(requests))
 
 	jobs := make(chan int)
 	var wg sync.WaitGroup
@@ -170,11 +174,27 @@ func readRequests(ctx context.Context, client *http.Client, maxBytes int64, conc
 			}
 		}()
 	}
+enqueue:
 	for index := range requests {
-		jobs <- index
+		select {
+		case <-ctx.Done():
+			break enqueue
+		case jobs <- index:
+			submitted[index] = true
+		}
 	}
 	close(jobs)
 	wg.Wait()
+
+	if err := ctx.Err(); err != nil {
+		for index, ok := range submitted {
+			if ok {
+				continue
+			}
+			results[index] = canceledReadResult(requests[index], err)
+			errs[index] = err
+		}
+	}
 
 	joined := make([]error, 0)
 	for _, err := range errs {
@@ -183,6 +203,17 @@ func readRequests(ctx context.Context, client *http.Client, maxBytes int64, conc
 		}
 	}
 	return results, errors.Join(joined...)
+}
+
+func canceledReadResult(req readRequest, err error) ReadResult {
+	return ReadResult{
+		AppID: req.item.AppID,
+		Kind:  req.item.Kind,
+		ID:    req.item.ID,
+		Name:  req.item.Name,
+		URL:   req.url,
+		Error: err.Error(),
+	}
 }
 
 func readRequestOne(ctx context.Context, client *http.Client, maxBytes int64, req readRequest) (ReadResult, error) {
@@ -217,6 +248,9 @@ func readRequestOne(ctx context.Context, client *http.Client, maxBytes int64, re
 }
 
 func readEachRequests(ctx context.Context, client *http.Client, maxBytes int64, concurrency int, requests []readRequest, handle ReadHandler) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if handle == nil {
 		return fmt.Errorf("read handler must not be nil")
 	}
@@ -256,8 +290,14 @@ func readEachRequests(ctx context.Context, client *http.Client, maxBytes int64, 
 			}
 		}()
 	}
+enqueue:
 	for index := range requests {
-		jobs <- index
+		select {
+		case <-ctx.Done():
+			appendErr(ctx.Err())
+			break enqueue
+		case jobs <- index:
+		}
 	}
 	close(jobs)
 	wg.Wait()

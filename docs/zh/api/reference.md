@@ -96,6 +96,7 @@
 - 客户端级凭证适合作为默认配置，用于不要求调用方显式传凭证的方法。
 - 日志中不要直接打印包含 `key` 或 `access_token` 的 URL，优先使用 `steam.RedactSensitiveURL(...)`。
 - 记录可能包含 `Authorization`、`Cookie`、`Set-Cookie`、proxy 凭据或 Web API key header 的 headers 前，优先使用 `steam.RedactSensitiveHeaders(...)`。
+- 日志、诊断或 report 中的自由文本可以使用 `steam.RedactSensitiveText(...)` 做 best-effort 脱敏。
 
 ## Addons
 
@@ -126,7 +127,7 @@
 
 另外，`(*steam.Client).DoRawHTTPRequest(...)` 提供了一个面向 addon/raw HTTP 场景的公开入口，让非 typed 服务也能复用根 SDK 的按类别执行链。
 
-Raw HTTP 只接受 absolute URL。不要把不可信的用户输入 URL 直接传给 `DoRawHTTPRequest(...)`；当 URL 来源不完全受控时，优先通过 `RawHTTPRequestOptions.HostPolicy`、`NewAllowedRawHTTPHostPolicy(...)` 或 `NewSteamRawHTTPHostPolicy()` 限制允许访问的 host。
+Raw HTTP 只接受 absolute URL。不要把不可信的用户输入 URL 直接传给 `DoRawHTTPRequest(...)`；当 URL 来源不完全受控时，优先通过 `RawHTTPRequestOptions.HostPolicy`、`NewAllowedRawHTTPHostPolicy(...)`、`NewSuffixRawHTTPHostPolicy(...)`、`NewSteamRawHTTPHostPolicy()` 或 `NewSteamStaticRawHTTPHostPolicy()` 限制允许访问的 host。
 
 Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST`、`PUT`、`PATCH`、`DELETE` 等非幂等方法只有在 SDK 方法或 `RawHTTPRequestOptions.Retryable` 显式 opt-in 后才会自动重试。
 
@@ -141,5 +142,6 @@ Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST
 - addon 手动示例：`go run ./examples/assets -app-ids 550,107100`
 - addon 手动示例：`go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - addon 手动示例：`go run ./examples/freeclaim`
+- 请求观测示例：`go run ./examples/observer`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

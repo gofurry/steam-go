@@ -248,6 +248,7 @@ Additional rules:
 - Client-level credentials still act as defaults for shared/public endpoints that do not require explicit method-level credentials.
 - Steam expects many of these credentials on the URL query string. Do not log raw request URLs in production; use `steam.RedactSensitiveURL(...)` before emitting URLs to logs, traces, or monitoring.
 - Use `steam.RedactSensitiveHeaders(...)` before logging headers that may contain `Authorization`, `Cookie`, `Set-Cookie`, proxy credentials, or Web API key headers.
+- Use `steam.RedactSensitiveText(...)` for best-effort redaction of common credential fragments in logs, diagnostics, or reports.
 - `WithSafeDefaults()` enables one conservative preset for external traffic: retry `2` with a `3 rps / burst 3` client-level limiter.
 - `WithHealthCheckedAPIKeys(...)` keeps round-robin rotation but temporarily cools down keys that repeatedly fail with `401/429`, so one bad key does not keep poisoning every retry loop.
 
@@ -322,6 +323,8 @@ Notes:
 - `RawHTTPResult`
 - `NewAllowedRawHTTPHostPolicy(hosts ...string)`
 - `NewSteamRawHTTPHostPolicy()`
+- `NewSuffixRawHTTPHostPolicy(suffixes ...string)`
+- `NewSteamStaticRawHTTPHostPolicy()`
 - `WithTrafficPolicy(class TrafficClass, policy TrafficPolicy)`
 - `WithRequestObserver(observer RequestObserver)`
 - `WithTrafficClass(ctx context.Context, class TrafficClass) context.Context`
@@ -335,7 +338,7 @@ Notes:
 - Existing typed `client.API.*` methods default to `TrafficClassOfficialAPI`.
 - `client.Web.Storefront.*` defaults to `TrafficClassPublicStorePage`, `client.Web.Community.*` defaults to `TrafficClassCommunityWeb`, and `client.Web.Market.*` defaults to `TrafficClassMarketWeb`.
 - `(*Client).DoRawHTTPRequest(...)` is intended for addon-style raw HTTP flows that still need the SDK's class-aware execution stack.
-- Raw HTTP accepts only absolute URLs. Do not pass untrusted user-controlled URLs directly; use `RawHTTPRequestOptions.HostPolicy` with `NewAllowedRawHTTPHostPolicy(...)` or `NewSteamRawHTTPHostPolicy()` when the URL source is not fully controlled by your code.
+- Raw HTTP accepts only absolute URLs. Do not pass untrusted user-controlled URLs directly; use `RawHTTPRequestOptions.HostPolicy` with `NewAllowedRawHTTPHostPolicy(...)`, `NewSuffixRawHTTPHostPolicy(...)`, `NewSteamRawHTTPHostPolicy()`, or `NewSteamStaticRawHTTPHostPolicy()` when the URL source is not fully controlled by your code.
 - Retry is method-aware: `GET`, `HEAD`, and `OPTIONS` are retryable by default. Non-idempotent methods such as `POST`, `PUT`, `PATCH`, and `DELETE` retry only when the SDK method or `RawHTTPRequestOptions.Retryable` explicitly opts in.
 - `WithTrafficPolicy(...)` only overrides the fields you set; unset fields continue to use the client-level defaults.
 - `TrafficCachePolicy` currently applies only to `GET` requests and uses in-memory short TTL caching with `ETag` / `Last-Modified` revalidation.
@@ -343,7 +346,7 @@ Notes:
 - `HeaderProfile` only fills missing request headers and does not override explicit values already set on the request.
 - Referer selectors run before transport execution; an explicit `Referer` header on the request still wins.
 - `TransportHook` runs during client construction after the class-specific base `http.Client` has already been assembled with timeout, proxy routing, and cookie jar settings.
-- `WithRequestObserver(...)` emits sanitized request events after SDK requests complete. Events include traffic class, method, host, path without raw query, status, error kind, attempts, cache hit, block detection, and duration.
+- `WithRequestObserver(...)` emits sanitized request events after SDK requests complete. Events include traffic class, method, host, path without raw query, status, error kind, attempts, cache hit, conditional hit, block detection, and duration.
 - Conditional cache revalidation that returns `304 Not Modified` also emits an observer event with `CacheHit=true` and `ConditionalHit=true`.
 - Request observer events do not include headers, bodies, API keys, tokens, cookies, raw query strings, or proxy passwords.
 
@@ -360,3 +363,4 @@ Notes:
 - `go run ./examples/freeclaim`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`
+- `go run ./examples/observer`

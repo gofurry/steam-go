@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDownloadURLs(t *testing.T) {
@@ -208,6 +209,67 @@ func TestDownloadAppAssetsRejectsUnsafeLocalizedLanguage(t *testing.T) {
 	}, 550)
 	if err == nil {
 		t.Fatal("DownloadAppAssets returned nil error")
+	}
+}
+
+func TestDownloadURLsCanceledBeforeEnqueue(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	results, err := DownloadURLsWithOptions(ctx, DownloadOptions{
+		Dir: t.TempDir(),
+	}, "https://example.com/a.jpg", "https://example.com/b.jpg")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("DownloadURLsWithOptions error = %v, want context canceled", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want 2", len(results))
+	}
+	for _, result := range results {
+		if result.Status != DownloadStatusFailed || !strings.Contains(result.Error, context.Canceled.Error()) {
+			t.Fatalf("expected canceled failed result, got %#v", result)
+		}
+	}
+}
+
+func TestDownloadURLsStopsEnqueueAfterContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	transport := &cancelAwareTransport{started: make(chan struct{}, 1)}
+	client := &http.Client{Transport: transport}
+	urls := make([]string, 64)
+	for i := range urls {
+		urls[i] = "https://example.com/asset.jpg"
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := DownloadURLsWithOptions(ctx, DownloadOptions{
+			Dir:         t.TempDir(),
+			HTTPClient:  client,
+			Concurrency: 1,
+		}, urls...)
+		done <- err
+	}()
+
+	select {
+	case <-transport.started:
+		cancel()
+	case <-time.After(time.Second):
+		t.Fatal("first request was not started")
+	}
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("DownloadURLsWithOptions error = %v, want context canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("DownloadURLsWithOptions did not return after cancellation")
+	}
+	if got := transport.calls.Load(); got > 2 {
+		t.Fatalf("expected enqueue to stop promptly, got %d transport calls", got)
 	}
 }
 

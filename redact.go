@@ -11,6 +11,8 @@ const redactedSensitiveValue = "[REDACTED]"
 
 var sensitiveURLQueryKeys = map[string]struct{}{
 	"access_token":         {},
+	"api_key":              {},
+	"apikey":               {},
 	"key":                  {},
 	"loyalty_webapi_token": {},
 	"refresh_token":        {},
@@ -39,6 +41,11 @@ var sensitiveHeaderNames = map[string]struct{}{
 
 var sensitiveURLFallbackPatterns = buildSensitiveURLFallbackPatterns()
 
+var (
+	authorizationTextPattern = regexp.MustCompile(`(?i)(\bauthorization\s*:\s*(?:bearer|basic)\s+)([^\s,;]+)`)
+	proxyUserinfoTextPattern = regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)([^/@\s]+@)`)
+)
+
 // RedactSensitiveURL removes userinfo plus API key-like query parameters from one URL string.
 //
 // When parsing fails, a best-effort fallback redacts obvious credential-bearing key/value pairs.
@@ -48,6 +55,17 @@ func RedactSensitiveURL(rawURL string) string {
 		return redactSensitiveURLFallback(rawURL)
 	}
 	return redactSensitiveURL(parsed).String()
+}
+
+// RedactSensitiveText redacts obvious credential-bearing fragments in free-form text.
+//
+// It is best-effort and intentionally conservative; it is meant for logs,
+// diagnostics, examples, and reports, not for classifying every possible secret.
+func RedactSensitiveText(text string) string {
+	redacted := redactSensitiveURLFallback(text)
+	redacted = authorizationTextPattern.ReplaceAllString(redacted, `${1}`+redactedSensitiveValue)
+	redacted = proxyUserinfoTextPattern.ReplaceAllString(redacted, `${1}`+redactedSensitiveValue+"@")
+	return redacted
 }
 
 func redactSensitiveURL(parsed *url.URL) *url.URL {

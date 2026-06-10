@@ -23,6 +23,14 @@ Sensitive headers such as `Authorization`, `Proxy-Authorization`, `Cookie`, `Set
 
 `RedactSensitiveHeaders(...)` returns a clone and does not mutate the original header map.
 
+## Redact Text
+
+```go
+safeText := steam.RedactSensitiveText(logLine)
+```
+
+`RedactSensitiveText(...)` is a best-effort helper for logs, diagnostics, and reports that may contain URL-like, cookie-like, authorization, or proxy URL fragments.
+
 ## Sensitive Values
 
 Do not log or paste:
