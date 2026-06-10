@@ -9,6 +9,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API coverage diff](api/coverage-diff.md)
 - [API coverage triage](api/coverage-triage.md)
 - [Addon reference](addons/reference.md)
+- [Addon safety boundaries](addons/safety.md)
 - [Web reference](web/reference.md)
 - [Storefront appdetails rate-limit experiment](experiments/store-rate-limit-20260607.md)
 - Cookbook:
@@ -17,6 +18,7 @@ This directory keeps project documentation that is too detailed for the reposito
   - [Read-only Web endpoints](cookbook/web-readonly.md)
   - [Proxy and region](cookbook/proxy-and-region.md)
   - [Rate limit and retry](cookbook/rate-limit-and-retry.md)
+  - [Traffic policy](cookbook/traffic-policy.md)
   - [Error handling](cookbook/error-handling.md)
   - [Credential redaction](cookbook/credential-redaction.md)
   - [Doctor diagnostics](cookbook/doctor.md)
@@ -45,6 +47,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API 覆盖差异](api/coverage-diff.md)
 - [API 覆盖 Triage](api/coverage-triage.md)
 - [Addon 参考](zh/addons/reference.md)
+- [Addon 安全边界](zh/addons/safety.md)
 - [Storefront appdetails 限流实验](zh/experiments/store-rate-limit-20260607.md)
 - Cookbook:
   - [基础官方 API](zh/cookbook/basic-api.md)
@@ -52,6 +55,7 @@ This directory keeps project documentation that is too detailed for the reposito
   - [只读 Web 接口](zh/cookbook/web-readonly.md)
   - [代理与区域网络](zh/cookbook/proxy-and-region.md)
   - [限流与重试](zh/cookbook/rate-limit-and-retry.md)
+  - [Traffic Policy](zh/cookbook/traffic-policy.md)
   - [错误处理](zh/cookbook/error-handling.md)
   - [凭据脱敏](zh/cookbook/credential-redaction.md)
   - [Doctor 诊断](zh/cookbook/doctor.md)

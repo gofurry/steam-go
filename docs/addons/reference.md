@@ -2,6 +2,8 @@
 
 This document keeps the addon-level usage notes that would otherwise make the repository homepage too noisy.
 
+For cross-addon safety boundaries, see [Addon safety boundaries](safety.md).
+
 ## `addons/openid`
 
 Use `addons/openid` when you want browser-based Steam sign-in.

@@ -99,3 +99,8 @@ Batch helpers preserve input order. A single item failure is returned in that it
 - `MaxConcurrent` only limits helper-local parallelism. It is not a safe request rate by itself.
 - Use context timeout or cancellation for every batch or paginator call.
 - Keep `MaxPages` or `MaxReviews` explicit for workflows that should not walk unbounded upstream result sets.
+- `CollectAppReviews` always requires `MaxPages` or `MaxReviews`; prefer both for predictable memory and request volume.
+- `ListAppReviews` streams pages, but production code should still set `MaxPages` and a context timeout.
+- `ListInventory` can walk until Steam reports no more items; set `MaxPages` for scheduled jobs or user-triggered workflows.
+- Storefront and Market batch helpers preserve input order, but callers should still cap input size before calling them.
+- Market price lookups are more rate-limit sensitive than ordinary official API calls; keep `MaxConcurrent` low and pair it with `TrafficClassMarketWeb` rate limiting.

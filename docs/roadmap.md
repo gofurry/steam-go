@@ -101,10 +101,10 @@
 
 #### P3 Tasks
 
-- [ ] 新增 observer cookbook，说明同步回调边界、异步转发建议、统计维度和 secret-safe 事件字段。
-- [ ] 新增 traffic policy cookbook，覆盖 official API、Storefront Web、Community Web、Market Web、代理、host/session concurrency 和 cache TTL 边界。
-- [ ] 扩展 bounded Web helper cookbook，说明 reviews collector、inventory pagination、batch helpers、market helper 的请求规模限制建议。
-- [ ] 新增或扩展 addon safety 文档，明确 openid、websession、freeclaim、markup、vdf、assets 的安全边界。
+- [x] 新增 observer cookbook，说明同步回调边界、异步转发建议、统计维度和 secret-safe 事件字段。
+- [x] 新增 traffic policy cookbook，覆盖 official API、Storefront Web、Community Web、Market Web、代理、host/session concurrency 和 cache TTL 边界。
+- [x] 扩展 bounded Web helper cookbook，说明 reviews collector、inventory pagination、batch helpers、market helper 的请求规模限制建议。
+- [x] 新增或扩展 addon safety 文档，明确 openid、websession、freeclaim、markup、vdf、assets 的安全边界。
 
 #### Acceptance Criteria
 
