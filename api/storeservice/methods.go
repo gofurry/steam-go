@@ -183,9 +183,10 @@ func (s *Service) GetUserGameInterestStateRaw(ctx context.Context, accessToken s
 	}
 
 	return s.executor.DoRaw(ctx, request.RequestSpec{
-		Method: http.MethodPost,
-		Path:   endpoint.StoreServiceGetUserGameInterestState,
-		Query:  query,
+		Method:    http.MethodPost,
+		Path:      endpoint.StoreServiceGetUserGameInterestState,
+		Query:     query,
+		Retryable: request.Retryable(true),
 	})
 }
 

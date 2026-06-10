@@ -54,7 +54,8 @@ func (s *Service) DeleteCart(ctx context.Context) (DeleteCartResponse, error) {
 // DeleteCartRaw returns the raw JSON response body.
 func (s *Service) DeleteCartRaw(ctx context.Context) ([]byte, error) {
 	return s.executor.DoRaw(ctx, request.RequestSpec{
-		Method: http.MethodPost,
-		Path:   endpoint.AccountCartServiceDeleteCart,
+		Method:    http.MethodPost,
+		Path:      endpoint.AccountCartServiceDeleteCart,
+		Retryable: request.Retryable(false),
 	})
 }

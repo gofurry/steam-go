@@ -2,6 +2,8 @@
 
 本文档记录 `steam-go` 当前 addon 的定位和使用边界。
 
+跨 addon 的安全边界见：[Addon 安全边界](safety.md)。
+
 ## `addons/openid`
 
 当你需要基于浏览器的 Steam 登录时，可以使用 `addons/openid`。

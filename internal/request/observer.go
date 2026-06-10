@@ -25,33 +25,39 @@ func (f RequestObserverFunc) ObserveRequest(event RequestEvent) {
 
 // RequestEvent contains sanitized request execution metadata.
 type RequestEvent struct {
-	TrafficClass  traffic.Class
-	Method        string
-	Host          string
-	Path          string
-	StatusCode    int
-	ErrorKind     string
-	Attempts      int
-	CacheHit      bool
-	BlockDetected bool
-	Duration      time.Duration
+	TrafficClass   traffic.Class
+	Method         string
+	Host           string
+	Path           string
+	StatusCode     int
+	ErrorKind      string
+	Attempts       int
+	CacheHit       bool
+	ConditionalHit bool
+	BlockDetected  bool
+	Duration       time.Duration
 }
 
 func observeRequest(observer RequestObserver, req *http.Request, class traffic.Class, statusCode int, err error, attempts int, cacheHit, blockDetected bool, started time.Time) {
+	observeRequestWithFlags(observer, req, class, statusCode, err, attempts, cacheHit, false, blockDetected, started)
+}
+
+func observeRequestWithFlags(observer RequestObserver, req *http.Request, class traffic.Class, statusCode int, err error, attempts int, cacheHit, conditionalHit, blockDetected bool, started time.Time) {
 	if observer == nil {
 		return
 	}
 	observer.ObserveRequest(RequestEvent{
-		TrafficClass:  traffic.NormalizeClass(class),
-		Method:        requestMethod(req),
-		Host:          requestHost(req),
-		Path:          requestPath(req),
-		StatusCode:    statusCode,
-		ErrorKind:     requestErrorKind(err),
-		Attempts:      attempts,
-		CacheHit:      cacheHit,
-		BlockDetected: blockDetected,
-		Duration:      time.Since(started),
+		TrafficClass:   traffic.NormalizeClass(class),
+		Method:         requestMethod(req),
+		Host:           requestHost(req),
+		Path:           requestPath(req),
+		StatusCode:     statusCode,
+		ErrorKind:      requestErrorKind(err),
+		Attempts:       attempts,
+		CacheHit:       cacheHit,
+		ConditionalHit: conditionalHit,
+		BlockDetected:  blockDetected,
+		Duration:       time.Since(started),
 	})
 }
 

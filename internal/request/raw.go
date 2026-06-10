@@ -12,7 +12,7 @@ import (
 )
 
 // ExecuteRawHTTPRequest executes one already-built absolute HTTP request with one execution policy.
-func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBodyBytes int64, policy ExecutionPolicy) (HTTPResult, error) {
+func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBodyBytes int64, policy ExecutionPolicy, retryableOverride *bool) (HTTPResult, error) {
 	if req == nil {
 		return HTTPResult{}, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "request is required", nil, nil)
 	}
@@ -37,6 +37,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 	started := time.Now()
 	var lastReq *http.Request
 	attempts := 0
+	retryable := requestRetryable(req.Method, retryableOverride)
 
 	var lastErr error
 	var lastResult HTTPResult
@@ -74,7 +75,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		resp, err := policy.Transport.Do(execReq.Context(), execReq)
 		if err != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, err)
-			if shouldRetryTransport(ctx, err) && attempt < policy.Retry {
+			if retryable && shouldRetryTransport(ctx, err) && attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, nil, policy.RetryBackoff) {
 					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 					observeRequest(policy.Observer, execReq, class, 0, lastErr, attempts, false, false, started)
@@ -89,6 +90,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
 			if result, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
 				_ = resp.Body.Close()
+				observeRequestWithFlags(policy.Observer, execReq, class, http.StatusNotModified, nil, attempts, true, true, false, started)
 				return result, nil
 			}
 		}
@@ -96,7 +98,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		body, readErr := readAndCloseBody(resp, maxResponseBodyBytes)
 		if readErr != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, resp.StatusCode, "read response body failed", nil, readErr)
-			if attempt < policy.Retry {
+			if retryable && attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 					observeRequest(policy.Observer, execReq, class, resp.StatusCode, lastErr, attempts, false, false, started)
@@ -124,7 +126,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 					Message:   blockResult.Message,
 					Retryable: blockResult.Retryable,
 				}
-				if blockResult.Retryable && attempt < policy.Retry {
+				if retryable && blockResult.Retryable && attempt < policy.Retry {
 					lastResult = cloneHTTPResult(result)
 					if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 						lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
@@ -138,7 +140,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 			}
 		}
 
-		if resp.StatusCode >= http.StatusInternalServerError && attempt < policy.Retry {
+		if retryable && resp.StatusCode >= http.StatusInternalServerError && attempt < policy.Retry {
 			lastResult = cloneHTTPResult(result)
 			if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 				lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
@@ -177,11 +179,7 @@ func freezeRequestForRetries(req *http.Request) (*http.Request, error) {
 	}
 	if req.GetBody != nil {
 		cloned := req.Clone(req.Context())
-		body, err := req.GetBody()
-		if err != nil {
-			return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "clone request body failed", nil, err)
-		}
-		cloned.Body = body
+		cloned.Body = nil
 		cloned.GetBody = req.GetBody
 		return cloned, nil
 	}

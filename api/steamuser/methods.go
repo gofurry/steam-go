@@ -10,6 +10,7 @@ import (
 	sdkerrors "github.com/gofurry/steam-go/internal/errors"
 	"github.com/gofurry/steam-go/internal/request"
 	"github.com/gofurry/steam-go/internal/response"
+	"github.com/gofurry/steam-go/internal/steamid"
 )
 
 // GetFriendListOptions controls optional query parameters for GetFriendList.
@@ -123,11 +124,11 @@ func (s *Service) GetUserGroupListRaw(ctx context.Context, steamID string) ([]by
 }
 
 func validateSteamID(steamID string) (string, error) {
-	trimmed := strings.TrimSpace(steamID)
-	if trimmed == "" {
-		return "", sdkerrors.New(sdkerrors.KindRequestBuild, 0, "steam id must not be empty", nil, nil)
+	normalized, err := steamid.ValidateSteamID64(steamID)
+	if err != nil {
+		return "", sdkerrors.New(sdkerrors.KindRequestBuild, 0, err.Error(), nil, err)
 	}
-	return trimmed, nil
+	return normalized, nil
 }
 
 func validateSteamIDs(steamIDs []string) (string, error) {

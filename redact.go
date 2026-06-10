@@ -3,6 +3,7 @@ package steam
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -10,6 +11,8 @@ const redactedSensitiveValue = "[REDACTED]"
 
 var sensitiveURLQueryKeys = map[string]struct{}{
 	"access_token":         {},
+	"api_key":              {},
+	"apikey":               {},
 	"key":                  {},
 	"loyalty_webapi_token": {},
 	"refresh_token":        {},
@@ -36,15 +39,33 @@ var sensitiveHeaderNames = map[string]struct{}{
 	"x-steam-publisher-token": {},
 }
 
+var sensitiveURLFallbackPatterns = buildSensitiveURLFallbackPatterns()
+
+var (
+	authorizationTextPattern = regexp.MustCompile(`(?i)(\bauthorization\s*:\s*(?:bearer|basic)\s+)([^\s,;]+)`)
+	proxyUserinfoTextPattern = regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)([^/@\s]+@)`)
+)
+
 // RedactSensitiveURL removes userinfo plus API key-like query parameters from one URL string.
 //
-// When parsing fails, the original input is returned unchanged so callers can safely use it in logs.
+// When parsing fails, a best-effort fallback redacts obvious credential-bearing key/value pairs.
 func RedactSensitiveURL(rawURL string) string {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
-		return rawURL
+		return redactSensitiveURLFallback(rawURL)
 	}
 	return redactSensitiveURL(parsed).String()
+}
+
+// RedactSensitiveText redacts obvious credential-bearing fragments in free-form text.
+//
+// It is best-effort and intentionally conservative; it is meant for logs,
+// diagnostics, examples, and reports, not for classifying every possible secret.
+func RedactSensitiveText(text string) string {
+	redacted := redactSensitiveURLFallback(text)
+	redacted = authorizationTextPattern.ReplaceAllString(redacted, `${1}`+redactedSensitiveValue)
+	redacted = proxyUserinfoTextPattern.ReplaceAllString(redacted, `${1}`+redactedSensitiveValue+"@")
+	return redacted
 }
 
 func redactSensitiveURL(parsed *url.URL) *url.URL {
@@ -98,4 +119,20 @@ func isSensitiveURLQueryKey(key string) bool {
 func isSensitiveHeaderName(name string) bool {
 	_, ok := sensitiveHeaderNames[strings.ToLower(strings.TrimSpace(name))]
 	return ok
+}
+
+func buildSensitiveURLFallbackPatterns() []*regexp.Regexp {
+	keys := make([]*regexp.Regexp, 0, len(sensitiveURLQueryKeys))
+	for key := range sensitiveURLQueryKeys {
+		keys = append(keys, regexp.MustCompile(`(?i)(^|[?&;\s])(`+regexp.QuoteMeta(key)+`)(=)([^&;\s]*)`))
+	}
+	return keys
+}
+
+func redactSensitiveURLFallback(raw string) string {
+	redacted := raw
+	for _, pattern := range sensitiveURLFallbackPatterns {
+		redacted = pattern.ReplaceAllString(redacted, `${1}${2}${3}`+redactedSensitiveValue)
+	}
+	return redacted
 }

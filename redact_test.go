@@ -2,6 +2,7 @@ package steam_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	steam "github.com/gofurry/steam-go"
@@ -53,6 +54,22 @@ func TestRedactSensitiveURLLeavesInvalidURLUntouched(t *testing.T) {
 	raw := "://not-a-url"
 	if got := steam.RedactSensitiveURL(raw); got != raw {
 		t.Fatalf("unexpected fallback for invalid url: got %q want %q", got, raw)
+	}
+}
+
+func TestRedactSensitiveURLFallbackRedactsMalformedURLLikeInput(t *testing.T) {
+	t.Parallel()
+
+	raw := "http://example.com/%zz?access_token=abc123&x=1 steamLoginSecure=hidden-cookie;refresh_token=hidden-refresh"
+	got := steam.RedactSensitiveURL(raw)
+	if strings.Contains(got, "abc123") || strings.Contains(got, "hidden-cookie") || strings.Contains(got, "hidden-refresh") {
+		t.Fatalf("fallback redaction leaked sensitive values: %q", got)
+	}
+	if !strings.Contains(got, "access_token=[REDACTED]") ||
+		!strings.Contains(got, "steamLoginSecure=[REDACTED]") ||
+		!strings.Contains(got, "refresh_token=[REDACTED]") ||
+		!strings.Contains(got, "x=1") {
+		t.Fatalf("unexpected fallback redaction: %q", got)
 	}
 }
 
@@ -116,5 +133,38 @@ func TestRedactSensitiveHeadersNil(t *testing.T) {
 
 	if got := steam.RedactSensitiveHeaders(nil); got != nil {
 		t.Fatalf("expected nil header, got %#v", got)
+	}
+}
+
+func TestRedactSensitiveTextRedactsCommonCredentialFragments(t *testing.T) {
+	t.Parallel()
+
+	raw := strings.Join([]string{
+		"request failed",
+		"https://api.steampowered.com/path?api_key=api-secret&ok=1",
+		"Cookie: sessionid=session-secret; steamLoginSecure=login-secret",
+		"Authorization: Bearer bearer-secret",
+		"proxy=http://user:proxy-secret@127.0.0.1:7897",
+	}, " ")
+
+	got := steam.RedactSensitiveText(raw)
+	for _, secret := range []string{"api-secret", "session-secret", "login-secret", "bearer-secret", "proxy-secret"} {
+		if strings.Contains(got, secret) {
+			t.Fatalf("RedactSensitiveText leaked %q in %q", secret, got)
+		}
+	}
+	for _, want := range []string{"api_key=[REDACTED]", "sessionid=[REDACTED]", "steamLoginSecure=[REDACTED]", "Authorization: Bearer [REDACTED]", "http://[REDACTED]@127.0.0.1:7897"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("RedactSensitiveText missing %q in %q", want, got)
+		}
+	}
+}
+
+func TestRedactSensitiveTextLeavesSafeText(t *testing.T) {
+	t.Parallel()
+
+	raw := "market lookup finished status=200 appid=730"
+	if got := steam.RedactSensitiveText(raw); got != raw {
+		t.Fatalf("safe text changed: got %q want %q", got, raw)
 	}
 }

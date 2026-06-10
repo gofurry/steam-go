@@ -70,6 +70,8 @@ Avoid labels from raw query strings, user IDs, SteamIDs, API keys, tokens, cooki
 
 ## Safety Boundary
 
-`RequestEvent` includes traffic class, method, host, path, status code, error kind, retry attempts, cache hit, block detection, and duration.
+`RequestEvent` includes traffic class, method, host, path, status code, error kind, retry attempts, cache hit, conditional cache refresh hit, block detection, and duration.
+
+When an expired cached response is revalidated with `304 Not Modified`, the observer receives an event with `CacheHit=true` and `ConditionalHit=true`.
 
 It does not include raw query strings, headers, bodies, API keys, access tokens, cookies, or proxy passwords.

@@ -22,7 +22,7 @@ Current tracked counts:
 
 ## P1 Candidates
 
-These are reasonable first candidates for `v1.3.2` planning if users need more official endpoint coverage.
+These are reasonable candidates for future endpoint work after `v1.3.4` stabilization if users need more official endpoint coverage.
 
 | Endpoint | Why it is interesting | Initial boundary |
 |---|---|---|
@@ -77,7 +77,8 @@ Do not remove extra SDK endpoints just because they are absent from the snapshot
 
 ## Next Actions
 
-- Use P1/P2 candidates as input for `v1.3.2`, not as automatic work.
+- Use P1/P2 candidates as input for `v1.4` or later endpoint planning, not as automatic work.
+- Reference this triage before adding new official endpoint coverage.
 - Add fixtures before adding typed responses.
 - Prefer one small endpoint group at a time.
 - Keep generated reports and this triage file in sync during release review.

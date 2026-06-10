@@ -99,3 +99,8 @@ prices, err := client.Web.Market.GetPriceOverviewBatch(
 - `MaxConcurrent` 只限制 helper 内部并发，不等于安全请求速率。
 - 每个 batch 或 paginator 调用都应带 context timeout 或 cancellation。
 - 不希望无限遍历上游结果时，应显式设置 `MaxPages` 或 `MaxReviews`。
+- `CollectAppReviews` 必须设置 `MaxPages` 或 `MaxReviews`；生产中建议两者都设置，让内存和请求量都可预测。
+- `ListAppReviews` 是流式分页 helper，但生产代码仍建议设置 `MaxPages` 和 context timeout。
+- `ListInventory` 可以一直翻到 Steam 返回没有更多结果；定时任务或用户触发流程应设置 `MaxPages`。
+- Storefront 和 Market batch helper 会保持输入顺序，但调用前仍应限制输入数量。
+- Market price lookup 比普通官方 API 更容易触发 rate limit；保持较低 `MaxConcurrent`，并配合 `TrafficClassMarketWeb` rate limit。

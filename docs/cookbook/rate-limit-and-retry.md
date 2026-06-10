@@ -48,4 +48,5 @@ client, err := steam.NewClient(
 
 - Prefer lower concurrency for unofficial Web surfaces.
 - `WithAPIKeys(...)` plus `WithRetry(...)` can retry `401/429` with another configured key.
+- Automatic retry is method-aware: `GET`, `HEAD`, and `OPTIONS` are retryable by default; non-idempotent methods such as `POST`, `PUT`, `PATCH`, and `DELETE` retry only when the SDK method or raw request explicitly marks them retryable.
 - Use context cancellation for caller-level deadlines.

@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestReadURLs(t *testing.T) {
@@ -139,4 +141,94 @@ func TestReadStoreMedia(t *testing.T) {
 	if filepath.Ext(results[1].URL) != ".mpd" {
 		t.Fatalf("second URL = %q", results[1].URL)
 	}
+}
+
+func TestReadURLsCanceledBeforeEnqueue(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	results, err := ReadURLsWithOptions(ctx, ReadOptions{}, "https://example.com/a.jpg", "https://example.com/b.jpg")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("ReadURLsWithOptions error = %v, want context canceled", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want 2", len(results))
+	}
+	for _, result := range results {
+		if !strings.Contains(result.Error, context.Canceled.Error()) {
+			t.Fatalf("expected canceled result, got %#v", result)
+		}
+	}
+}
+
+func TestReadURLsStopsEnqueueAfterContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	transport := &cancelAwareTransport{started: make(chan struct{}, 1)}
+	client := &http.Client{Transport: transport}
+	urls := make([]string, 64)
+	for i := range urls {
+		urls[i] = "https://example.com/asset.jpg"
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := ReadURLsWithOptions(ctx, ReadOptions{
+			HTTPClient:  client,
+			Concurrency: 1,
+		}, urls...)
+		done <- err
+	}()
+
+	select {
+	case <-transport.started:
+		cancel()
+	case <-time.After(time.Second):
+		t.Fatal("first request was not started")
+	}
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("ReadURLsWithOptions error = %v, want context canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ReadURLsWithOptions did not return after cancellation")
+	}
+	if got := transport.calls.Load(); got > 2 {
+		t.Fatalf("expected enqueue to stop promptly, got %d transport calls", got)
+	}
+}
+
+func TestReadEachURLsCanceledBeforeEnqueue(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	var handled atomic.Int32
+	err := ReadEachURLs(ctx, ReadOptions{}, func(ReadResult) error {
+		handled.Add(1)
+		return nil
+	}, "https://example.com/a.jpg")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("ReadEachURLs error = %v, want context canceled", err)
+	}
+	if got := handled.Load(); got != 0 {
+		t.Fatalf("expected no handled results, got %d", got)
+	}
+}
+
+type cancelAwareTransport struct {
+	started chan struct{}
+	calls   atomic.Int32
+}
+
+func (t *cancelAwareTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.calls.Add(1)
+	select {
+	case t.started <- struct{}{}:
+	default:
+	}
+	<-req.Context().Done()
+	return nil, req.Context().Err()
 }

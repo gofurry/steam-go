@@ -2,6 +2,7 @@ package assets
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -58,6 +59,32 @@ func TestVerifyAppAssets(t *testing.T) {
 	}
 	if results[1].AppID != 550 || results[1].Kind != KindLibraryHero || results[1].Exists {
 		t.Fatalf("second result = %#v", results[1])
+	}
+}
+
+func TestVerifyURLsCanceledBeforeLoop(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	results, err := VerifyURLsWithOptions(ctx, VerifyOptions{}, "https://example.com/header.jpg")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("VerifyURLsWithOptions error = %v, want context canceled", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("results = %d, want 0", len(results))
+	}
+}
+
+func TestVerifyAppAssetsCanceledBeforeLoop(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	results, err := VerifyAppAssets(ctx, VerifyAppOptions{Kinds: []Kind{KindHeader}}, 550)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("VerifyAppAssets error = %v, want context canceled", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("results = %d, want 0", len(results))
 	}
 }
 

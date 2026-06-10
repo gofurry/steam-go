@@ -133,6 +133,62 @@ func TestRequestObserverReceivesRetryAndCacheEvents(t *testing.T) {
 	}
 }
 
+func TestRequestObserverReceivesConditionalCacheRefreshEvent(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch requests.Add(1) {
+		case 1:
+			w.Header().Set("ETag", `"etag-a"`)
+			_, _ = w.Write([]byte("cached"))
+		case 2:
+			if got := r.Header.Get("If-None-Match"); got != `"etag-a"` {
+				t.Fatalf("unexpected If-None-Match: %q", got)
+			}
+			w.WriteHeader(http.StatusNotModified)
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+	}))
+	defer server.Close()
+
+	events := &eventRecorder{}
+	client, err := steam.NewClient(
+		steam.WithRequestObserver(events),
+		steam.WithTrafficPolicy(steam.TrafficClassPublicStorePage, steam.TrafficPolicy{
+			Cache: &steam.TrafficCachePolicy{TTL: 10 * time.Millisecond},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	makeReq := func() *http.Request {
+		req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL+"/cached", nil)
+		if reqErr != nil {
+			t.Fatalf("NewRequestWithContext returned error: %v", reqErr)
+		}
+		return req
+	}
+	if _, err := client.DoRawHTTPRequest(context.Background(), makeReq(), &steam.RawHTTPRequestOptions{TrafficClass: steam.TrafficClassPublicStorePage}); err != nil {
+		t.Fatalf("first DoRawHTTPRequest returned error: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if _, err := client.DoRawHTTPRequest(context.Background(), makeReq(), &steam.RawHTTPRequestOptions{TrafficClass: steam.TrafficClassPublicStorePage}); err != nil {
+		t.Fatalf("second DoRawHTTPRequest returned error: %v", err)
+	}
+
+	recorded := events.all()
+	if len(recorded) != 2 {
+		t.Fatalf("expected 2 events, got %#v", recorded)
+	}
+	refresh := recorded[1]
+	if refresh.StatusCode != http.StatusNotModified || !refresh.CacheHit || !refresh.ConditionalHit {
+		t.Fatalf("expected conditional cache refresh event, got %#v", refresh)
+	}
+}
+
 func TestRequestObserverReceivesBlockDetectedEvent(t *testing.T) {
 	t.Parallel()
 

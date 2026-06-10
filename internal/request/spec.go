@@ -34,6 +34,9 @@ type RequestSpec struct {
 	Body         []byte
 	ContentType  string
 	TrafficClass traffic.Class
+	// Retryable overrides the SDK retry default for this request.
+	// nil means GET, HEAD, and OPTIONS are retryable; other methods are not.
+	Retryable *bool
 }
 
 // Executor performs request assembly and response reading.
@@ -83,6 +86,11 @@ func DefaultRetryBackoffConfig() RetryBackoffConfig {
 		MaxDelay:          2 * time.Second,
 		RespectRetryAfter: true,
 	}
+}
+
+// Retryable returns a bool pointer for RequestSpec retry overrides.
+func Retryable(value bool) *bool {
+	return &value
 }
 
 // NewExecutor creates a request executor.
@@ -136,6 +144,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 	started := time.Now()
 	var lastReq *http.Request
 	attempts := 0
+	retryable := requestRetryable(spec.Method, spec.Retryable)
 
 	var lastErr error
 	for attempt := 0; attempt <= policy.Retry; attempt++ {
@@ -172,7 +181,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		resp, err := policy.Transport.Do(req.Context(), req)
 		if err != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, err)
-			if shouldRetryTransport(ctx, err) && attempt < policy.Retry {
+			if retryable && shouldRetryTransport(ctx, err) && attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, nil, policy.RetryBackoff) {
 					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 					observeRequest(policy.Observer, req, class, 0, lastErr, attempts, false, false, started)
@@ -186,6 +195,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
 			if result, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
 				_ = resp.Body.Close()
+				observeRequestWithFlags(policy.Observer, req, class, http.StatusNotModified, nil, attempts, true, true, false, started)
 				return cloneBytes(result.Body), nil
 			}
 		}
@@ -193,7 +203,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		body, readErr := readAndCloseBody(resp, e.maxResponseBodyBytes)
 		if readErr != nil {
 			lastErr = sdkerrors.New(sdkerrors.KindTransport, resp.StatusCode, "read response body failed", nil, readErr)
-			if attempt < policy.Retry {
+			if retryable && attempt < policy.Retry {
 				if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 					lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 					observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, false, started)
@@ -208,7 +218,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		if policy.BlockRuntime != nil {
 			if blockResult := policy.BlockRuntime.detect(req, resp, body); blockResult != nil {
 				lastErr = sdkerrors.New(blockResult.ErrorKind, resp.StatusCode, blockResult.Message, body, nil)
-				if blockResult.Retryable && attempt < policy.Retry {
+				if retryable && blockResult.Retryable && attempt < policy.Retry {
 					if !sleepBeforeRetry(ctx, attempt, resp, policy.RetryBackoff) {
 						lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "request execution failed", nil, ctx.Err())
 						observeRequest(policy.Observer, req, class, resp.StatusCode, lastErr, attempts, false, true, started)
@@ -229,7 +239,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 				body,
 				nil,
 			)
-			if shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil, e.accessTokenProvider != nil) && attempt < policy.Retry {
+			if retryable && shouldRetryStatus(resp.StatusCode, e.apiKeyProvider != nil, e.accessTokenProvider != nil) && attempt < policy.Retry {
 				creds, err = e.rotateRetryCredentials(req, resp.StatusCode, creds)
 				if err != nil {
 					observeRequest(policy.Observer, req, class, resp.StatusCode, err, attempts, false, false, started)
@@ -430,6 +440,18 @@ func shouldRetryTransport(ctx context.Context, err error) bool {
 		return false
 	}
 	return !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded)
+}
+
+func requestRetryable(method string, override *bool) bool {
+	if override != nil {
+		return *override
+	}
+	switch strings.ToUpper(strings.TrimSpace(method)) {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	default:
+		return false
+	}
 }
 
 func shouldRetryStatus(statusCode int, hasAPIKeyProvider, hasAccessTokenProvider bool) bool {

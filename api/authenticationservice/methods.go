@@ -12,6 +12,7 @@ import (
 	"github.com/gofurry/steam-go/internal/endpoint"
 	sdkerrors "github.com/gofurry/steam-go/internal/errors"
 	"github.com/gofurry/steam-go/internal/request"
+	"github.com/gofurry/steam-go/internal/steamid"
 )
 
 const (
@@ -164,6 +165,7 @@ func (s *Service) doProtoPost(ctx context.Context, path string, message []byte) 
 		Path:        path,
 		Body:        buildProtoForm(encodeProtoBase64(message)),
 		ContentType: formContentType,
+		Retryable:   request.Retryable(false),
 	})
 }
 
@@ -201,11 +203,11 @@ func validateCredentialsRequest(req BeginAuthSessionViaCredentialsRequest) error
 }
 
 func validateSteamID(steamID string) (uint64, error) {
-	steamID = strings.TrimSpace(steamID)
-	if steamID == "" {
-		return 0, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "steam id must not be empty", nil, nil)
+	normalized, err := steamid.ValidateSteamID64(steamID)
+	if err != nil {
+		return 0, sdkerrors.New(sdkerrors.KindRequestBuild, 0, err.Error(), nil, err)
 	}
-	value, err := strconv.ParseUint(steamID, 10, 64)
+	value, err := strconv.ParseUint(normalized, 10, 64)
 	if err != nil {
 		return 0, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "steam id must be a uint64 string", nil, err)
 	}

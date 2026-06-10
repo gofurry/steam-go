@@ -25,8 +25,14 @@ func VerifyURLsWithClient(ctx context.Context, client *http.Client, urls ...stri
 
 // VerifyURLsWithOptions verifies one or more direct URLs with explicit options.
 func VerifyURLsWithOptions(ctx context.Context, opts VerifyOptions, urls ...string) ([]VerifyResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	out := make([]VerifyResult, 0, len(urls))
 	for _, rawURL := range urls {
+		if err := ctx.Err(); err != nil {
+			return out, err
+		}
 		if err := validateDirectURL(rawURL, opts.URLValidator); err != nil {
 			return out, err
 		}
@@ -43,6 +49,9 @@ func VerifyURLsWithOptions(ctx context.Context, opts VerifyOptions, urls ...stri
 //
 // If opts.Kinds is empty, all standard Store and Library asset kinds are verified.
 func VerifyAppAssets(ctx context.Context, opts VerifyAppOptions, appIDs ...uint32) ([]VerifyResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	kinds := opts.Kinds
 	if len(kinds) == 0 {
 		kinds = allDownloadKinds(opts.Language)
@@ -50,6 +59,9 @@ func VerifyAppAssets(ctx context.Context, opts VerifyAppOptions, appIDs ...uint3
 	items := ListKindsWithLanguage(opts.Language, kinds, appIDs...)
 	out := make([]VerifyResult, 0, len(items))
 	for _, item := range items {
+		if err := ctx.Err(); err != nil {
+			return out, err
+		}
 		verified, err := verifyURLItem(ctx, opts.HTTPClient, item)
 		if err != nil {
 			return out, err

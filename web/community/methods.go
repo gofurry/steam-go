@@ -11,6 +11,7 @@ import (
 	sdkerrors "github.com/gofurry/steam-go/internal/errors"
 	"github.com/gofurry/steam-go/internal/request"
 	"github.com/gofurry/steam-go/internal/response"
+	"github.com/gofurry/steam-go/internal/steamid"
 	itraffic "github.com/gofurry/steam-go/internal/traffic"
 	"github.com/gofurry/steam-go/internal/webendpoint"
 )
@@ -35,22 +36,16 @@ func (s *Service) GetInventory(ctx context.Context, steamID string, appID uint32
 
 // GetInventoryRaw returns the raw JSON response body for one inventory lookup.
 func (s *Service) GetInventoryRaw(ctx context.Context, steamID string, appID uint32, contextID string, opts *GetInventoryOptions) ([]byte, error) {
-	steamID = strings.TrimSpace(steamID)
-	if steamID == "" {
-		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "steam id must not be empty", nil, nil)
-	}
-	if err := validateNumericIdentifier("steam id", steamID); err != nil {
-		return nil, err
+	normalizedSteamID, err := steamid.ValidateSteamID64(steamID)
+	if err != nil {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, err.Error(), nil, err)
 	}
 	if appID == 0 {
 		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "app id must be greater than zero", nil, nil)
 	}
-	contextID = strings.TrimSpace(contextID)
-	if contextID == "" {
-		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "context id must not be empty", nil, nil)
-	}
-	if err := validateNumericIdentifier("context id", contextID); err != nil {
-		return nil, err
+	normalizedContextID, err := steamid.ValidateNumericID("context id", contextID)
+	if err != nil {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, err.Error(), nil, err)
 	}
 
 	query := url.Values{}
@@ -73,17 +68,8 @@ func (s *Service) GetInventoryRaw(ctx context.Context, steamID string, appID uin
 
 	return s.executor.DoRaw(ctx, request.RequestSpec{
 		Method:       http.MethodGet,
-		Path:         fmt.Sprintf("%s/%s/%d/%s", webendpoint.CommunityInventoryPath, steamID, appID, contextID),
+		Path:         fmt.Sprintf("%s/%s/%d/%s", webendpoint.CommunityInventoryPath, normalizedSteamID, appID, normalizedContextID),
 		Query:        query,
 		TrafficClass: itraffic.ClassCommunityWeb,
 	})
-}
-
-func validateNumericIdentifier(name, value string) error {
-	for _, r := range value {
-		if r < '0' || r > '9' {
-			return sdkerrors.New(sdkerrors.KindRequestBuild, 0, fmt.Sprintf("%s must contain digits only", name), nil, nil)
-		}
-	}
-	return nil
 }
