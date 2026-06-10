@@ -70,6 +70,8 @@ func panicSafeObserver(next steam.RequestObserver) steam.RequestObserver {
 
 ## 安全边界
 
-`RequestEvent` 包含 traffic class、method、host、path、status code、error kind、retry attempts、cache hit、block detection 和 duration。
+`RequestEvent` 包含 traffic class、method、host、path、status code、error kind、retry attempts、cache hit、conditional cache refresh hit、block detection 和 duration。
+
+过期缓存通过 `304 Not Modified` 完成 conditional revalidation 时，observer 会收到 `CacheHit=true`、`ConditionalHit=true` 的事件。
 
 它不包含 raw query、header、body、API key、access token、cookie 或 proxy password。

@@ -91,13 +91,13 @@
 
 #### P2 Tasks
 
-- [ ] 为 conditional cache 304 refresh 补 request observer 事件，至少保证 cache hit / conditional refresh 可被统计。
-- [ ] 简化 raw retry 的 `GetBody` 生命周期：有 `GetBody` 时不提前打开 unused body，每次执行前再获取新的 body。
-- [ ] 为 malformed URL redaction 增加 best-effort fallback，覆盖 API key、access token、refresh token、session id、Steam cookie / token 风格字段。
-- [ ] 统一 SteamID64 校验内部 helper，覆盖空值、空格、非数字、超大数和合法 SteamID64。
-- [ ] 新增或完善 `docs/api/coverage-triage.md`，分类 missing、version_mismatch、extra_sdk，并标注 P1/P2 candidate、deferred、won't add。
-- [ ] 新增 doctor JSON schema 文档，说明字段、status enum、exit code、redaction guarantee 和示例输出。
-- [ ] 为 opt-in live smoke 增加 redacted summary report 能力或文档，明确 skipped reason、网络依赖和 upstream 波动边界。
+- [x] 为 conditional cache 304 refresh 补 request observer 事件，至少保证 cache hit / conditional refresh 可被统计。
+- [x] 简化 raw retry 的 `GetBody` 生命周期：有 `GetBody` 时不提前打开 unused body，每次执行前再获取新的 body。
+- [x] 为 malformed URL redaction 增加 best-effort fallback，覆盖 API key、access token、refresh token、session id、Steam cookie / token 风格字段。
+- [x] 统一 SteamID64 校验内部 helper，覆盖空值、空格、非数字、超大数和合法 SteamID64。
+- [x] 新增或完善 `docs/api/coverage-triage.md`，分类 missing、version_mismatch、extra_sdk，并标注 P1/P2 candidate、deferred、won't add。
+- [x] 新增 doctor JSON schema 文档，说明字段、status enum、exit code、redaction guarantee 和示例输出。
+- [x] 为 opt-in live smoke 增加 redacted summary report 能力或文档，明确 skipped reason、网络依赖和 upstream 波动边界。
 
 #### P3 Tasks
 

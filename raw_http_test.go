@@ -2,6 +2,7 @@ package steam_test
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -204,6 +205,62 @@ func TestDoRawHTTPRequestRetriesPostServerErrorWhenExplicitlyRetryable(t *testin
 	}
 	if got := attempts.Load(); got != 2 {
 		t.Fatalf("expected explicit POST retry, got %d attempts", got)
+	}
+}
+
+func TestDoRawHTTPRequestUsesGetBodyOnlyPerAttempt(t *testing.T) {
+	t.Parallel()
+
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll returned error: %v", err)
+		}
+		if got := string(body); got != "payload" {
+			t.Fatalf("unexpected body: %q", got)
+		}
+		switch attempts.Add(1) {
+		case 1:
+			http.Error(w, "try again", http.StatusInternalServerError)
+		case 2:
+			_, _ = w.Write([]byte("ok"))
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(steam.WithRetry(1))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	var getBodyCalls atomic.Int32
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/raw-post", io.NopCloser(strings.NewReader("unused")))
+	if err != nil {
+		t.Fatalf("http.NewRequestWithContext returned error: %v", err)
+	}
+	req.GetBody = func() (io.ReadCloser, error) {
+		getBodyCalls.Add(1)
+		return io.NopCloser(strings.NewReader("payload")), nil
+	}
+
+	retryable := true
+	result, err := client.DoRawHTTPRequest(context.Background(), req, &steam.RawHTTPRequestOptions{
+		Retryable: &retryable,
+	})
+	if err != nil {
+		t.Fatalf("DoRawHTTPRequest returned error: %v", err)
+	}
+	if result.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", result.StatusCode)
+	}
+	if got := attempts.Load(); got != 2 {
+		t.Fatalf("expected two attempts, got %d", got)
+	}
+	if got := getBodyCalls.Load(); got != 2 {
+		t.Fatalf("expected GetBody once per attempt, got %d", got)
 	}
 }
 

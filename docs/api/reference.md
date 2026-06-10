@@ -344,6 +344,7 @@ Notes:
 - Referer selectors run before transport execution; an explicit `Referer` header on the request still wins.
 - `TransportHook` runs during client construction after the class-specific base `http.Client` has already been assembled with timeout, proxy routing, and cookie jar settings.
 - `WithRequestObserver(...)` emits sanitized request events after SDK requests complete. Events include traffic class, method, host, path without raw query, status, error kind, attempts, cache hit, block detection, and duration.
+- Conditional cache revalidation that returns `304 Not Modified` also emits an observer event with `CacheHit=true` and `ConditionalHit=true`.
 - Request observer events do not include headers, bodies, API keys, tokens, cookies, raw query strings, or proxy passwords.
 
 ## Examples

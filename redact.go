@@ -3,6 +3,7 @@ package steam
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -36,13 +37,15 @@ var sensitiveHeaderNames = map[string]struct{}{
 	"x-steam-publisher-token": {},
 }
 
+var sensitiveURLFallbackPatterns = buildSensitiveURLFallbackPatterns()
+
 // RedactSensitiveURL removes userinfo plus API key-like query parameters from one URL string.
 //
-// When parsing fails, the original input is returned unchanged so callers can safely use it in logs.
+// When parsing fails, a best-effort fallback redacts obvious credential-bearing key/value pairs.
 func RedactSensitiveURL(rawURL string) string {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
-		return rawURL
+		return redactSensitiveURLFallback(rawURL)
 	}
 	return redactSensitiveURL(parsed).String()
 }
@@ -98,4 +101,20 @@ func isSensitiveURLQueryKey(key string) bool {
 func isSensitiveHeaderName(name string) bool {
 	_, ok := sensitiveHeaderNames[strings.ToLower(strings.TrimSpace(name))]
 	return ok
+}
+
+func buildSensitiveURLFallbackPatterns() []*regexp.Regexp {
+	keys := make([]*regexp.Regexp, 0, len(sensitiveURLQueryKeys))
+	for key := range sensitiveURLQueryKeys {
+		keys = append(keys, regexp.MustCompile(`(?i)(^|[?&;\s])(`+regexp.QuoteMeta(key)+`)(=)([^&;\s]*)`))
+	}
+	return keys
+}
+
+func redactSensitiveURLFallback(raw string) string {
+	redacted := raw
+	for _, pattern := range sensitiveURLFallbackPatterns {
+		redacted = pattern.ReplaceAllString(redacted, `${1}${2}${3}`+redactedSensitiveValue)
+	}
+	return redacted
 }

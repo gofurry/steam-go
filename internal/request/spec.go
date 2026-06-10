@@ -195,6 +195,7 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
 			if result, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
 				_ = resp.Body.Close()
+				observeRequestWithFlags(policy.Observer, req, class, http.StatusNotModified, nil, attempts, true, true, false, started)
 				return cloneBytes(result.Body), nil
 			}
 		}

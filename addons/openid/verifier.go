@@ -6,9 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gofurry/steam-go/internal/steamid"
 )
 
 const (
@@ -309,7 +310,8 @@ func parseSteamID(claimedID string) (string, error) {
 		}
 	}
 
-	if _, err := strconv.ParseUint(steamID, 10, 64); err != nil {
+	normalizedSteamID, err := steamid.ValidateSteamID64(steamID)
+	if err != nil {
 		return "", &Error{
 			Code:    ErrorCodeIdentity,
 			Op:      "verify_values",
@@ -318,7 +320,7 @@ func parseSteamID(claimedID string) (string, error) {
 		}
 	}
 
-	return steamID, nil
+	return normalizedSteamID, nil
 }
 
 func providerResponseValid(body string) bool {

@@ -90,6 +90,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 		if resp.StatusCode == http.StatusNotModified && cacheLookup.found && policy.CacheRuntime != nil {
 			if result, ok := policy.CacheRuntime.refresh(cacheLookup, resp, time.Now()); ok {
 				_ = resp.Body.Close()
+				observeRequestWithFlags(policy.Observer, execReq, class, http.StatusNotModified, nil, attempts, true, true, false, started)
 				return result, nil
 			}
 		}
@@ -178,11 +179,7 @@ func freezeRequestForRetries(req *http.Request) (*http.Request, error) {
 	}
 	if req.GetBody != nil {
 		cloned := req.Clone(req.Context())
-		body, err := req.GetBody()
-		if err != nil {
-			return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "clone request body failed", nil, err)
-		}
-		cloned.Body = body
+		cloned.Body = nil
 		cloned.GetBody = req.GetBody
 		return cloned, nil
 	}

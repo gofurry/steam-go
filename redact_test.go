@@ -2,6 +2,7 @@ package steam_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	steam "github.com/gofurry/steam-go"
@@ -53,6 +54,22 @@ func TestRedactSensitiveURLLeavesInvalidURLUntouched(t *testing.T) {
 	raw := "://not-a-url"
 	if got := steam.RedactSensitiveURL(raw); got != raw {
 		t.Fatalf("unexpected fallback for invalid url: got %q want %q", got, raw)
+	}
+}
+
+func TestRedactSensitiveURLFallbackRedactsMalformedURLLikeInput(t *testing.T) {
+	t.Parallel()
+
+	raw := "http://example.com/%zz?access_token=abc123&x=1 steamLoginSecure=hidden-cookie;refresh_token=hidden-refresh"
+	got := steam.RedactSensitiveURL(raw)
+	if strings.Contains(got, "abc123") || strings.Contains(got, "hidden-cookie") || strings.Contains(got, "hidden-refresh") {
+		t.Fatalf("fallback redaction leaked sensitive values: %q", got)
+	}
+	if !strings.Contains(got, "access_token=[REDACTED]") ||
+		!strings.Contains(got, "steamLoginSecure=[REDACTED]") ||
+		!strings.Contains(got, "refresh_token=[REDACTED]") ||
+		!strings.Contains(got, "x=1") {
+		t.Fatalf("unexpected fallback redaction: %q", got)
 	}
 }
 
