@@ -164,6 +164,7 @@ func (s *Service) doProtoPost(ctx context.Context, path string, message []byte) 
 		Path:        path,
 		Body:        buildProtoForm(encodeProtoBase64(message)),
 		ContentType: formContentType,
+		Retryable:   request.Retryable(false),
 	})
 }
 

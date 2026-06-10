@@ -48,4 +48,5 @@ client, err := steam.NewClient(
 
 - 非官方 Web surface 建议使用更低并发。
 - `WithAPIKeys(...)` 与 `WithRetry(...)` 配合时，可以在 `401/429` 后尝试下一个 key。
+- 自动 retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST`、`PUT`、`PATCH`、`DELETE` 等非幂等方法只有在 SDK 方法或 raw request 显式标记为 retryable 时才会自动重试。
 - 使用 context cancellation 控制调用方级别的截止时间。

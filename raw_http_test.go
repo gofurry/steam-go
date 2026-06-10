@@ -136,6 +136,77 @@ func TestDoRawHTTPRequestRetriesRetryableBlock(t *testing.T) {
 	}
 }
 
+func TestDoRawHTTPRequestDoesNotRetryPostServerErrorByDefault(t *testing.T) {
+	t.Parallel()
+
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts.Add(1)
+		http.Error(w, "try again", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(steam.WithRetry(1))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/raw-post", strings.NewReader("payload"))
+	if err != nil {
+		t.Fatalf("http.NewRequestWithContext returned error: %v", err)
+	}
+	result, err := client.DoRawHTTPRequest(context.Background(), req, nil)
+	if err != nil {
+		t.Fatalf("DoRawHTTPRequest returned error: %v", err)
+	}
+	if result.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("unexpected status: %d", result.StatusCode)
+	}
+	if got := attempts.Load(); got != 1 {
+		t.Fatalf("expected no POST retry by default, got %d attempts", got)
+	}
+}
+
+func TestDoRawHTTPRequestRetriesPostServerErrorWhenExplicitlyRetryable(t *testing.T) {
+	t.Parallel()
+
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch attempts.Add(1) {
+		case 1:
+			http.Error(w, "try again", http.StatusInternalServerError)
+		case 2:
+			_, _ = w.Write([]byte("ok"))
+		default:
+			t.Fatalf("unexpected extra request")
+		}
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(steam.WithRetry(1))
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/raw-post", strings.NewReader("payload"))
+	if err != nil {
+		t.Fatalf("http.NewRequestWithContext returned error: %v", err)
+	}
+	retryable := true
+	result, err := client.DoRawHTTPRequest(context.Background(), req, &steam.RawHTTPRequestOptions{
+		Retryable: &retryable,
+	})
+	if err != nil {
+		t.Fatalf("DoRawHTTPRequest returned error: %v", err)
+	}
+	if result.StatusCode != http.StatusOK || string(result.Body) != "ok" {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+	if got := attempts.Load(); got != 2 {
+		t.Fatalf("expected explicit POST retry, got %d attempts", got)
+	}
+}
+
 func TestDoRawHTTPRequestReturnsRawBlockMetadataWithoutError(t *testing.T) {
 	t.Parallel()
 
@@ -282,4 +353,56 @@ func TestDoRawHTTPRequestValidatesAbsoluteURLAndBodyLimit(t *testing.T) {
 		MaxResponseBodyBytes: 8,
 	})
 	expectKind(t, err, steam.ErrorKindTransport)
+}
+
+func TestDoRawHTTPRequestHostPolicyAllowsOnlyConfiguredHosts(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("allowed"))
+	}))
+	defer server.Close()
+
+	policy, err := steam.NewAllowedRawHTTPHostPolicy(server.URL)
+	if err != nil {
+		t.Fatalf("NewAllowedRawHTTPHostPolicy returned error: %v", err)
+	}
+	client, err := steam.NewClient()
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	allowedReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL+"/allowed", nil)
+	if err != nil {
+		t.Fatalf("http.NewRequestWithContext returned error: %v", err)
+	}
+	result, err := client.DoRawHTTPRequest(context.Background(), allowedReq, &steam.RawHTTPRequestOptions{
+		HostPolicy: policy,
+	})
+	if err != nil {
+		t.Fatalf("DoRawHTTPRequest returned error: %v", err)
+	}
+	if string(result.Body) != "allowed" {
+		t.Fatalf("unexpected body: %q", string(result.Body))
+	}
+
+	rejectedReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.com/rejected", nil)
+	if err != nil {
+		t.Fatalf("http.NewRequestWithContext returned error: %v", err)
+	}
+	_, err = client.DoRawHTTPRequest(context.Background(), rejectedReq, &steam.RawHTTPRequestOptions{
+		HostPolicy: policy,
+	})
+	expectKind(t, err, steam.ErrorKindRequestBuild)
+}
+
+func TestNewAllowedRawHTTPHostPolicyRejectsInvalidHosts(t *testing.T) {
+	t.Parallel()
+
+	if _, err := steam.NewAllowedRawHTTPHostPolicy(""); err == nil {
+		t.Fatal("expected empty host to be rejected")
+	}
+	if _, err := steam.NewAllowedRawHTTPHostPolicy("example.com/path"); err == nil {
+		t.Fatal("expected host with path to be rejected")
+	}
 }

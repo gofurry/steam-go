@@ -126,6 +126,10 @@
 
 另外，`(*steam.Client).DoRawHTTPRequest(...)` 提供了一个面向 addon/raw HTTP 场景的公开入口，让非 typed 服务也能复用根 SDK 的按类别执行链。
 
+Raw HTTP 只接受 absolute URL。不要把不可信的用户输入 URL 直接传给 `DoRawHTTPRequest(...)`；当 URL 来源不完全受控时，优先通过 `RawHTTPRequestOptions.HostPolicy`、`NewAllowedRawHTTPHostPolicy(...)` 或 `NewSteamRawHTTPHostPolicy()` 限制允许访问的 host。
+
+Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST`、`PUT`、`PATCH`、`DELETE` 等非幂等方法只有在 SDK 方法或 `RawHTTPRequestOptions.Retryable` 显式 opt-in 后才会自动重试。
+
 `WithRequestObserver(...)` 可以安装轻量 request observer。事件包含 traffic class、method、host、不带 raw query 的 path、status、error kind、attempts、cache hit、block detected 和 duration；不包含 header、body、API key、token、cookie、raw query 或 proxy 密码。
 
 ## 示例

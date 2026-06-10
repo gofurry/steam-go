@@ -29,9 +29,10 @@ func (s *Service) GetUserCountryRaw(ctx context.Context, accessToken, steamID st
 	}
 
 	return s.executor.DoRaw(ctx, request.RequestSpec{
-		Method: http.MethodPost,
-		Path:   endpoint.UserAccountServiceGetUserCountry,
-		Query:  query,
+		Method:    http.MethodPost,
+		Path:      endpoint.UserAccountServiceGetUserCountry,
+		Query:     query,
+		Retryable: request.Retryable(true),
 	})
 }
 

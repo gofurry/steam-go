@@ -317,8 +317,11 @@ Notes:
 - `TrafficRateLimiterPolicy`
 - `TrafficRetryPolicy`
 - `RawHTTPRequestOptions`
+- `RawHTTPHostPolicy`
 - `RawHTTPBlockResult`
 - `RawHTTPResult`
+- `NewAllowedRawHTTPHostPolicy(hosts ...string)`
+- `NewSteamRawHTTPHostPolicy()`
 - `WithTrafficPolicy(class TrafficClass, policy TrafficPolicy)`
 - `WithRequestObserver(observer RequestObserver)`
 - `WithTrafficClass(ctx context.Context, class TrafficClass) context.Context`
@@ -332,6 +335,8 @@ Notes:
 - Existing typed `client.API.*` methods default to `TrafficClassOfficialAPI`.
 - `client.Web.Storefront.*` defaults to `TrafficClassPublicStorePage`, `client.Web.Community.*` defaults to `TrafficClassCommunityWeb`, and `client.Web.Market.*` defaults to `TrafficClassMarketWeb`.
 - `(*Client).DoRawHTTPRequest(...)` is intended for addon-style raw HTTP flows that still need the SDK's class-aware execution stack.
+- Raw HTTP accepts only absolute URLs. Do not pass untrusted user-controlled URLs directly; use `RawHTTPRequestOptions.HostPolicy` with `NewAllowedRawHTTPHostPolicy(...)` or `NewSteamRawHTTPHostPolicy()` when the URL source is not fully controlled by your code.
+- Retry is method-aware: `GET`, `HEAD`, and `OPTIONS` are retryable by default. Non-idempotent methods such as `POST`, `PUT`, `PATCH`, and `DELETE` retry only when the SDK method or `RawHTTPRequestOptions.Retryable` explicitly opts in.
 - `WithTrafficPolicy(...)` only overrides the fields you set; unset fields continue to use the client-level defaults.
 - `TrafficCachePolicy` currently applies only to `GET` requests and uses in-memory short TTL caching with `ETag` / `Last-Modified` revalidation.
 - `TrafficBlockPolicy` is currently supported only on `TrafficClassPublicStorePage` and detects `429`, `403`, and HTML challenge responses.

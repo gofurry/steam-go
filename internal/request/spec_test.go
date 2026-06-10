@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -106,6 +107,7 @@ func TestExecutorReusesRequestBodyAcrossRetries(t *testing.T) {
 		Path:        "/ITestService/DoThing/v1/",
 		Body:        []byte(`{"retry":true}`),
 		ContentType: "application/json",
+		Retryable:   request.Retryable(true),
 	})
 	if err != nil {
 		t.Fatalf("DoRaw returned error: %v", err)
@@ -127,6 +129,192 @@ func TestExecutorReusesRequestBodyAcrossRetries(t *testing.T) {
 	}
 	if first.query.Get("access_token") != "demo-token" || second.query.Get("access_token") != "demo-token" {
 		t.Fatalf("expected access token to remain stable across retries")
+	}
+}
+
+func TestExecutorRetriesGetServerErrorByDefault(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusInternalServerError, http.StatusOK},
+	}
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	if _, err := executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+	}); err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if got := len(recorder.requests); got != 2 {
+		t.Fatalf("expected GET retry, got %d requests", got)
+	}
+}
+
+func TestExecutorDoesNotRetryPostServerErrorByDefault(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusInternalServerError, http.StatusOK},
+	}
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodPost,
+		Path:   "/ITestService/DoThing/v1/",
+	})
+	var apiErr *sdkerrors.APIError
+	if err == nil || !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("expected 500 status error, got %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if got := len(recorder.requests); got != 1 {
+		t.Fatalf("expected no POST retry by default, got %d requests", got)
+	}
+}
+
+func TestExecutorRetriesPostServerErrorWhenExplicitlyRetryable(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusInternalServerError, http.StatusOK},
+	}
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	if _, err := executor.DoRaw(context.Background(), request.RequestSpec{
+		Method:    http.MethodPost,
+		Path:      "/ITestService/DoThing/v1/",
+		Retryable: request.Retryable(true),
+	}); err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if got := len(recorder.requests); got != 2 {
+		t.Fatalf("expected explicit POST retry, got %d requests", got)
+	}
+}
+
+func TestExecutorDoesNotRetryContextCanceledTransportError(t *testing.T) {
+	t.Parallel()
+
+	recorder := &errorTransport{err: context.Canceled}
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		nil,
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	_, err = executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+	})
+	var apiErr *sdkerrors.APIError
+	if err == nil || !errors.As(err, &apiErr) || apiErr.Kind != sdkerrors.KindTransport {
+		t.Fatalf("expected transport error, got %v", err)
+	}
+	if got := recorder.attempts.Load(); got != 1 {
+		t.Fatalf("expected no retry after context canceled, got %d attempts", got)
+	}
+}
+
+func TestExecutorRotatesAccessTokenOnRateLimitRetryForRetryableRequest(t *testing.T) {
+	t.Parallel()
+
+	recorder := &recordingTransport{
+		statuses: []int{http.StatusTooManyRequests, http.StatusOK},
+	}
+	executor, err := request.NewExecutor(
+		"https://api.steampowered.com",
+		nil,
+		auth.NewRoundRobinAccessTokenProvider("token-a", "token-b"),
+		1024,
+		request.ExecutionPolicy{
+			Retry:        1,
+			RetryBackoff: request.DefaultRetryBackoffConfig(),
+			Transport:    recorder,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewExecutor returned error: %v", err)
+	}
+
+	if _, err := executor.DoRaw(context.Background(), request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   "/ITestService/DoThing/v1/",
+	}); err != nil {
+		t.Fatalf("DoRaw returned error: %v", err)
+	}
+
+	recorder.mu.Lock()
+	defer recorder.mu.Unlock()
+	if len(recorder.requests) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(recorder.requests))
+	}
+	if got := recorder.requests[0].query.Get("access_token"); got != "token-a" {
+		t.Fatalf("unexpected first access token: %s", got)
+	}
+	if got := recorder.requests[1].query.Get("access_token"); got != "token-b" {
+		t.Fatalf("unexpected second access token: %s", got)
 	}
 }
 
@@ -376,6 +564,16 @@ type capturedRequest struct {
 	header      http.Header
 	body        string
 	contentType string
+}
+
+type errorTransport struct {
+	err      error
+	attempts atomic.Int32
+}
+
+func (t *errorTransport) Do(context.Context, *http.Request) (*http.Response, error) {
+	t.attempts.Add(1)
+	return nil, t.err
 }
 
 func (t *recordingTransport) Do(_ context.Context, req *http.Request) (*http.Response, error) {

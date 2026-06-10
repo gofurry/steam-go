@@ -111,9 +111,10 @@ func (s *Service) GetAchievementsProgressRaw(ctx context.Context, accessToken st
 	}
 
 	return s.executor.DoRaw(ctx, request.RequestSpec{
-		Method: http.MethodPost,
-		Path:   endpoint.PlayerServiceGetAchievementsProgress,
-		Query:  query,
+		Method:    http.MethodPost,
+		Path:      endpoint.PlayerServiceGetAchievementsProgress,
+		Query:     query,
+		Retryable: request.Retryable(true),
 	})
 }
 
@@ -615,9 +616,10 @@ func (s *Service) GetCommunityPreferencesRaw(ctx context.Context, accessToken st
 	}
 
 	return s.executor.DoRaw(ctx, request.RequestSpec{
-		Method: http.MethodPost,
-		Path:   endpoint.PlayerServiceGetCommunityPreferences,
-		Query:  query,
+		Method:    http.MethodPost,
+		Path:      endpoint.PlayerServiceGetCommunityPreferences,
+		Query:     query,
+		Retryable: request.Retryable(true),
 	})
 }
 

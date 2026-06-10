@@ -58,35 +58,64 @@
 
 ## 3. Version Plan
 
-### `v1.3.4` - TBD
+### `v1.3.4` - Stabilization and Hygiene
 
-**Status:** Planned / TBD
+**Status:** Planned
 
-**Scope:** TBD
-**Goal:** 待定；只在有明确用户需求、边界、测试计划和文档入口后进入实现。
+**Scope:** Stability / Security-Safety / Observability / Testing / Documentation / Maintenance
+**Goal:** 提升 request、raw HTTP、observer、redaction、diagnostics 和生产使用文档的可靠性，不扩大高风险账号自动化或不稳定 Web surface。
 
-#### Candidate Rules
+#### Focus
 
-- 候选必须是兼容性加法。
-- 候选必须有明确用户场景，不为覆盖率或想象需求扩张。
-- 新 Web helper 必须只读，并明确 unofficial / volatile 边界。
-- 新 paginator / collector / batch helper 必须显式限制请求规模。
-- 新 addon 必须保持独立边界，不污染 root `Client` 依赖。
-- 不新增账号自动化、购买、交易、出售、browser fallback 或绕过 upstream 限制的能力。
+- 收紧 retry、raw HTTP 和 redaction 的安全边界。
+- 补齐 observer、live smoke、doctor JSON schema 等诊断能力。
+- 建立 coverage drift 人工 triage 闭环，避免为了 coverage 数字盲目扩张 endpoint。
+- 补强 production cookbook 和 addon safety 文档。
 
-#### Tasks
+#### Non-goals
 
-- [ ] 收集真实需求或维护痛点。
-- [ ] 选择 1 个小主题进入 `v1.3.4`，或保持待定。
-- [ ] 为选中主题补测试、文档和 release notes。
+- 不为了 coverage 数字补齐所有 missing endpoint。
+- 不把 Web helper 扩展成完整 Store SDK 或完整 Community SDK。
+- 不在 core 中加入 browser fallback / browser automation。
+- 不新增自动购买、自动出售、交易、批量账号操作或批量领取能力。
+- 不让 live smoke 成为默认 CI 硬门禁。
+- 不把 OpenTelemetry、Prometheus 等重依赖放入核心包。
+- 不将高波动 HTML / Web payload 强行 typed 化为稳定契约。
+
+#### P1 Tasks
+
+- [x] 收紧 retry 幂等性语义：GET / HEAD / OPTIONS 默认可重试，POST / PUT / PATCH / DELETE 默认不自动重试，需要重试时显式标注。
+- [x] 审视现有 POST / mutation-like request 的 retry 行为，并补充 GET 5xx retry、POST 5xx no retry、POST explicit retry、context canceled no retry、429 credential rotation 等测试。
+- [x] 为 `DoRawHTTPRequest` 增加 raw HTTP host safety 文档，并评估兼容性的可选 host allowlist / Steam host policy。
+- [x] 明确 raw HTTP 不应直接消费不可信 URL，addon 示例避免鼓励 SSRF 风险用法。
+
+#### P2 Tasks
+
+- [ ] 为 conditional cache 304 refresh 补 request observer 事件，至少保证 cache hit / conditional refresh 可被统计。
+- [ ] 简化 raw retry 的 `GetBody` 生命周期：有 `GetBody` 时不提前打开 unused body，每次执行前再获取新的 body。
+- [ ] 为 malformed URL redaction 增加 best-effort fallback，覆盖 API key、access token、refresh token、session id、Steam cookie / token 风格字段。
+- [ ] 统一 SteamID64 校验内部 helper，覆盖空值、空格、非数字、超大数和合法 SteamID64。
+- [ ] 新增或完善 `docs/api/coverage-triage.md`，分类 missing、version_mismatch、extra_sdk，并标注 P1/P2 candidate、deferred、won't add。
+- [ ] 新增 doctor JSON schema 文档，说明字段、status enum、exit code、redaction guarantee 和示例输出。
+- [ ] 为 opt-in live smoke 增加 redacted summary report 能力或文档，明确 skipped reason、网络依赖和 upstream 波动边界。
+
+#### P3 Tasks
+
+- [ ] 新增 observer cookbook，说明同步回调边界、异步转发建议、统计维度和 secret-safe 事件字段。
+- [ ] 新增 traffic policy cookbook，覆盖 official API、Storefront Web、Community Web、Market Web、代理、host/session concurrency 和 cache TTL 边界。
+- [ ] 扩展 bounded Web helper cookbook，说明 reviews collector、inventory pagination、batch helpers、market helper 的请求规模限制建议。
+- [ ] 新增或扩展 addon safety 文档，明确 openid、websession、freeclaim、markup、vdf、assets 的安全边界。
 
 #### Acceptance Criteria
 
-- [ ] 主题边界清楚。
-- [ ] 测试覆盖核心行为和边界条件。
-- [ ] README / docs / cookbook / release notes 中英文同步。
-- [ ] 不引入 breaking change。
-- [ ] 不引入未审视的重依赖。
+- [ ] 不引入 breaking change；新增行为保持内部、兼容性加法或 opt-in。
+- [ ] Retry 默认行为对非幂等请求更保守，并有单元测试覆盖核心分支。
+- [ ] Raw HTTP SSRF / untrusted URL 风险有明确文档和可测试的可选限制策略。
+- [ ] Redaction 在 URL parse 失败时不会原样泄露明显 token。
+- [ ] Observer 事件不包含 query、header、body、cookie、credential 等敏感信息。
+- [ ] Coverage triage 文档能指导后续 endpoint 选择，而不是追逐 coverage 数字。
+- [ ] Doctor、live smoke、cookbook、addon safety 文档与 release notes 同步。
+- [ ] `go test ./...`、`go test -race ./...`、`go vet ./...`、`staticcheck ./...`、`govulncheck ./...` 和 API compatibility check 在发布前通过或有明确说明。
 
 ---
 
