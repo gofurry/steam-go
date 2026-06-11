@@ -56,9 +56,9 @@
 #### P1 Tasks - Official API Coverage Catch-up
 
 - [x] 补齐 `IAuthenticationService` 中高价值缺失方法，例如 auth-session info、risk info、mobile confirmation 等低层 API。
-- [ ] 新增 `api/contentserverdirectoryservice` package，优先覆盖 CDN、client update hosts、depot patch info、SteamPipe servers 等内容分发目录能力。
-- [ ] 更新 coverage snapshot 与 triage，把 broadcast、clientstats、用途不清晰或上报性质明显的端点标记为 deferred / won't add candidate。
-- [ ] 为新增 official API 增加 request path、method、query/body、raw method、typed decode 与输入校验测试。
+- [x] 新增 `api/contentserverdirectoryservice` package，优先覆盖 CDN、client update hosts、depot patch info、SteamPipe servers 等内容分发目录能力。
+- [x] 更新 coverage snapshot 与 triage，把 broadcast、clientstats、用途不清晰或上报性质明显的端点标记为 deferred / won't add candidate。
+- [x] 为新增 official API 增加 request path、method、query/body、raw method、typed decode 与输入校验测试。
 
 #### P2 Tasks - Optional Enhancements
 

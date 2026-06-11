@@ -9,6 +9,7 @@ import (
 	"github.com/gofurry/steam-go/api/authenticationservice"
 	"github.com/gofurry/steam-go/api/billingservice"
 	"github.com/gofurry/steam-go/api/communityservice"
+	"github.com/gofurry/steam-go/api/contentserverdirectoryservice"
 	"github.com/gofurry/steam-go/api/familygroupsservice"
 	"github.com/gofurry/steam-go/api/loyaltyrewardsservice"
 	"github.com/gofurry/steam-go/api/mobilenotificationservice"
@@ -54,35 +55,36 @@ type Client struct {
 
 // API groups all typed Steam Web API services under one stable entrypoint.
 type API struct {
-	AccountCartService        *accountcartservice.Service
-	AuthenticationService     *authenticationservice.Service
-	BillingService            *billingservice.Service
-	CommunityService          *communityservice.Service
-	FamilyGroupsService       *familygroupsservice.Service
-	LoyaltyRewardsService     *loyaltyrewardsservice.Service
-	MobileNotificationService *mobilenotificationservice.Service
-	NewsService               *newsservice.Service
-	QuestService              *questservice.Service
-	SaleFeatureService        *salefeatureservice.Service
-	StoreBrowseService        *storebrowseservice.Service
-	StoreCatalogService       *storecatalogservice.Service
-	StorePreferencesService   *storepreferencesservice.Service
-	StoreService              *storeservice.Service
-	StoreTopSellersService    *storetopsellersservice.Service
-	SteamDirectory            *steamdirectory.Service
-	SteamApps                 *steamapps.Service
-	SteamChartsService        *steamchartsservice.Service
-	SteamNotificationService  *steamnotificationservice.Service
-	SteamUser                 *steamuser.Service
-	SteamUserOAuth            *steamuseroauth.Service
-	SteamWebAPIUtil           *steamwebapiutil.Service
-	UserAccountService        *useraccountservice.Service
-	UserReviewsService        *userreviewsservice.Service
-	UserStoreVisitService     *userstorevisitservice.Service
-	WishlistService           *wishlistservice.Service
-	PlayerService             *playerservice.Service
-	SteamNews                 *steamnews.Service
-	SteamUserStats            *steamuserstats.Service
+	AccountCartService            *accountcartservice.Service
+	AuthenticationService         *authenticationservice.Service
+	BillingService                *billingservice.Service
+	CommunityService              *communityservice.Service
+	ContentServerDirectoryService *contentserverdirectoryservice.Service
+	FamilyGroupsService           *familygroupsservice.Service
+	LoyaltyRewardsService         *loyaltyrewardsservice.Service
+	MobileNotificationService     *mobilenotificationservice.Service
+	NewsService                   *newsservice.Service
+	QuestService                  *questservice.Service
+	SaleFeatureService            *salefeatureservice.Service
+	StoreBrowseService            *storebrowseservice.Service
+	StoreCatalogService           *storecatalogservice.Service
+	StorePreferencesService       *storepreferencesservice.Service
+	StoreService                  *storeservice.Service
+	StoreTopSellersService        *storetopsellersservice.Service
+	SteamDirectory                *steamdirectory.Service
+	SteamApps                     *steamapps.Service
+	SteamChartsService            *steamchartsservice.Service
+	SteamNotificationService      *steamnotificationservice.Service
+	SteamUser                     *steamuser.Service
+	SteamUserOAuth                *steamuseroauth.Service
+	SteamWebAPIUtil               *steamwebapiutil.Service
+	UserAccountService            *useraccountservice.Service
+	UserReviewsService            *userreviewsservice.Service
+	UserStoreVisitService         *userstorevisitservice.Service
+	WishlistService               *wishlistservice.Service
+	PlayerService                 *playerservice.Service
+	SteamNews                     *steamnews.Service
+	SteamUserStats                *steamuserstats.Service
 }
 
 // Web groups read-only Steam web JSON services under one stable entrypoint.
@@ -145,35 +147,36 @@ func NewClient(opts ...Option) (*Client, error) {
 		maxResponseBodyBytes: cfg.maxResponseBodyBytes,
 	}
 	client.API = &API{
-		AccountCartService:        accountcartservice.NewService(officialExecutor),
-		AuthenticationService:     authenticationservice.NewService(officialExecutor),
-		BillingService:            billingservice.NewService(officialExecutor),
-		CommunityService:          communityservice.NewService(officialExecutor),
-		FamilyGroupsService:       familygroupsservice.NewService(officialExecutor),
-		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(officialExecutor),
-		MobileNotificationService: mobilenotificationservice.NewService(officialExecutor),
-		NewsService:               newsservice.NewService(officialExecutor),
-		QuestService:              questservice.NewService(officialExecutor),
-		SaleFeatureService:        salefeatureservice.NewService(officialExecutor),
-		StoreBrowseService:        storebrowseservice.NewService(officialExecutor),
-		StoreCatalogService:       storecatalogservice.NewService(officialExecutor),
-		StorePreferencesService:   storepreferencesservice.NewService(officialExecutor),
-		StoreService:              storeservice.NewService(officialExecutor),
-		StoreTopSellersService:    storetopsellersservice.NewService(officialExecutor),
-		SteamDirectory:            steamdirectory.NewService(officialExecutor),
-		SteamApps:                 steamapps.NewService(officialExecutor),
-		SteamChartsService:        steamchartsservice.NewService(officialExecutor),
-		SteamNotificationService:  steamnotificationservice.NewService(officialExecutor),
-		SteamUser:                 steamuser.NewService(officialExecutor),
-		SteamUserOAuth:            steamuseroauth.NewService(officialExecutor),
-		SteamWebAPIUtil:           steamwebapiutil.NewService(officialExecutor),
-		UserAccountService:        useraccountservice.NewService(officialExecutor),
-		UserReviewsService:        userreviewsservice.NewService(officialExecutor),
-		UserStoreVisitService:     userstorevisitservice.NewService(officialExecutor),
-		WishlistService:           wishlistservice.NewService(officialExecutor),
-		PlayerService:             playerservice.NewService(officialExecutor),
-		SteamNews:                 steamnews.NewService(officialExecutor),
-		SteamUserStats:            steamuserstats.NewService(officialExecutor),
+		AccountCartService:            accountcartservice.NewService(officialExecutor),
+		AuthenticationService:         authenticationservice.NewService(officialExecutor),
+		BillingService:                billingservice.NewService(officialExecutor),
+		CommunityService:              communityservice.NewService(officialExecutor),
+		ContentServerDirectoryService: contentserverdirectoryservice.NewService(officialExecutor),
+		FamilyGroupsService:           familygroupsservice.NewService(officialExecutor),
+		LoyaltyRewardsService:         loyaltyrewardsservice.NewService(officialExecutor),
+		MobileNotificationService:     mobilenotificationservice.NewService(officialExecutor),
+		NewsService:                   newsservice.NewService(officialExecutor),
+		QuestService:                  questservice.NewService(officialExecutor),
+		SaleFeatureService:            salefeatureservice.NewService(officialExecutor),
+		StoreBrowseService:            storebrowseservice.NewService(officialExecutor),
+		StoreCatalogService:           storecatalogservice.NewService(officialExecutor),
+		StorePreferencesService:       storepreferencesservice.NewService(officialExecutor),
+		StoreService:                  storeservice.NewService(officialExecutor),
+		StoreTopSellersService:        storetopsellersservice.NewService(officialExecutor),
+		SteamDirectory:                steamdirectory.NewService(officialExecutor),
+		SteamApps:                     steamapps.NewService(officialExecutor),
+		SteamChartsService:            steamchartsservice.NewService(officialExecutor),
+		SteamNotificationService:      steamnotificationservice.NewService(officialExecutor),
+		SteamUser:                     steamuser.NewService(officialExecutor),
+		SteamUserOAuth:                steamuseroauth.NewService(officialExecutor),
+		SteamWebAPIUtil:               steamwebapiutil.NewService(officialExecutor),
+		UserAccountService:            useraccountservice.NewService(officialExecutor),
+		UserReviewsService:            userreviewsservice.NewService(officialExecutor),
+		UserStoreVisitService:         userstorevisitservice.NewService(officialExecutor),
+		WishlistService:               wishlistservice.NewService(officialExecutor),
+		PlayerService:                 playerservice.NewService(officialExecutor),
+		SteamNews:                     steamnews.NewService(officialExecutor),
+		SteamUserStats:                steamuserstats.NewService(officialExecutor),
 	}
 	client.Web = &Web{
 		Storefront: storefront.NewService(storefrontExecutor),

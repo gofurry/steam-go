@@ -17,6 +17,7 @@
 - `client.API.AuthenticationService`
 - `client.API.BillingService`
 - `client.API.CommunityService`
+- `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
@@ -86,6 +87,19 @@
 
 - 这些 helper 是低层 API coverage，不提供完整登录业务流程，不保存用户密码，不绕过 Steam Guard，也不会自动回答风险校验。
 - `NotifyRiskQuizResults` 只提交调用方显式提供的 risk quiz 结果。
+
+`ContentServerDirectoryService` 覆盖只读内容分发目录接口：
+
+- `GetCDNForVideo`
+- `GetClientUpdateHosts`
+- `GetDepotPatchInfo`
+- `GetServersForSteamPipe`
+
+说明：
+
+- 这些 helper 只暴露 CDN/video、Steam client update hosts、depot patch availability 和 SteamPipe server candidates 等低层目录元数据。
+- 它们不实现 CDN 下载器、depot patcher、manifest resolver 或 SteamPipe client。
+- `GetCDNForVideo` 的响应主体保留为 `json.RawMessage`，因为公开 payload shape 还不够稳定。
 
 `PlayerService` 覆盖了常用玩家资料、徽章、装饰物、最近游戏、成就进度、Steam 等级等接口。
 

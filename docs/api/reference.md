@@ -15,6 +15,7 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 - `client.API.AuthenticationService`
 - `client.API.BillingService`
 - `client.API.CommunityService`
+- `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
@@ -84,6 +85,18 @@ These are not exhaustive lists, but they reflect the main typed SDK coverage ava
 Notes:
 - Auth session helpers are low-level API coverage. They do not implement a complete login workflow, store user passwords, bypass Steam Guard, or answer risk checks automatically.
 - `NotifyRiskQuizResults` only submits caller-provided risk quiz results.
+
+### `client.API.ContentServerDirectoryService`
+
+- `GetCDNForVideo`
+- `GetClientUpdateHosts`
+- `GetDepotPatchInfo`
+- `GetServersForSteamPipe`
+
+Notes:
+- These helpers expose low-level read-only directory metadata for CDN/video, Steam client update hosts, depot patch availability, and SteamPipe server candidates.
+- They do not implement CDN downloading, depot patching, manifest resolution, or a SteamPipe client.
+- `GetCDNForVideo` keeps the nested payload as `json.RawMessage` because the public response shape is not stable enough to model yet.
 
 ### `client.API.PlayerService`
 

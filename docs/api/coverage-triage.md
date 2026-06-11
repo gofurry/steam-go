@@ -6,9 +6,9 @@ It is intentionally maintained by humans. Do not generate this file from `steama
 
 Current tracked counts:
 
-- `covered=23`
+- `covered=27`
 - `extra_sdk=73`
-- `missing=38`
+- `missing=34`
 - `version_mismatch=2`
 
 ## Triage Rules
@@ -40,8 +40,6 @@ These may be useful, but need more context before they should become implementat
 | `IStoreService/GetRecommendedTagsForUser/v1` | Store tagging information can be useful for discovery tooling. | Needs review of regional behavior and whether it depends on user personalization. |
 | `IPublishedFileService/GetUserVoteSummary/v1` | Could help read-only Workshop metadata workflows. | User-specific semantics need authentication review. |
 | `ISteamUserOAuth/GetTokenDetails/v1` | Useful for token diagnostics. | Requires access token handling and stricter credential-safety examples. |
-| `IContentServerDirectoryService/GetClientUpdateHosts/v1` | Read-only infrastructure metadata. | Narrower audience; should wait until directory-related demand is clearer. |
-| `IContentServerDirectoryService/GetServersForSteamPipe/v1` | Useful for SteamPipe tooling. | Parameter shape is more complex and likely less common for SDK users. |
 
 ## Deferred
 
@@ -49,10 +47,11 @@ These are official gaps, but they are not good near-term expansion targets.
 
 | Group | Examples | Reason |
 |---|---|---|
-| Broadcast/session endpoints | `IBroadcastService/PostGameDataFrameRTMP`, `ISteamBroadcast/PlayerStats`, `ViewerHeartbeat` | Session/token-sensitive and not aligned with the stable core SDK boundary. |
+| Broadcast/session/stat reporting endpoints | `IBroadcastService/PostGameDataFrameRTMP`, `ISteamBroadcast/PlayerStats`, `ViewerHeartbeat`, `IClientStats_1046930/ReportEvent` | Session/token-sensitive or client telemetry/reporting behavior; not aligned with the stable core SDK boundary. |
 | Game notification endpoints | `IGameNotificationsService/UserCreateSession`, `UserDeleteSession`, `UserUpdateSession` | Session-like behavior and user interaction state; defer until a clear read-only use case exists. |
 | Help request log endpoints | `IHelpRequestLogsService/GetApplicationLogDemand`, `UploadUserApplicationLog` | Upload/log workflows can expose local or user data; not suitable for a quick coverage addition. |
 | Game-specific GC/version endpoints | `IGCVersion_*`, `ITFSystem_440`, `IPortal2Leaderboards_620` | Narrow game-specific coverage; not a good general SDK priority. |
+| Narrow content-server picker | `IContentServerDirectoryService/PickSingleContentServer` | The broader `GetServersForSteamPipe` helper now covers the main read-only directory use case; defer this until a user needs the exact single-server picker semantics. |
 
 ## Implemented Low-level Boundary
 
@@ -61,6 +60,7 @@ These were implemented after manual safety review, but remain low-level helpers 
 | Group | Endpoints | Boundary |
 |---|---|---|
 | Authentication session helpers | `IAuthenticationService/GetAuthSessionInfo`, `GetAuthSessionRiskInfo`, `NotifyRiskQuizResults`, `UpdateAuthSessionWithMobileConfirmation` | Low-level typed/raw API coverage only. The SDK does not complete login flows, store user passwords, bypass Steam Guard, or answer risk checks automatically. |
+| Content server directory helpers | `IContentServerDirectoryService/GetCDNForVideo`, `GetClientUpdateHosts`, `GetDepotPatchInfo`, `GetServersForSteamPipe` | Low-level read-only directory metadata only. The SDK does not become a CDN downloader, depot patcher, or SteamPipe client. |
 
 ## Version Mismatch Review
 

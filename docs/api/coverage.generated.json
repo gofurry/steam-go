@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "official_endpoint_count": 63,
-  "sdk_endpoint_count": 96,
+  "sdk_endpoint_count": 100,
   "status_counts": {
-    "covered": 23,
+    "covered": 27,
     "extra_sdk": 73,
-    "missing": 38,
+    "missing": 34,
     "version_mismatch": 2
   },
   "entries": [
@@ -412,7 +412,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "property_type",
@@ -430,8 +430,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetCDNForVideo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
@@ -439,7 +441,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "cached_signature",
@@ -447,8 +449,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetClientUpdateHosts/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
@@ -456,7 +460,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "appid",
@@ -479,8 +483,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetDepotPatchInfo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
@@ -488,7 +494,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "cell_id",
@@ -521,8 +527,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetServersForSteamPipe/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
