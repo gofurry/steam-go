@@ -12,6 +12,7 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 ## API Groups
 
 - `client.API.AccountCartService`
+- `client.API.AuthenticationService`
 - `client.API.BillingService`
 - `client.API.CommunityService`
 - `client.API.FamilyGroupsService`
@@ -67,6 +68,22 @@ Notes:
 ## Selected Endpoint Coverage
 
 These are not exhaustive lists, but they reflect the main typed SDK coverage available today.
+
+### `client.API.AuthenticationService`
+
+- `GetPasswordRSAPublicKey`
+- `BeginAuthSessionViaCredentials`
+- `BeginAuthSessionViaQR`
+- `GetAuthSessionInfo`
+- `GetAuthSessionRiskInfo`
+- `NotifyRiskQuizResults`
+- `UpdateAuthSessionWithMobileConfirmation`
+- `UpdateAuthSessionWithSteamGuardCode`
+- `PollAuthSessionStatus`
+
+Notes:
+- Auth session helpers are low-level API coverage. They do not implement a complete login workflow, store user passwords, bypass Steam Guard, or answer risk checks automatically.
+- `NotifyRiskQuizResults` only submits caller-provided risk quiz results.
 
 ### `client.API.PlayerService`
 

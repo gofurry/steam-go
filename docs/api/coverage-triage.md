@@ -6,9 +6,9 @@ It is intentionally maintained by humans. Do not generate this file from `steama
 
 Current tracked counts:
 
-- `covered=19`
+- `covered=23`
 - `extra_sdk=73`
-- `missing=42`
+- `missing=38`
 - `version_mismatch=2`
 
 ## Triage Rules
@@ -49,11 +49,18 @@ These are official gaps, but they are not good near-term expansion targets.
 
 | Group | Examples | Reason |
 |---|---|---|
-| Authentication session helpers | `IAuthenticationService/GetAuthSessionInfo`, `GetAuthSessionRiskInfo`, `NotifyRiskQuizResults`, `UpdateAuthSessionWithMobileConfirmation` | Close to login/session automation; requires a larger auth design and safety review. |
 | Broadcast/session endpoints | `IBroadcastService/PostGameDataFrameRTMP`, `ISteamBroadcast/PlayerStats`, `ViewerHeartbeat` | Session/token-sensitive and not aligned with the stable core SDK boundary. |
 | Game notification endpoints | `IGameNotificationsService/UserCreateSession`, `UserDeleteSession`, `UserUpdateSession` | Session-like behavior and user interaction state; defer until a clear read-only use case exists. |
 | Help request log endpoints | `IHelpRequestLogsService/GetApplicationLogDemand`, `UploadUserApplicationLog` | Upload/log workflows can expose local or user data; not suitable for a quick coverage addition. |
 | Game-specific GC/version endpoints | `IGCVersion_*`, `ITFSystem_440`, `IPortal2Leaderboards_620` | Narrow game-specific coverage; not a good general SDK priority. |
+
+## Implemented Low-level Boundary
+
+These were implemented after manual safety review, but remain low-level helpers rather than productized workflows.
+
+| Group | Endpoints | Boundary |
+|---|---|---|
+| Authentication session helpers | `IAuthenticationService/GetAuthSessionInfo`, `GetAuthSessionRiskInfo`, `NotifyRiskQuizResults`, `UpdateAuthSessionWithMobileConfirmation` | Low-level typed/raw API coverage only. The SDK does not complete login flows, store user passwords, bypass Steam Guard, or answer risk checks automatically. |
 
 ## Version Mismatch Review
 

@@ -14,6 +14,7 @@
 当前 `client.API.*` 下包含这些服务分组：
 
 - `client.API.AccountCartService`
+- `client.API.AuthenticationService`
 - `client.API.BillingService`
 - `client.API.CommunityService`
 - `client.API.FamilyGroupsService`
@@ -68,6 +69,23 @@
 - Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
 
 ## 重点覆盖
+
+`AuthenticationService` 覆盖低层 auth-session API：
+
+- `GetPasswordRSAPublicKey`
+- `BeginAuthSessionViaCredentials`
+- `BeginAuthSessionViaQR`
+- `GetAuthSessionInfo`
+- `GetAuthSessionRiskInfo`
+- `NotifyRiskQuizResults`
+- `UpdateAuthSessionWithMobileConfirmation`
+- `UpdateAuthSessionWithSteamGuardCode`
+- `PollAuthSessionStatus`
+
+说明：
+
+- 这些 helper 是低层 API coverage，不提供完整登录业务流程，不保存用户密码，不绕过 Steam Guard，也不会自动回答风险校验。
+- `NotifyRiskQuizResults` 只提交调用方显式提供的 risk quiz 结果。
 
 `PlayerService` 覆盖了常用玩家资料、徽章、装饰物、最近游戏、成就进度、Steam 等级等接口。
 

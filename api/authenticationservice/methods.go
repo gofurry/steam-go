@@ -103,6 +103,115 @@ func (s *Service) BeginAuthSessionViaQRRaw(ctx context.Context, deviceName strin
 	return s.doProtoPost(ctx, endpoint.AuthenticationServiceBeginAuthSessionViaQR, message)
 }
 
+// GetAuthSessionInfo reads low-level metadata for one auth session.
+func (s *Service) GetAuthSessionInfo(ctx context.Context, req GetAuthSessionInfoRequest) (GetAuthSessionInfoResponse, error) {
+	body, err := s.GetAuthSessionInfoRaw(ctx, req)
+	if err != nil {
+		return GetAuthSessionInfoResponse{}, err
+	}
+	return decodeAuthenticationResponse[GetAuthSessionInfoResponse](body)
+}
+
+// GetAuthSessionInfoRaw returns the raw JSON response body for auth session metadata.
+func (s *Service) GetAuthSessionInfoRaw(ctx context.Context, req GetAuthSessionInfoRequest) ([]byte, error) {
+	if req.ClientID == 0 {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "client id must be greater than zero", nil, nil)
+	}
+
+	message := appendProtoUint64(nil, 1, req.ClientID)
+	return s.doProtoPost(ctx, endpoint.AuthenticationServiceGetAuthSessionInfo, message)
+}
+
+// GetAuthSessionRiskInfo reads low-level risk metadata for one auth session.
+func (s *Service) GetAuthSessionRiskInfo(ctx context.Context, req GetAuthSessionRiskInfoRequest) (GetAuthSessionRiskInfoResponse, error) {
+	body, err := s.GetAuthSessionRiskInfoRaw(ctx, req)
+	if err != nil {
+		return GetAuthSessionRiskInfoResponse{}, err
+	}
+	return decodeAuthenticationResponse[GetAuthSessionRiskInfoResponse](body)
+}
+
+// GetAuthSessionRiskInfoRaw returns the raw JSON response body for auth session risk metadata.
+func (s *Service) GetAuthSessionRiskInfoRaw(ctx context.Context, req GetAuthSessionRiskInfoRequest) ([]byte, error) {
+	if req.ClientID == 0 {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "client id must be greater than zero", nil, nil)
+	}
+
+	message := appendProtoUint64(nil, 1, req.ClientID)
+	if req.Language != 0 {
+		message = appendProtoUint64(message, 2, uint64(req.Language))
+	}
+	return s.doProtoPost(ctx, endpoint.AuthenticationServiceGetAuthSessionRiskInfo, message)
+}
+
+// NotifyRiskQuizResults submits low-level caller-supplied risk quiz results.
+//
+// This helper only sends explicit caller-provided data to Steam. It does not
+// generate answers, bypass risk checks, or complete a login flow.
+func (s *Service) NotifyRiskQuizResults(ctx context.Context, req NotifyRiskQuizResultsRequest) (NotifyRiskQuizResultsResponse, error) {
+	body, err := s.NotifyRiskQuizResultsRaw(ctx, req)
+	if err != nil {
+		return NotifyRiskQuizResultsResponse{}, err
+	}
+	return decodeAuthenticationResponse[NotifyRiskQuizResultsResponse](body)
+}
+
+// NotifyRiskQuizResultsRaw returns the raw JSON response body for a risk quiz notification.
+func (s *Service) NotifyRiskQuizResultsRaw(ctx context.Context, req NotifyRiskQuizResultsRequest) ([]byte, error) {
+	if req.ClientID == 0 {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "client id must be greater than zero", nil, nil)
+	}
+
+	results := appendProtoBool(nil, 1, req.Results.Platform)
+	results = appendProtoBool(results, 2, req.Results.Location)
+	results = appendProtoBool(results, 3, req.Results.Action)
+	message := appendProtoUint64(nil, 1, req.ClientID)
+	message = appendProtoMessage(message, 2, results)
+	message = appendProtoString(message, 3, strings.TrimSpace(req.SelectedAction))
+	message = appendProtoBool(message, 4, req.DidConfirmLogin)
+	return s.doProtoPost(ctx, endpoint.AuthenticationServiceNotifyRiskQuizResults, message)
+}
+
+// UpdateAuthSessionWithMobileConfirmation submits a mobile confirmation for one auth session.
+func (s *Service) UpdateAuthSessionWithMobileConfirmation(ctx context.Context, req UpdateAuthSessionWithMobileConfirmationRequest) (UpdateAuthSessionWithMobileConfirmationResponse, error) {
+	body, err := s.UpdateAuthSessionWithMobileConfirmationRaw(ctx, req)
+	if err != nil {
+		return UpdateAuthSessionWithMobileConfirmationResponse{}, err
+	}
+	return decodeAuthenticationResponse[UpdateAuthSessionWithMobileConfirmationResponse](body)
+}
+
+// UpdateAuthSessionWithMobileConfirmationRaw returns the raw JSON response body for a mobile confirmation update.
+func (s *Service) UpdateAuthSessionWithMobileConfirmationRaw(ctx context.Context, req UpdateAuthSessionWithMobileConfirmationRequest) ([]byte, error) {
+	steamID, err := validateSteamID(req.SteamID)
+	if err != nil {
+		return nil, err
+	}
+	if req.ClientID == 0 {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "client id must be greater than zero", nil, nil)
+	}
+	if req.Version < 0 {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "version must not be negative", nil, nil)
+	}
+	if len(req.Signature) == 0 {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "signature must not be empty", nil, nil)
+	}
+	if req.Persistence == 0 {
+		req.Persistence = AuthSessionPersistencePersistent
+	}
+
+	var message []byte
+	if req.Version != 0 {
+		message = appendProtoUint64(message, 1, uint64(req.Version))
+	}
+	message = appendProtoUint64(message, 2, req.ClientID)
+	message = appendProtoFixed64(message, 3, steamID)
+	message = appendProtoBytes(message, 4, req.Signature)
+	message = appendProtoBool(message, 5, req.Confirm)
+	message = appendProtoUint64(message, 6, uint64(req.Persistence))
+	return s.doProtoPost(ctx, endpoint.AuthenticationServiceUpdateAuthSessionWithMobileConfirmation, message)
+}
+
 // UpdateAuthSessionWithSteamGuardCode submits one Steam Guard code or confirmation.
 func (s *Service) UpdateAuthSessionWithSteamGuardCode(ctx context.Context, req UpdateAuthSessionWithSteamGuardCodeRequest) (UpdateAuthSessionWithSteamGuardCodeResponse, error) {
 	body, err := s.UpdateAuthSessionWithSteamGuardCodeRaw(ctx, req)
