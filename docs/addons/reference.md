@@ -49,15 +49,19 @@ Use `addons/websession` when you want one manual Steam web-login workflow built 
 What it does:
 
 - starts one credentials-based auth session
+- starts one QR auth session and returns the caller-displayed challenge URL
 - accepts one optional Steam Guard code submission
 - polls the auth session until Steam issues tokens
 - exchanges one refresh token for Store / Community web cookies
 - validates both Store and Community sessions
+- exports and imports explicit JSON snapshots for `WebCookieResult`
 
 What it does not do:
 
-- it does not persist passwords, refresh tokens, or cookies for you
+- it does not persist passwords, refresh tokens, or cookies unless you explicitly call the JSON snapshot helpers
 - it does not read browser cookies or Steam client local state
+- it does not display QR codes or approve QR logins for you
+- it does not generate mobile confirmation signatures or store mobile secrets
 - it does not silently print secrets in the example output
 - it does not persist or rotate one refresh token for you after login succeeds
 
@@ -71,6 +75,21 @@ The example accepts `-account` and `-proxy`, and uses hidden terminal prompts fo
 - `STEAM_ACCOUNT_NAME`
 - `STEAM_PASSWORD`
 - `STEAM_GUARD_CODE`
+
+Cookie snapshot helpers:
+
+- `websession.SaveWebCookieResultJSON(...)`
+- `websession.LoadWebCookieResultJSON(...)`
+- `websession.ExportWebCookieSnapshot(...)`
+- `websession.ImportWebCookieSnapshot(...)`
+
+Snapshot JSON contains live web cookies and `sessionid` metadata. Treat the file contents as credentials, store them only in caller-controlled locations, and validate restored cookies with `ValidateWebCookies(...)` before use.
+
+Mobile confirmation boundary:
+
+- low-level mobile confirmation remains available through `client.API.AuthenticationService.UpdateAuthSessionWithMobileConfirmation(...)`
+- callers must provide their own explicit signature and confirmation decision
+- `addons/websession` does not hold mobile secrets, generate signatures, or auto-confirm a login
 
 Run it:
 
@@ -252,7 +271,7 @@ Construction modes:
 - `freeclaim.NewClientFromSteamClient(...)` is the recommended path and reuses the root SDK traffic-policy execution stack for Store web traffic
 - `freeclaim.NewClient(...)` remains available as manual mode when you want to supply your own `http.Client`
 
-The example is read-only by default. Claim mode requires a refresh token through `STEAM_REFRESH_TOKEN` or one hidden terminal prompt.
+The example is read-only by default. Claim mode requires `-app-id` and one selected package. By default it asks for a refresh token through `STEAM_REFRESH_TOKEN` or one hidden terminal prompt; with `-login` it performs the manual `addons/websession` credentials login flow first. In both modes it claims at most one package and then checks ownership with `IsAppOwned`.
 
 Run the read-only search / package resolution example:
 
@@ -264,6 +283,7 @@ Run an explicit claim after choosing an app and package:
 
 ```bash
 go run ./examples/freeclaim -app-id 480 -package-id 12345 -claim
+go run ./examples/freeclaim -app-id 480 -package-id 12345 -claim -login
 ```
 
 ## `addons/a2s`

@@ -62,18 +62,18 @@
 
 #### P2 Tasks - Optional Enhancements
 
-- [ ] 评估新增 `DoRawHTTPRequestStream`，用于 CDN/static/大响应场景，并明确调用方关闭 body 的责任。
-- [ ] 评估新增 `HeaderProfileBuilder`，保持默认 header profile 稳定，同时允许用户显式配置 UA、language、accept 等字段。
-- [ ] 根据 P0 benchmark 结果决定是否顺延复杂优化到 `v1.3.6` 或 `v1.4.0`。
+- [x] 评估新增 `DoRawHTTPRequestStream`，用于 CDN/static/大响应场景，并明确调用方关闭 body 的责任。结论：需求成立，但 `v1.3.5` 暂不新增 public API，后续单独设计 streaming/raw HTTP contract。
+- [x] 评估新增 `HeaderProfileBuilder`，保持默认 header profile 稳定，同时允许用户显式配置 UA、language、accept 等字段。结论：现有 `HeaderProfile` struct literal 足够，builder 顺延到出现明确用户需求后再做。
+- [x] 根据 P0 benchmark 结果决定是否顺延复杂优化到 `v1.3.6` 或 `v1.4.0`。结论：`v1.3.5` 不追加复杂 runtime 优化，优先进入 Stage 2。
 
 #### Stage 2 Tasks - Websession and Free-claim Product Flow
 
-- [ ] 为 `addons/websession` 新增保守的登录编排示例或 helper，串联 `StartWithCredentials`、`SubmitSteamGuardCode`、`Poll`、`RefreshTokenToWebCookies`、`ValidateWebCookies`，但不保存密码、不自动绕过确认。
-- [ ] 为 `addons/websession` 评估并新增 QR 登录 helper，例如 `StartWithQR` / `PollQR`，复用 core `AuthenticationService.BeginAuthSessionViaQR`，由调用方负责展示二维码和人工确认。
-- [ ] 为 mobile confirmation 明确 addon 边界：只允许调用方显式传入签名/确认结果，不托管 mobile secret；必要时新增薄封装或文档示例。
-- [ ] 新增 web session 持久化/恢复能力，支持安全地保存、加载、校验 `WebCookieResult` / cookie jar，并明确本地存储权限、过期和 redaction 边界。
-- [ ] 新增 free-claim 产品流示例，串联 `freeclaim.SearchPromotions`、`ResolveFreePackages`、`websession` 登录/session、`ClaimPackage`、`IsAppOwned`，保持单项显式领取，不做默认批量自动领取。
-- [ ] 扩展 `addons/websession` 与 `addons/freeclaim` 文档，说明 authentication service、web session、cookie jar、free claim 之间的层级关系和安全边界。
+- [x] 为 `addons/websession` 新增保守的登录编排示例或 helper，串联 `StartWithCredentials`、`SubmitSteamGuardCode`、`Poll`、`RefreshTokenToWebCookies`、`ValidateWebCookies`，但不保存密码、不自动绕过确认。
+- [x] 为 `addons/websession` 评估并新增 QR 登录 helper，例如 `StartWithQR` / `PollQR`，复用 core `AuthenticationService.BeginAuthSessionViaQR`，由调用方负责展示二维码和人工确认。
+- [x] 为 mobile confirmation 明确 addon 边界：只允许调用方显式传入签名/确认结果，不托管 mobile secret；必要时新增薄封装或文档示例。
+- [x] 新增 web session 持久化/恢复能力，支持安全地保存、加载、校验 `WebCookieResult` / cookie jar，并明确本地存储权限、过期和 redaction 边界。
+- [x] 新增 free-claim 产品流示例，串联 `freeclaim.SearchPromotions`、`ResolveFreePackages`、`websession` 登录/session、`ClaimPackage`、`IsAppOwned`，保持单项显式领取，不做默认批量自动领取。
+- [x] 扩展 `addons/websession` 与 `addons/freeclaim` 文档，说明 authentication service、web session、cookie jar、free claim 之间的层级关系和安全边界。
 
 #### Acceptance Criteria
 

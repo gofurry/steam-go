@@ -22,9 +22,11 @@ type StartWithCredentialsRequest struct {
 type LoginChallenge struct {
 	SteamID              string
 	ClientID             uint64
+	ChallengeURL         string
 	RequestID            []byte
 	PollInterval         time.Duration
 	AllowedConfirmations []authenticationservice.AuthConfirmation
+	Version              uint32
 }
 
 type LoginResult struct {
@@ -78,6 +80,25 @@ func (c *Client) StartWithCredentials(ctx context.Context, req StartWithCredenti
 	}, nil
 }
 
+// StartWithQR starts a QR auth session.
+//
+// The caller is responsible for displaying ChallengeURL and waiting for manual
+// approval in Steam. This helper does not confirm the login automatically.
+func (c *Client) StartWithQR(ctx context.Context, deviceName string) (*LoginChallenge, error) {
+	session, err := c.auth.BeginAuthSessionViaQR(ctx, deviceName)
+	if err != nil {
+		return nil, err
+	}
+	return &LoginChallenge{
+		ClientID:             session.ClientID,
+		ChallengeURL:         session.ChallengeURL,
+		RequestID:            append([]byte(nil), session.RequestID...),
+		PollInterval:         time.Duration(session.Interval) * time.Second,
+		AllowedConfirmations: append([]authenticationservice.AuthConfirmation(nil), session.AllowedConfirmations...),
+		Version:              session.Version,
+	}, nil
+}
+
 func (c *Client) SubmitSteamGuardCode(ctx context.Context, challenge *LoginChallenge, code string, typ authenticationservice.GuardCodeType) error {
 	if challenge == nil {
 		return &Error{Code: ErrorCodeRequestBuild, Op: "submit_steam_guard_code", Message: "challenge must not be nil"}
@@ -113,9 +134,21 @@ func (c *Client) Poll(ctx context.Context, challenge *LoginChallenge) (*LoginRes
 	if resp.NewClientID != 0 {
 		challenge.ClientID = resp.NewClientID
 	}
+	if resp.NewChallengeURL != "" {
+		challenge.ChallengeURL = resp.NewChallengeURL
+	}
+	steamID := challenge.SteamID
+	if steamID == "" && resp.RefreshToken != "" {
+		decodedSteamID, decodeErr := steamIDFromJWT(resp.RefreshToken)
+		if decodeErr != nil {
+			return nil, &Error{Code: ErrorCodeIdentity, Op: "poll", Message: "decode steam id from refresh token failed", Err: decodeErr}
+		}
+		steamID = decodedSteamID
+		challenge.SteamID = decodedSteamID
+	}
 	return &LoginResult{
 		AccountName:  resp.AccountName,
-		SteamID:      challenge.SteamID,
+		SteamID:      steamID,
 		RefreshToken: resp.RefreshToken,
 		AccessToken:  resp.AccessToken,
 	}, nil

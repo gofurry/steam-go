@@ -24,6 +24,13 @@ func main() {
 		countryCode = flag.String("country-code", "us", "country code used for Storefront app details")
 		language    = flag.String("language", "english", "language used for Storefront app details")
 		claim       = flag.Bool("claim", false, "actually send one addfreelicense request; default behavior is read-only search and package resolution")
+		login       = flag.Bool("login", false, "with -claim, perform a manual credentials login instead of requiring STEAM_REFRESH_TOKEN")
+		accountFlag = flag.String("account", "", "Steam account name for -login; falls back to STEAM_ACCOUNT_NAME")
+		guardType   = flag.String("guard-type", "device_code", "guard code type for -login: email_code, device_code, device_confirmation, or email_confirmation")
+		deviceName  = flag.String("device-name", "steam-go freeclaim example", "device friendly name sent to Steam for -login")
+		websiteID   = flag.String("website-id", "Store", "website ID used for -login")
+		authLang    = flag.Uint64("auth-language", 0, "optional language id passed to BeginAuthSessionViaCredentials for -login")
+		pollTimeout = flag.Duration("poll-timeout", 2*time.Minute, "maximum time to wait for Steam approval or tokens during -login")
 	)
 	flag.Parse()
 
@@ -78,7 +85,7 @@ func main() {
 
 	if *appID == 0 {
 		if *claim {
-			log.Fatal("-claim requires -app-id and a refresh token")
+			log.Fatal("-claim requires -app-id")
 		}
 		return
 	}
@@ -99,11 +106,6 @@ func main() {
 		return
 	}
 
-	refreshToken, err := resolveRefreshToken(secretinput.DefaultResolver())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	selectedPackageID, err := resolveClaimPackageID(uint32(*packageID), packages)
 	if err != nil {
 		log.Fatal(err)
@@ -116,9 +118,30 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cookies, err := sessionClient.RefreshTokenToWebCookies(ctx, refreshToken)
-	if err != nil {
-		log.Fatal(err)
+
+	resolver := secretinput.DefaultResolver()
+	var cookies *websession.WebCookieResult
+	if *login {
+		cookies, err = loginToWebCookies(ctx, resolver, sessionClient, loginOptions{
+			AccountName: *accountFlag,
+			DeviceName:  *deviceName,
+			WebsiteID:   *websiteID,
+			Language:    *authLang,
+			GuardType:   *guardType,
+			PollTimeout: *pollTimeout,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		refreshToken, err := resolveRefreshToken(resolver)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cookies, err = sessionClient.RefreshTokenToWebCookies(ctx, refreshToken)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if err := sessionClient.ValidateWebCookies(ctx, cookies); err != nil {
 		log.Fatal(err)
@@ -139,6 +162,12 @@ func main() {
 		result.Owned,
 		result.Message,
 	)
+
+	owned, err := freeclaimClient.IsAppOwned(ctx, cookies, uint32(*appID))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("owned_after_claim=%t\n", owned)
 }
 
 func resolveClaimPackageID(explicit uint32, packages []freeclaim.FreePackage) (uint32, error) {
