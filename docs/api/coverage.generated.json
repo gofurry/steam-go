@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "official_endpoint_count": 63,
-  "sdk_endpoint_count": 92,
+  "sdk_endpoint_count": 100,
   "status_counts": {
-    "covered": 19,
+    "covered": 27,
     "extra_sdk": 73,
-    "missing": 42,
+    "missing": 34,
     "version_mismatch": 2
   },
   "entries": [
@@ -145,7 +145,7 @@
       "version": 1,
       "http_method": "POST",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "client_id",
@@ -153,8 +153,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/GetAuthSessionInfo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IAuthenticationService",
@@ -162,7 +164,7 @@
       "version": 1,
       "http_method": "POST",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "client_id",
@@ -175,8 +177,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/GetAuthSessionRiskInfo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IAuthenticationService",
@@ -203,7 +207,7 @@
       "version": 1,
       "http_method": "POST",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "client_id",
@@ -226,8 +230,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/NotifyRiskQuizResults/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IAuthenticationService",
@@ -264,7 +270,7 @@
       "version": 1,
       "http_method": "POST",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "version",
@@ -297,8 +303,10 @@
           "optional": true
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/authenticationservice",
+      "sdk_path": "/IAuthenticationService/UpdateAuthSessionWithMobileConfirmation/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IAuthenticationService",
@@ -404,7 +412,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "property_type",
@@ -422,8 +430,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetCDNForVideo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
@@ -431,7 +441,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "cached_signature",
@@ -439,8 +449,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetClientUpdateHosts/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
@@ -448,7 +460,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "appid",
@@ -471,8 +483,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetDepotPatchInfo/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",
@@ -480,7 +494,7 @@
       "version": 1,
       "http_method": "GET",
       "auth": "unknown",
-      "status": "missing",
+      "status": "covered",
       "parameters": [
         {
           "name": "cell_id",
@@ -513,8 +527,10 @@
           "optional": false
         }
       ],
-      "sdk_typed": false,
-      "sdk_raw": false
+      "sdk_package": "api/contentserverdirectoryservice",
+      "sdk_path": "/IContentServerDirectoryService/GetServersForSteamPipe/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IContentServerDirectoryService",

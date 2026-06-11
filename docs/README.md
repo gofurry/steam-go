@@ -32,6 +32,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [Adding official endpoints](governance/official-endpoints.md)
 - [Fixture and smoke maintenance](governance/fixtures.md)
 - [Credential safety](security/credentials.md)
+- [Benchmark guide](dev/benchmark.md)
 - [v1.0.0 release notes](releases/v1.0.0.md)
 - [v1.2.1 release notes](releases/v1.2.1.md)
 - [v1.3.0 release notes](releases/v1.3.0.md)

@@ -188,6 +188,155 @@ func TestBeginAuthSessionViaQRBuildsRequestAndDecodesResponse(t *testing.T) {
 	assertProtoVarint(t, deviceFields, 2, 2)
 }
 
+func TestGetAuthSessionInfoBuildsRequestAndDecodesResponse(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{
+		statuses: []int{http.StatusOK},
+		responseBody: `{
+			"response": {
+				"ip": "127.0.0.1",
+				"geoloc": "US",
+				"city": "Seattle",
+				"state": "WA",
+				"country": "US",
+				"platform_type": 2,
+				"device_friendly_name": "browser",
+				"version": 1,
+				"login_history": 2,
+				"requestor_location_mismatch": true,
+				"high_usage_login": true,
+				"requested_persistence": 1,
+				"device_trust": 3,
+				"app_type": 4
+			}
+		}`,
+	}
+	service := newTestService(t, transport)
+
+	resp, err := service.GetAuthSessionInfo(context.Background(), GetAuthSessionInfoRequest{ClientID: 42})
+	if err != nil {
+		t.Fatalf("GetAuthSessionInfo returned error: %v", err)
+	}
+	if resp.IP != "127.0.0.1" || resp.PlatformType != AuthSessionPlatformTypeWebBrowser || !resp.RequestorLocationMismatch {
+		t.Fatalf("unexpected response: %#v", resp)
+	}
+
+	req := transport.onlyRequest(t)
+	if req.path != "/IAuthenticationService/GetAuthSessionInfo/v1/" {
+		t.Fatalf("unexpected path: %s", req.path)
+	}
+	fields := decodeInputProtoFieldsFromBody(t, req.body)
+	assertProtoVarint(t, fields, 1, 42)
+}
+
+func TestGetAuthSessionRiskInfoBuildsRequestAndDecodesResponse(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{
+		statuses: []int{http.StatusOK},
+		responseBody: `{
+			"response": {
+				"location_confirmer": "Mobile",
+				"location_requestor": "Browser",
+				"location_other": "Other",
+				"platform_type": 2
+			}
+		}`,
+	}
+	service := newTestService(t, transport)
+
+	resp, err := service.GetAuthSessionRiskInfo(context.Background(), GetAuthSessionRiskInfoRequest{
+		ClientID: 42,
+		Language: 6,
+	})
+	if err != nil {
+		t.Fatalf("GetAuthSessionRiskInfo returned error: %v", err)
+	}
+	if resp.LocationConfirmer != "Mobile" || resp.PlatformType != AuthSessionPlatformTypeWebBrowser {
+		t.Fatalf("unexpected response: %#v", resp)
+	}
+
+	req := transport.onlyRequest(t)
+	if req.path != "/IAuthenticationService/GetAuthSessionRiskInfo/v1/" {
+		t.Fatalf("unexpected path: %s", req.path)
+	}
+	fields := decodeInputProtoFieldsFromBody(t, req.body)
+	assertProtoVarint(t, fields, 1, 42)
+	assertProtoVarint(t, fields, 2, 6)
+}
+
+func TestNotifyRiskQuizResultsBuildsRequest(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{
+		statuses:     []int{http.StatusOK},
+		responseBody: `{"response":{}}`,
+	}
+	service := newTestService(t, transport)
+
+	_, err := service.NotifyRiskQuizResults(context.Background(), NotifyRiskQuizResultsRequest{
+		ClientID: 42,
+		Results: RiskQuizResults{
+			Platform: true,
+			Location: false,
+			Action:   true,
+		},
+		SelectedAction:  " approve ",
+		DidConfirmLogin: true,
+	})
+	if err != nil {
+		t.Fatalf("NotifyRiskQuizResults returned error: %v", err)
+	}
+
+	req := transport.onlyRequest(t)
+	if req.path != "/IAuthenticationService/NotifyRiskQuizResults/v1/" {
+		t.Fatalf("unexpected path: %s", req.path)
+	}
+	fields := decodeInputProtoFieldsFromBody(t, req.body)
+	assertProtoVarint(t, fields, 1, 42)
+	resultFields := decodeNestedField(t, fields, 2)
+	assertProtoVarint(t, resultFields, 1, 1)
+	assertProtoVarint(t, resultFields, 2, 0)
+	assertProtoVarint(t, resultFields, 3, 1)
+	assertProtoString(t, fields, 3, "approve")
+	assertProtoVarint(t, fields, 4, 1)
+}
+
+func TestUpdateAuthSessionWithMobileConfirmationBuildsRequest(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{
+		statuses:     []int{http.StatusOK},
+		responseBody: `{"response":{}}`,
+	}
+	service := newTestService(t, transport)
+
+	_, err := service.UpdateAuthSessionWithMobileConfirmation(context.Background(), UpdateAuthSessionWithMobileConfirmationRequest{
+		Version:     1,
+		ClientID:    42,
+		SteamID:     "76561198370695025",
+		Signature:   []byte{1, 2, 3},
+		Confirm:     true,
+		Persistence: AuthSessionPersistencePersistent,
+	})
+	if err != nil {
+		t.Fatalf("UpdateAuthSessionWithMobileConfirmation returned error: %v", err)
+	}
+
+	req := transport.onlyRequest(t)
+	if req.path != "/IAuthenticationService/UpdateAuthSessionWithMobileConfirmation/v1/" {
+		t.Fatalf("unexpected path: %s", req.path)
+	}
+	fields := decodeInputProtoFieldsFromBody(t, req.body)
+	assertProtoVarint(t, fields, 1, 1)
+	assertProtoVarint(t, fields, 2, 42)
+	assertProtoFixed64(t, fields, 3, 76561198370695025)
+	assertProtoBytes(t, fields, 4, []byte{1, 2, 3})
+	assertProtoVarint(t, fields, 5, 1)
+	assertProtoVarint(t, fields, 6, 1)
+}
+
 func TestUpdateAuthSessionWithSteamGuardCodeBuildsRequest(t *testing.T) {
 	t.Parallel()
 
@@ -269,6 +418,18 @@ func TestAuthSessionRequestValidation(t *testing.T) {
 	}
 	if _, err := service.PollAuthSessionStatus(context.Background(), PollAuthSessionStatusRequest{}); err == nil {
 		t.Fatal("expected poll validation error")
+	}
+	if _, err := service.GetAuthSessionInfo(context.Background(), GetAuthSessionInfoRequest{}); err == nil {
+		t.Fatal("expected session info validation error")
+	}
+	if _, err := service.GetAuthSessionRiskInfo(context.Background(), GetAuthSessionRiskInfoRequest{}); err == nil {
+		t.Fatal("expected session risk validation error")
+	}
+	if _, err := service.NotifyRiskQuizResults(context.Background(), NotifyRiskQuizResultsRequest{}); err == nil {
+		t.Fatal("expected risk quiz validation error")
+	}
+	if _, err := service.UpdateAuthSessionWithMobileConfirmation(context.Background(), UpdateAuthSessionWithMobileConfirmationRequest{}); err == nil {
+		t.Fatal("expected mobile confirmation validation error")
 	}
 }
 

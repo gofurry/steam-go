@@ -14,8 +14,10 @@
 当前 `client.API.*` 下包含这些服务分组：
 
 - `client.API.AccountCartService`
+- `client.API.AuthenticationService`
 - `client.API.BillingService`
 - `client.API.CommunityService`
+- `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
@@ -68,6 +70,36 @@
 - Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
 
 ## 重点覆盖
+
+`AuthenticationService` 覆盖低层 auth-session API：
+
+- `GetPasswordRSAPublicKey`
+- `BeginAuthSessionViaCredentials`
+- `BeginAuthSessionViaQR`
+- `GetAuthSessionInfo`
+- `GetAuthSessionRiskInfo`
+- `NotifyRiskQuizResults`
+- `UpdateAuthSessionWithMobileConfirmation`
+- `UpdateAuthSessionWithSteamGuardCode`
+- `PollAuthSessionStatus`
+
+说明：
+
+- 这些 helper 是低层 API coverage，不提供完整登录业务流程，不保存用户密码，不绕过 Steam Guard，也不会自动回答风险校验。
+- `NotifyRiskQuizResults` 只提交调用方显式提供的 risk quiz 结果。
+
+`ContentServerDirectoryService` 覆盖只读内容分发目录接口：
+
+- `GetCDNForVideo`
+- `GetClientUpdateHosts`
+- `GetDepotPatchInfo`
+- `GetServersForSteamPipe`
+
+说明：
+
+- 这些 helper 只暴露 CDN/video、Steam client update hosts、depot patch availability 和 SteamPipe server candidates 等低层目录元数据。
+- 它们不实现 CDN 下载器、depot patcher、manifest resolver 或 SteamPipe client。
+- `GetCDNForVideo` 的响应主体保留为 `json.RawMessage`，因为公开 payload shape 还不够稳定。
 
 `PlayerService` 覆盖了常用玩家资料、徽章、装饰物、最近游戏、成就进度、Steam 等级等接口。
 
@@ -130,6 +162,10 @@
 Raw HTTP 只接受 absolute URL。不要把不可信的用户输入 URL 直接传给 `DoRawHTTPRequest(...)`；当 URL 来源不完全受控时，优先通过 `RawHTTPRequestOptions.HostPolicy`、`NewAllowedRawHTTPHostPolicy(...)`、`NewSuffixRawHTTPHostPolicy(...)`、`NewSteamRawHTTPHostPolicy()` 或 `NewSteamStaticRawHTTPHostPolicy()` 限制允许访问的 host。
 
 Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST`、`PUT`、`PATCH`、`DELETE` 等非幂等方法只有在 SDK 方法或 `RawHTTPRequestOptions.Retryable` 显式 opt-in 后才会自动重试。
+
+`WithTrafficCacheOptions(...)` 是兼容性加法，用于按 traffic class 配置 cache TTL、最大 entry 数和可选 GET cache miss singleflight。旧的 `TrafficCachePolicy{TTL: ...}` 仍保持默认容量语义。
+
+`(*steam.Client).RuntimeStats()` 返回脱敏的只读 runtime snapshot，覆盖 cache、request control 和 proxy 运行状态计数；不包含 raw URL、query、header、body、cookie、token、API key 或 proxy 密码。
 
 `WithRequestObserver(...)` 可以安装轻量 request observer。事件包含 traffic class、method、host、不带 raw query 的 path、status、error kind、attempts、cache hit、conditional hit、block detected 和 duration；不包含 header、body、API key、token、cookie、raw query 或 proxy 密码。conditional cache revalidation 返回 `304 Not Modified` 时也会上报事件，并设置 `CacheHit=true`、`ConditionalHit=true`。
 

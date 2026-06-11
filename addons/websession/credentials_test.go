@@ -90,6 +90,55 @@ func TestStartWithCredentialsPreservesPasswordAndBuildsChallenge(t *testing.T) {
 	}
 }
 
+func TestStartWithQRBuildsChallenge(t *testing.T) {
+	t.Parallel()
+
+	transport := &sequenceAuthTransport{
+		responses: []authResponseSpec{
+			{
+				body: `{"response":{"client_id":"99","challenge_url":"https://s.team/q/demo","request_id":"BAU=","interval":4,"allowed_confirmations":[{"confirmation_type":4,"associated_message":"approve QR"}],"version":1}}`,
+			},
+		},
+	}
+	client := newTestClient(t, newTestAuthService(t, transport))
+
+	challenge, err := client.StartWithQR(context.Background(), " steam-go qr ")
+	if err != nil {
+		t.Fatalf("StartWithQR returned error: %v", err)
+	}
+	if challenge.ClientID != 99 {
+		t.Fatalf("unexpected client id: %d", challenge.ClientID)
+	}
+	if challenge.ChallengeURL != "https://s.team/q/demo" {
+		t.Fatalf("unexpected challenge url: %s", challenge.ChallengeURL)
+	}
+	if string(challenge.RequestID) != "\x04\x05" {
+		t.Fatalf("unexpected request id: %v", challenge.RequestID)
+	}
+	if challenge.PollInterval != 4*time.Second {
+		t.Fatalf("unexpected poll interval: %s", challenge.PollInterval)
+	}
+	if challenge.Version != 1 {
+		t.Fatalf("unexpected version: %d", challenge.Version)
+	}
+	if len(challenge.AllowedConfirmations) != 1 || challenge.AllowedConfirmations[0].ConfirmationType != 4 {
+		t.Fatalf("unexpected confirmations: %#v", challenge.AllowedConfirmations)
+	}
+
+	requests := transport.snapshotRequests()
+	if len(requests) != 1 {
+		t.Fatalf("expected 1 auth request, got %d", len(requests))
+	}
+	if requests[0].path != "/IAuthenticationService/BeginAuthSessionViaQR/v1/" {
+		t.Fatalf("unexpected begin QR auth path: %s", requests[0].path)
+	}
+	fields := decodeInputProtoFieldsFromBody(t, requests[0].body)
+	deviceDetails := decodeNestedTestProtoFields(t, testProtoFieldByNumber(t, fields, 3).Value)
+	if got := string(testProtoFieldByNumber(t, deviceDetails, 1).Value); got != "steam-go qr" {
+		t.Fatalf("unexpected QR device name: %q", got)
+	}
+}
+
 func TestSubmitSteamGuardCodeIgnoresDuplicateRequest(t *testing.T) {
 	t.Parallel()
 
@@ -137,6 +186,39 @@ func TestPollReturnsTokensAndUpdatesClientID(t *testing.T) {
 	}
 	if result.RefreshToken != "refresh" || result.AccessToken != "access" {
 		t.Fatalf("unexpected tokens: %#v", result)
+	}
+	if challenge.ClientID != 84 {
+		t.Fatalf("expected updated client id, got %d", challenge.ClientID)
+	}
+}
+
+func TestPollRefreshesQRChallengeAndDerivesSteamID(t *testing.T) {
+	t.Parallel()
+
+	refreshToken := testJWTWithSubject(t, "76561198000000001")
+	transport := &sequenceAuthTransport{
+		responses: []authResponseSpec{
+			{
+				body: `{"response":{"new_client_id":"84","new_challenge_url":"https://s.team/q/new","refresh_token":"` + refreshToken + `","access_token":"access","account_name":"demo"}}`,
+			},
+		},
+	}
+	client := newTestClient(t, newTestAuthService(t, transport))
+	challenge := &LoginChallenge{
+		ClientID:     42,
+		ChallengeURL: "https://s.team/q/old",
+		RequestID:    []byte{1, 2, 3},
+	}
+
+	result, err := client.Poll(context.Background(), challenge)
+	if err != nil {
+		t.Fatalf("Poll returned error: %v", err)
+	}
+	if result.SteamID != "76561198000000001" || challenge.SteamID != "76561198000000001" {
+		t.Fatalf("expected steam id to be derived, result=%#v challenge=%#v", result, challenge)
+	}
+	if challenge.ChallengeURL != "https://s.team/q/new" {
+		t.Fatalf("expected refreshed challenge url, got %s", challenge.ChallengeURL)
 	}
 	if challenge.ClientID != 84 {
 		t.Fatalf("expected updated client id, got %d", challenge.ClientID)

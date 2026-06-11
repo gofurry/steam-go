@@ -19,6 +19,7 @@ import (
 )
 
 const defaultUserAgent = "steam-go/1"
+const minimumRetryAfterDelay = 10 * time.Millisecond
 
 // Transport is the request executor used by the SDK.
 type Transport interface {
@@ -147,6 +148,20 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 	retryable := requestRetryable(spec.Method, spec.Retryable)
 
 	var lastErr error
+	var cacheFill *cacheFillCall
+	var cacheFillLookup cacheLookup
+	var cacheFillCompleted bool
+	completeCacheFill := func(result HTTPResult, stored bool, err error) {
+		if cacheFill == nil || cacheFillCompleted || policy.CacheRuntime == nil {
+			return
+		}
+		policy.CacheRuntime.completeFill(cacheFillLookup, cacheFill, result, stored, err)
+		cacheFillCompleted = true
+	}
+	defer func() {
+		completeCacheFill(HTTPResult{}, false, lastErr)
+	}()
+
 	for attempt := 0; attempt <= policy.Retry; attempt++ {
 		attempts = attempt + 1
 		req, err := e.buildRequest(ctx, resolved, spec, creds)
@@ -175,6 +190,25 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			}
 			if cacheLookupAllowsConditionalRequest(cacheLookup) {
 				applyConditionalCacheHeaders(req, cacheLookup)
+			}
+			if cacheFill == nil && !cacheLookup.found {
+				fill, leader := policy.CacheRuntime.beginFill(req.Context(), cacheLookup)
+				if !leader {
+					result, stored, waitErr := fill.wait(req.Context())
+					if waitErr != nil {
+						if req.Context().Err() != nil {
+							lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "wait for cache fill failed", nil, waitErr)
+							observeRequest(policy.Observer, req, class, 0, lastErr, attempts, false, false, started)
+							return nil, lastErr
+						}
+					} else if stored {
+						observeRequest(policy.Observer, req, class, result.StatusCode, nil, attempts, true, false, started)
+						return cloneBytes(result.Body), nil
+					}
+				} else if fill != nil {
+					cacheFill = fill
+					cacheFillLookup = cacheLookup
+				}
 			}
 		}
 
@@ -260,12 +294,14 @@ func (e *Executor) DoRaw(ctx context.Context, spec RequestSpec) ([]byte, error) 
 			if resp.Request != nil && resp.Request.URL != nil {
 				finalURL = cloneURL(resp.Request.URL)
 			}
-			policy.CacheRuntime.store(req, resp, HTTPResult{
+			result := HTTPResult{
 				StatusCode: resp.StatusCode,
 				Header:     cloneHeader(resp.Header),
 				FinalURL:   finalURL,
 				Body:       body,
-			}, time.Now())
+			}
+			policy.CacheRuntime.store(req, resp, result, time.Now())
+			completeCacheFill(result, true, nil)
 		}
 
 		observeRequest(policy.Observer, req, class, resp.StatusCode, nil, attempts, false, false, started)
@@ -519,8 +555,8 @@ func retryAfterDelay(resp *http.Response, now time.Time) (time.Duration, bool) {
 
 	seconds, err := strconv.Atoi(raw)
 	if err == nil {
-		if seconds < 0 {
-			return 0, true
+		if seconds <= 0 {
+			return minimumRetryAfterDelay, true
 		}
 		return time.Duration(seconds) * time.Second, true
 	}
@@ -529,8 +565,8 @@ func retryAfterDelay(resp *http.Response, now time.Time) (time.Duration, bool) {
 	if err != nil {
 		return 0, false
 	}
-	if when.Before(now) {
-		return 0, true
+	if !when.After(now) {
+		return minimumRetryAfterDelay, true
 	}
 	return when.Sub(now), true
 }

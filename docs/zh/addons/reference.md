@@ -36,15 +36,19 @@ go run ./examples/openid --proxy http://127.0.0.1:7897
 它负责：
 
 - 启动账号密码认证会话
+- 启动 QR 认证会话，并返回由调用方展示的 challenge URL
 - 可选地提交一次 Steam Guard 验证码
 - 轮询直到拿到 Steam token
 - 把 refresh token 换成 Store / Community Web Cookie
 - 校验 Store 和 Community 两边的 session
+- 显式导出 / 导入 `WebCookieResult` 的 JSON snapshot
 
 它不负责：
 
-- 替你持久化密码、refresh token 或 Cookie
+- 除非你显式调用 JSON snapshot helper，否则不会替你持久化密码、refresh token 或 Cookie
 - 读取浏览器 Cookie 或 Steam 客户端本地登录态
+- 展示二维码或替你确认 QR 登录
+- 生成 mobile confirmation 签名或托管 mobile secret
 - 在示例输出里直接打印敏感 token
 - 替你长期托管 refresh token 或登录生命周期
 
@@ -58,6 +62,21 @@ go run ./examples/openid --proxy http://127.0.0.1:7897
 - `STEAM_ACCOUNT_NAME`
 - `STEAM_PASSWORD`
 - `STEAM_GUARD_CODE`
+
+Cookie snapshot helper：
+
+- `websession.SaveWebCookieResultJSON(...)`
+- `websession.LoadWebCookieResultJSON(...)`
+- `websession.ExportWebCookieSnapshot(...)`
+- `websession.ImportWebCookieSnapshot(...)`
+
+Snapshot JSON 包含可用的 Web Cookie 和 `sessionid` metadata。请把这些内容当作凭据保护，只保存到调用方明确控制的位置，并在恢复后使用 `ValidateWebCookies(...)` 校验。
+
+Mobile confirmation 边界：
+
+- 低层 mobile confirmation 仍通过 `client.API.AuthenticationService.UpdateAuthSessionWithMobileConfirmation(...)` 提供
+- 调用方必须自己显式提供签名和确认决策
+- `addons/websession` 不保存 mobile secret、不生成签名，也不会自动确认登录
 
 示例：
 
@@ -238,7 +257,7 @@ go run ./examples/vdf -file "C:\\Program Files (x86)\\Steam\\steamapps\\appmanif
 - `freeclaim.NewClientFromSteamClient(...)`：推荐方式，复用根 SDK 的按类别 traffic-policy 执行链
 - `freeclaim.NewClient(...)`：手动模式，适合你自己提供 `http.Client`
 
-示例默认只读。只有在显式 claim 模式下，才需要通过 `STEAM_REFRESH_TOKEN` 或一次隐藏输入提供 refresh token。
+示例默认只读。Claim 模式需要 `-app-id` 和一个明确选择的 package。默认会通过 `STEAM_REFRESH_TOKEN` 或一次隐藏输入读取 refresh token；加上 `-login` 时，会先执行 `addons/websession` 的手动账号密码登录流程。两种模式都最多只领取一个 package，并在领取后通过 `IsAppOwned` 校验拥有状态。
 
 只读搜索 / 解析示例：
 
@@ -250,6 +269,7 @@ go run ./examples/freeclaim
 
 ```bash
 go run ./examples/freeclaim -app-id 480 -package-id 12345 -claim
+go run ./examples/freeclaim -app-id 480 -package-id 12345 -claim -login
 ```
 
 ## `addons/a2s`

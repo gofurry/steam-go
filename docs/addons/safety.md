@@ -13,8 +13,11 @@ Addons keep optional workflows outside the core SDK. They should stay explicit, 
 ## `addons/websession`
 
 - Drives one manual Steam web-login workflow.
+- Supports credentials and QR auth session starts, but QR display and approval remain caller-controlled.
 - Handles cookie jars returned by Steam, so callers must protect those cookies like credentials.
-- Does not persist passwords, refresh tokens, access tokens, or cookies.
+- JSON snapshot helpers persist only when callers explicitly invoke them; snapshot contents must be protected like credentials.
+- Does not persist passwords, refresh tokens, access tokens, or cookies by default.
+- Does not generate mobile confirmation signatures, store mobile secrets, or auto-confirm login approvals.
 - Does not read browser cookies or local Steam client state.
 - Should be used deliberately by applications that already have a credential handling policy.
 
@@ -24,7 +27,7 @@ Addons keep optional workflows outside the core SDK. They should stay explicit, 
 - Does not auto-claim every free package.
 - Does not manage account pools or bulk account automation.
 - Does not retry forever or bypass upstream limits.
-- Claim mode should require an explicit caller decision and protected refresh-token handling.
+- Claim mode should require an explicit caller decision and protected refresh-token or web-cookie handling.
 
 ## `addons/markup`
 

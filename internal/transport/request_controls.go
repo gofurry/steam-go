@@ -19,6 +19,9 @@ type requestControlManager struct {
 
 	opCount   atomic.Uint64
 	lastSweep atomic.Int64
+
+	waits  atomic.Uint64
+	prunes atomic.Uint64
 }
 
 type requestLimiterEntry struct {
@@ -54,6 +57,9 @@ func acquireRequestControl(ctx context.Context, manager *requestControlManager, 
 	now := time.Now()
 	manager.maybePrune(now)
 	semaphore := manager.semaphore(key, now)
+	if len(semaphore) >= cap(semaphore) {
+		manager.waits.Add(1)
+	}
 	select {
 	case semaphore <- struct{}{}:
 		return func() {
@@ -77,6 +83,7 @@ func waitRequestControl(ctx context.Context, manager *requestControlManager, key
 	}
 	now := time.Now()
 	manager.maybePrune(now)
+	manager.waits.Add(1)
 	return manager.limiter(key, now).Wait(ctx)
 }
 
@@ -162,5 +169,27 @@ func (m *requestControlManager) maybePrune(now time.Time) {
 			delete(m.semaphores, key)
 		}
 	}
+	m.prunes.Add(1)
 	m.lastSweep.Store(now.UnixNano())
+}
+
+type RequestControlStats struct {
+	LimiterKeys   int
+	SemaphoreKeys int
+	Waits         uint64
+	Prunes        uint64
+}
+
+func (m *requestControlManager) stats() RequestControlStats {
+	if m == nil {
+		return RequestControlStats{}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return RequestControlStats{
+		LimiterKeys:   len(m.limiters),
+		SemaphoreKeys: len(m.semaphores),
+		Waits:         m.waits.Load(),
+		Prunes:        m.prunes.Load(),
+	}
 }

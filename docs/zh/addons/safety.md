@@ -13,8 +13,11 @@ Addon 用于把可选工作流放在核心 SDK 之外。它们应保持显式、
 ## `addons/websession`
 
 - 驱动一条手动 Steam Web 登录流程。
+- 支持账号密码和 QR auth session start，但二维码展示和确认仍由调用方控制。
 - 会处理 Steam 返回的 cookie jar，调用方必须像保护凭据一样保护这些 cookie。
-- 不持久化密码、refresh token、access token 或 cookie。
+- JSON snapshot helper 只有在调用方显式调用时才会持久化，snapshot 内容必须像凭据一样保护。
+- 默认不持久化密码、refresh token、access token 或 cookie。
+- 不生成 mobile confirmation 签名，不托管 mobile secret，也不自动确认登录批准。
 - 不读取浏览器 cookie 或本地 Steam 客户端状态。
 - 适合已有凭据处理策略的应用显式使用。
 
@@ -24,7 +27,7 @@ Addon 用于把可选工作流放在核心 SDK 之外。它们应保持显式、
 - 不自动领取所有免费 package。
 - 不管理账号池或批量账号自动化。
 - 不无限重试，也不绕过上游限制。
-- Claim 模式应要求调用方显式决策，并妥善保护 refresh token。
+- Claim 模式应要求调用方显式决策，并妥善保护 refresh token 或 Web Cookie。
 
 ## `addons/markup`
 

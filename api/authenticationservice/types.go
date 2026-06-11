@@ -106,6 +106,74 @@ type PollAuthSessionStatusResponse struct {
 	NewGuardData         string `json:"new_guard_data"`
 }
 
+// GetAuthSessionInfoRequest reads low-level metadata for one auth session.
+type GetAuthSessionInfoRequest struct {
+	ClientID uint64
+}
+
+// GetAuthSessionInfoResponse contains low-level metadata about one auth session.
+type GetAuthSessionInfoResponse struct {
+	IP                        string                  `json:"ip"`
+	GeoLoc                    string                  `json:"geoloc"`
+	City                      string                  `json:"city"`
+	State                     string                  `json:"state"`
+	Country                   string                  `json:"country"`
+	PlatformType              AuthSessionPlatformType `json:"platform_type"`
+	DeviceFriendlyName        string                  `json:"device_friendly_name"`
+	Version                   int32                   `json:"version"`
+	LoginHistory              int32                   `json:"login_history"`
+	RequestorLocationMismatch bool                    `json:"requestor_location_mismatch"`
+	HighUsageLogin            bool                    `json:"high_usage_login"`
+	RequestedPersistence      AuthSessionPersistence  `json:"requested_persistence"`
+	DeviceTrust               int32                   `json:"device_trust"`
+	AppType                   int32                   `json:"app_type"`
+}
+
+// GetAuthSessionRiskInfoRequest reads low-level risk metadata for one auth session.
+type GetAuthSessionRiskInfoRequest struct {
+	ClientID uint64
+	Language uint32
+}
+
+// GetAuthSessionRiskInfoResponse contains low-level risk metadata for one auth session.
+type GetAuthSessionRiskInfoResponse struct {
+	LocationConfirmer string                  `json:"location_confirmer"`
+	LocationRequestor string                  `json:"location_requestor"`
+	LocationOther     string                  `json:"location_other"`
+	PlatformType      AuthSessionPlatformType `json:"platform_type"`
+}
+
+// RiskQuizResults describes caller-supplied answers for Steam's risk quiz notification.
+type RiskQuizResults struct {
+	Platform bool
+	Location bool
+	Action   bool
+}
+
+// NotifyRiskQuizResultsRequest submits low-level caller-supplied risk quiz results.
+type NotifyRiskQuizResultsRequest struct {
+	ClientID        uint64
+	Results         RiskQuizResults
+	SelectedAction  string
+	DidConfirmLogin bool
+}
+
+// NotifyRiskQuizResultsResponse is reserved for Steam's notification response payload.
+type NotifyRiskQuizResultsResponse struct{}
+
+// UpdateAuthSessionWithMobileConfirmationRequest submits a mobile confirmation for one auth session.
+type UpdateAuthSessionWithMobileConfirmationRequest struct {
+	Version     int32
+	ClientID    uint64
+	SteamID     string
+	Signature   []byte
+	Confirm     bool
+	Persistence AuthSessionPersistence
+}
+
+// UpdateAuthSessionWithMobileConfirmationResponse is reserved for Steam's mobile confirmation response payload.
+type UpdateAuthSessionWithMobileConfirmationResponse struct{}
+
 // UnmarshalJSON accepts Steam timestamp values encoded as either JSON strings or numbers.
 func (r *GetPasswordRSAPublicKeyResponse) UnmarshalJSON(data []byte) error {
 	var raw struct {

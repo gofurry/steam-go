@@ -173,6 +173,16 @@ func decodeInputProtoFieldsFromBody(t *testing.T, body []byte) []testProtoField 
 	return fields
 }
 
+func decodeNestedTestProtoFields(t *testing.T, data []byte) []testProtoField {
+	t.Helper()
+
+	fields, err := readTestProtoFields(data)
+	if err != nil {
+		t.Fatalf("readTestProtoFields nested returned error: %v", err)
+	}
+	return fields
+}
+
 func readTestProtoFields(message []byte) ([]testProtoField, error) {
 	fields := make([]testProtoField, 0)
 	for offset := 0; offset < len(message); {

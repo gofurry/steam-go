@@ -9,6 +9,7 @@ import (
 	"github.com/gofurry/steam-go/api/authenticationservice"
 	"github.com/gofurry/steam-go/api/billingservice"
 	"github.com/gofurry/steam-go/api/communityservice"
+	"github.com/gofurry/steam-go/api/contentserverdirectoryservice"
 	"github.com/gofurry/steam-go/api/familygroupsservice"
 	"github.com/gofurry/steam-go/api/loyaltyrewardsservice"
 	"github.com/gofurry/steam-go/api/mobilenotificationservice"
@@ -54,35 +55,36 @@ type Client struct {
 
 // API groups all typed Steam Web API services under one stable entrypoint.
 type API struct {
-	AccountCartService        *accountcartservice.Service
-	AuthenticationService     *authenticationservice.Service
-	BillingService            *billingservice.Service
-	CommunityService          *communityservice.Service
-	FamilyGroupsService       *familygroupsservice.Service
-	LoyaltyRewardsService     *loyaltyrewardsservice.Service
-	MobileNotificationService *mobilenotificationservice.Service
-	NewsService               *newsservice.Service
-	QuestService              *questservice.Service
-	SaleFeatureService        *salefeatureservice.Service
-	StoreBrowseService        *storebrowseservice.Service
-	StoreCatalogService       *storecatalogservice.Service
-	StorePreferencesService   *storepreferencesservice.Service
-	StoreService              *storeservice.Service
-	StoreTopSellersService    *storetopsellersservice.Service
-	SteamDirectory            *steamdirectory.Service
-	SteamApps                 *steamapps.Service
-	SteamChartsService        *steamchartsservice.Service
-	SteamNotificationService  *steamnotificationservice.Service
-	SteamUser                 *steamuser.Service
-	SteamUserOAuth            *steamuseroauth.Service
-	SteamWebAPIUtil           *steamwebapiutil.Service
-	UserAccountService        *useraccountservice.Service
-	UserReviewsService        *userreviewsservice.Service
-	UserStoreVisitService     *userstorevisitservice.Service
-	WishlistService           *wishlistservice.Service
-	PlayerService             *playerservice.Service
-	SteamNews                 *steamnews.Service
-	SteamUserStats            *steamuserstats.Service
+	AccountCartService            *accountcartservice.Service
+	AuthenticationService         *authenticationservice.Service
+	BillingService                *billingservice.Service
+	CommunityService              *communityservice.Service
+	ContentServerDirectoryService *contentserverdirectoryservice.Service
+	FamilyGroupsService           *familygroupsservice.Service
+	LoyaltyRewardsService         *loyaltyrewardsservice.Service
+	MobileNotificationService     *mobilenotificationservice.Service
+	NewsService                   *newsservice.Service
+	QuestService                  *questservice.Service
+	SaleFeatureService            *salefeatureservice.Service
+	StoreBrowseService            *storebrowseservice.Service
+	StoreCatalogService           *storecatalogservice.Service
+	StorePreferencesService       *storepreferencesservice.Service
+	StoreService                  *storeservice.Service
+	StoreTopSellersService        *storetopsellersservice.Service
+	SteamDirectory                *steamdirectory.Service
+	SteamApps                     *steamapps.Service
+	SteamChartsService            *steamchartsservice.Service
+	SteamNotificationService      *steamnotificationservice.Service
+	SteamUser                     *steamuser.Service
+	SteamUserOAuth                *steamuseroauth.Service
+	SteamWebAPIUtil               *steamwebapiutil.Service
+	UserAccountService            *useraccountservice.Service
+	UserReviewsService            *userreviewsservice.Service
+	UserStoreVisitService         *userstorevisitservice.Service
+	WishlistService               *wishlistservice.Service
+	PlayerService                 *playerservice.Service
+	SteamNews                     *steamnews.Service
+	SteamUserStats                *steamuserstats.Service
 }
 
 // Web groups read-only Steam web JSON services under one stable entrypoint.
@@ -145,35 +147,36 @@ func NewClient(opts ...Option) (*Client, error) {
 		maxResponseBodyBytes: cfg.maxResponseBodyBytes,
 	}
 	client.API = &API{
-		AccountCartService:        accountcartservice.NewService(officialExecutor),
-		AuthenticationService:     authenticationservice.NewService(officialExecutor),
-		BillingService:            billingservice.NewService(officialExecutor),
-		CommunityService:          communityservice.NewService(officialExecutor),
-		FamilyGroupsService:       familygroupsservice.NewService(officialExecutor),
-		LoyaltyRewardsService:     loyaltyrewardsservice.NewService(officialExecutor),
-		MobileNotificationService: mobilenotificationservice.NewService(officialExecutor),
-		NewsService:               newsservice.NewService(officialExecutor),
-		QuestService:              questservice.NewService(officialExecutor),
-		SaleFeatureService:        salefeatureservice.NewService(officialExecutor),
-		StoreBrowseService:        storebrowseservice.NewService(officialExecutor),
-		StoreCatalogService:       storecatalogservice.NewService(officialExecutor),
-		StorePreferencesService:   storepreferencesservice.NewService(officialExecutor),
-		StoreService:              storeservice.NewService(officialExecutor),
-		StoreTopSellersService:    storetopsellersservice.NewService(officialExecutor),
-		SteamDirectory:            steamdirectory.NewService(officialExecutor),
-		SteamApps:                 steamapps.NewService(officialExecutor),
-		SteamChartsService:        steamchartsservice.NewService(officialExecutor),
-		SteamNotificationService:  steamnotificationservice.NewService(officialExecutor),
-		SteamUser:                 steamuser.NewService(officialExecutor),
-		SteamUserOAuth:            steamuseroauth.NewService(officialExecutor),
-		SteamWebAPIUtil:           steamwebapiutil.NewService(officialExecutor),
-		UserAccountService:        useraccountservice.NewService(officialExecutor),
-		UserReviewsService:        userreviewsservice.NewService(officialExecutor),
-		UserStoreVisitService:     userstorevisitservice.NewService(officialExecutor),
-		WishlistService:           wishlistservice.NewService(officialExecutor),
-		PlayerService:             playerservice.NewService(officialExecutor),
-		SteamNews:                 steamnews.NewService(officialExecutor),
-		SteamUserStats:            steamuserstats.NewService(officialExecutor),
+		AccountCartService:            accountcartservice.NewService(officialExecutor),
+		AuthenticationService:         authenticationservice.NewService(officialExecutor),
+		BillingService:                billingservice.NewService(officialExecutor),
+		CommunityService:              communityservice.NewService(officialExecutor),
+		ContentServerDirectoryService: contentserverdirectoryservice.NewService(officialExecutor),
+		FamilyGroupsService:           familygroupsservice.NewService(officialExecutor),
+		LoyaltyRewardsService:         loyaltyrewardsservice.NewService(officialExecutor),
+		MobileNotificationService:     mobilenotificationservice.NewService(officialExecutor),
+		NewsService:                   newsservice.NewService(officialExecutor),
+		QuestService:                  questservice.NewService(officialExecutor),
+		SaleFeatureService:            salefeatureservice.NewService(officialExecutor),
+		StoreBrowseService:            storebrowseservice.NewService(officialExecutor),
+		StoreCatalogService:           storecatalogservice.NewService(officialExecutor),
+		StorePreferencesService:       storepreferencesservice.NewService(officialExecutor),
+		StoreService:                  storeservice.NewService(officialExecutor),
+		StoreTopSellersService:        storetopsellersservice.NewService(officialExecutor),
+		SteamDirectory:                steamdirectory.NewService(officialExecutor),
+		SteamApps:                     steamapps.NewService(officialExecutor),
+		SteamChartsService:            steamchartsservice.NewService(officialExecutor),
+		SteamNotificationService:      steamnotificationservice.NewService(officialExecutor),
+		SteamUser:                     steamuser.NewService(officialExecutor),
+		SteamUserOAuth:                steamuseroauth.NewService(officialExecutor),
+		SteamWebAPIUtil:               steamwebapiutil.NewService(officialExecutor),
+		UserAccountService:            useraccountservice.NewService(officialExecutor),
+		UserReviewsService:            userreviewsservice.NewService(officialExecutor),
+		UserStoreVisitService:         userstorevisitservice.NewService(officialExecutor),
+		WishlistService:               wishlistservice.NewService(officialExecutor),
+		PlayerService:                 playerservice.NewService(officialExecutor),
+		SteamNews:                     steamnews.NewService(officialExecutor),
+		SteamUserStats:                steamuserstats.NewService(officialExecutor),
 	}
 	client.Web = &Web{
 		Storefront: storefront.NewService(storefrontExecutor),
@@ -200,23 +203,27 @@ type trafficRuntimeSet struct {
 	defaultPolicy request.ExecutionPolicy
 	classPolicies map[itraffic.Class]request.ExecutionPolicy
 	httpClients   []*http.Client
+	statsSources  map[itraffic.Class]runtimeStatsSource
+	proxyMetrics  []ProxyMetricsProvider
 }
 
 type runtimePolicyConfig struct {
-	proxySelector   ProxySelector
-	cookieJar       http.CookieJar
-	rateLimiter     transport.RateLimiterConfig
-	hostControl     transport.RequestControlConfig
-	sessionControl  transport.RequestControlConfig
-	cacheTTL        time.Duration
-	blockPolicy     *TrafficBlockPolicy
-	trafficClass    itraffic.Class
-	headerProfile   *HeaderProfile
-	refererSelector RefererSelector
-	transportHook   TransportHook
-	observer        request.RequestObserver
-	retry           int
-	retryBackoff    request.RetryBackoffConfig
+	proxySelector     ProxySelector
+	cookieJar         http.CookieJar
+	rateLimiter       transport.RateLimiterConfig
+	hostControl       transport.RequestControlConfig
+	sessionControl    transport.RequestControlConfig
+	cacheTTL          time.Duration
+	cacheMaxEntries   int
+	cacheSingleflight bool
+	blockPolicy       *TrafficBlockPolicy
+	trafficClass      itraffic.Class
+	headerProfile     *HeaderProfile
+	refererSelector   RefererSelector
+	transportHook     TransportHook
+	observer          request.RequestObserver
+	retry             int
+	retryBackoff      request.RetryBackoffConfig
 }
 
 func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
@@ -244,6 +251,10 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		defaultPolicy: defaultRuntime.executionPolicy,
 		classPolicies: make(map[itraffic.Class]request.ExecutionPolicy, len(cfg.trafficPolicies)),
 		httpClients:   []*http.Client{defaultRuntime.httpClient},
+		statsSources:  map[itraffic.Class]runtimeStatsSource{itraffic.ClassOfficialAPI: defaultRuntime.statsSource},
+	}
+	if provider, ok := cfg.proxySelector.(ProxyMetricsProvider); ok {
+		runtimes.proxyMetrics = append(runtimes.proxyMetrics, provider)
 	}
 
 	for class, policy := range cfg.trafficPolicies {
@@ -305,6 +316,8 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		}
 		if policy.cache != nil {
 			resolved.cacheTTL = policy.cache.TTL
+			resolved.cacheMaxEntries = policy.cacheMaxEntries
+			resolved.cacheSingleflight = policy.cacheSingleflight
 		}
 		if policy.blockPolicy != nil {
 			resolved.blockPolicy = policy.blockPolicy
@@ -326,6 +339,10 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		class = itraffic.NormalizeClass(class)
 		runtimes.classPolicies[class] = runtime.executionPolicy
 		runtimes.httpClients = append(runtimes.httpClients, runtime.httpClient)
+		runtimes.statsSources[class] = runtime.statsSource
+		if provider, ok := resolved.proxySelector.(ProxyMetricsProvider); ok {
+			runtimes.proxyMetrics = append(runtimes.proxyMetrics, provider)
+		}
 	}
 
 	return runtimes, nil
@@ -334,6 +351,12 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 type builtRuntime struct {
 	httpClient      *http.Client
 	executionPolicy request.ExecutionPolicy
+	statsSource     runtimeStatsSource
+}
+
+type runtimeStatsSource struct {
+	cache     request.CacheRuntime
+	transport *transport.Client
 }
 
 func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigured bool) (builtRuntime, error) {
@@ -367,20 +390,30 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 			httpClient = hookedClient
 		}
 	}
+	cacheRuntime := request.NewMemoryCacheRuntimeWithOptions(request.CacheOptions{
+		TTL:          policy.cacheTTL,
+		MaxEntries:   policy.cacheMaxEntries,
+		Singleflight: policy.cacheSingleflight,
+	}, policy.cookieJar)
+	transportClient := transport.New(httpClient, transport.ClientConfig{
+		RateLimiter:    policy.rateLimiter,
+		HostControl:    policy.hostControl,
+		SessionControl: policy.sessionControl,
+	})
 	return builtRuntime{
 		httpClient: httpClient,
 		executionPolicy: request.ExecutionPolicy{
 			Retry:          policy.retry,
 			RetryBackoff:   policy.retryBackoff,
-			CacheRuntime:   request.NewMemoryCacheRuntime(policy.cacheTTL, policy.cookieJar),
+			CacheRuntime:   cacheRuntime,
 			BlockRuntime:   request.NewBlockRuntime(policy.trafficClass, request.BlockConfig{HTMLSniffBytes: blockSniffBytes(policy.blockPolicy)}),
 			PrepareRequest: buildRequestPreparer(policy.headerProfile, policy.refererSelector),
-			Transport: transport.New(httpClient, transport.ClientConfig{
-				RateLimiter:    policy.rateLimiter,
-				HostControl:    policy.hostControl,
-				SessionControl: policy.sessionControl,
-			}),
-			Observer: policy.observer,
+			Transport:      transportClient,
+			Observer:       policy.observer,
+		},
+		statsSource: runtimeStatsSource{
+			cache:     cacheRuntime,
+			transport: transportClient,
 		},
 	}, nil
 }

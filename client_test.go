@@ -4392,6 +4392,68 @@ func TestWithHTTPClientAndDefaultCookieJarUsesClonedJar(t *testing.T) {
 	}
 }
 
+func TestClientRuntimeStatsIncludesCacheAndTransportSnapshots(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"response":{"players":[{"steamid":"1","personaname":"cached"}]}}`))
+	}))
+	defer server.Close()
+
+	client, err := steam.NewClient(
+		steam.WithBaseURL(server.URL),
+		steam.WithTrafficPolicy(steam.TrafficClassOfficialAPI, steam.TrafficPolicy{
+			HostControl: &steam.TrafficHostControlPolicy{MaxConcurrent: 1},
+		}),
+		steam.WithTrafficCacheOptions(steam.TrafficClassOfficialAPI, steam.TrafficCacheOptions{
+			TTL:        time.Minute,
+			MaxEntries: 4,
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if _, err := client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198000000001"}); err != nil {
+		t.Fatalf("first request returned error: %v", err)
+	}
+	if _, err := client.API.SteamUser.GetPlayerSummaries(context.Background(), []string{"76561198000000001"}); err != nil {
+		t.Fatalf("second request returned error: %v", err)
+	}
+
+	stats := client.RuntimeStats()
+	classStats, ok := stats.Classes[steam.TrafficClassOfficialAPI]
+	if !ok {
+		t.Fatalf("expected official API stats, got %#v", stats.Classes)
+	}
+	if classStats.Cache.MaxEntries != 4 {
+		t.Fatalf("unexpected cache max entries: %#v", classStats.Cache)
+	}
+	if classStats.Cache.Stores == 0 || classStats.Cache.Hits == 0 {
+		t.Fatalf("expected cache store and hit stats, got %#v", classStats.Cache)
+	}
+	if classStats.Transport.HostControlKeys == 0 {
+		t.Fatalf("expected host control keys, got %#v", classStats.Transport)
+	}
+}
+
+func TestWithTrafficCacheOptionsValidation(t *testing.T) {
+	t.Parallel()
+
+	_, err := steam.NewClient(steam.WithTrafficCacheOptions(steam.TrafficClassOfficialAPI, steam.TrafficCacheOptions{}))
+	if err == nil || !strings.Contains(err.Error(), "ttl must be greater than zero") {
+		t.Fatalf("expected ttl validation error, got %v", err)
+	}
+
+	_, err = steam.NewClient(steam.WithTrafficCacheOptions(steam.TrafficClassOfficialAPI, steam.TrafficCacheOptions{
+		TTL:        time.Minute,
+		MaxEntries: -1,
+	}))
+	if err == nil || !strings.Contains(err.Error(), "max entries must not be negative") {
+		t.Fatalf("expected max entries validation error, got %v", err)
+	}
+}
+
 func TestWithHTTPClientPreservesCustomRoundTripperWithoutProxy(t *testing.T) {
 	t.Parallel()
 
