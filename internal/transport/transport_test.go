@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -596,6 +597,74 @@ func TestClientSessionRateLimiterThrottlesSameSession(t *testing.T) {
 	err := doTransportRequest(client, ctx, "https://api.steampowered.com/two")
 	if err == nil || !strings.Contains(err.Error(), "would exceed context deadline") {
 		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestClientStatsCountsControlKeysAndWaits(t *testing.T) {
+	t.Parallel()
+
+	firstStarted := make(chan struct{})
+	release := make(chan struct{})
+	client := New(&http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path == "/one" {
+				close(firstStarted)
+				<-release
+			}
+			return okResponse(), nil
+		}),
+	}, ClientConfig{
+		HostControl: RequestControlConfig{MaxConcurrent: 1},
+	})
+
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- doTransportRequest(client, context.Background(), "https://api.steampowered.com/one")
+	}()
+	<-firstStarted
+
+	waitCtx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	err := doTransportRequest(client, waitCtx, "https://api.steampowered.com/two")
+	if err == nil {
+		t.Fatal("expected second request to time out while waiting")
+	}
+	close(release)
+	if err := <-firstDone; err != nil {
+		t.Fatalf("first request returned error: %v", err)
+	}
+
+	stats := client.Stats()
+	if stats.HostControlKeys == 0 {
+		t.Fatalf("expected host control keys to be counted: %#v", stats)
+	}
+	if stats.HostWaits == 0 {
+		t.Fatalf("expected host waits to be counted: %#v", stats)
+	}
+}
+
+func TestClientSkipsCloneWhenRuntimeCookieJarMatchesDefaultJar(t *testing.T) {
+	t.Parallel()
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("cookiejar.New returned error: %v", err)
+	}
+	var calls atomic.Int32
+	client := New(&http.Client{
+		Jar: jar,
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			return okResponse(), nil
+		}),
+	}, ClientConfig{})
+
+	ctx := traffic.WithCookieJar(context.Background(), jar)
+	if err := doTransportRequest(client, ctx, "https://api.steampowered.com/one"); err != nil {
+		t.Fatalf("request returned error: %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("expected request to use base client transport, got %d calls", calls.Load())
 	}
 }
 

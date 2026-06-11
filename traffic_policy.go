@@ -59,6 +59,13 @@ type TrafficCachePolicy struct {
 	TTL time.Duration
 }
 
+// TrafficCacheOptions configures per-class cache behavior without changing the legacy TrafficCachePolicy shape.
+type TrafficCacheOptions struct {
+	TTL          time.Duration
+	MaxEntries   int
+	Singleflight bool
+}
+
 // TrafficBlockPolicy overrides per-class block detection behavior.
 type TrafficBlockPolicy struct {
 	HTMLSniffBytes int
@@ -141,6 +148,8 @@ type trafficPolicyConfig struct {
 	hostControl       *TrafficHostControlPolicy
 	sessionControl    *TrafficSessionControlPolicy
 	cache             *TrafficCachePolicy
+	cacheMaxEntries   int
+	cacheSingleflight bool
 	blockPolicy       *TrafficBlockPolicy
 	headerProfile     *HeaderProfile
 	refererSelector   RefererSelector
@@ -195,12 +204,38 @@ func WithTrafficPolicy(class TrafficClass, policy TrafficPolicy) Option {
 			hostControl:       policy.HostControl,
 			sessionControl:    policy.SessionControl,
 			cache:             policy.Cache,
+			cacheMaxEntries:   0,
+			cacheSingleflight: false,
 			blockPolicy:       policy.BlockPolicy,
 			headerProfile:     cloneHeaderProfile(policy.HeaderProfile),
 			refererSelector:   policy.RefererSelector,
 			transportHook:     policy.TransportHook,
 			cookieJarProvided: policy.CookieJar != nil,
 		}
+		return nil
+	}
+}
+
+// WithTrafficCacheOptions configures per-class cache TTL, capacity, and optional GET miss singleflight.
+//
+// Existing WithTrafficPolicy(..., TrafficPolicy{Cache: ...}) remains supported for TTL-only cache setup.
+func WithTrafficCacheOptions(class TrafficClass, opts TrafficCacheOptions) Option {
+	return func(cfg *clientConfig) error {
+		if !supportedTrafficClass(class) {
+			return fmt.Errorf("unsupported traffic class")
+		}
+		if err := validateTrafficCacheOptions(opts); err != nil {
+			return err
+		}
+		class = normalizeTrafficClass(class)
+		if cfg.trafficPolicies == nil {
+			cfg.trafficPolicies = make(map[TrafficClass]trafficPolicyConfig)
+		}
+		policy := cfg.trafficPolicies[class]
+		policy.cache = &TrafficCachePolicy{TTL: opts.TTL}
+		policy.cacheMaxEntries = opts.MaxEntries
+		policy.cacheSingleflight = opts.Singleflight
+		cfg.trafficPolicies[class] = policy
 		return nil
 	}
 }
@@ -268,6 +303,16 @@ func validateTrafficCachePolicy(policy *TrafficCachePolicy) error {
 	}
 	if policy.TTL <= 0 {
 		return fmt.Errorf("traffic policy cache ttl must be greater than zero")
+	}
+	return nil
+}
+
+func validateTrafficCacheOptions(opts TrafficCacheOptions) error {
+	if opts.TTL <= 0 {
+		return fmt.Errorf("traffic cache options ttl must be greater than zero")
+	}
+	if opts.MaxEntries < 0 {
+		return fmt.Errorf("traffic cache options max entries must not be negative")
 	}
 	return nil
 }

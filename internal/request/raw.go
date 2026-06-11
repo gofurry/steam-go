@@ -41,6 +41,20 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 
 	var lastErr error
 	var lastResult HTTPResult
+	var cacheFill *cacheFillCall
+	var cacheFillLookup cacheLookup
+	var cacheFillCompleted bool
+	completeCacheFill := func(result HTTPResult, stored bool, err error) {
+		if cacheFill == nil || cacheFillCompleted || policy.CacheRuntime == nil {
+			return
+		}
+		policy.CacheRuntime.completeFill(cacheFillLookup, cacheFill, result, stored, err)
+		cacheFillCompleted = true
+	}
+	defer func() {
+		completeCacheFill(HTTPResult{}, false, lastErr)
+	}()
+
 	for attempt := 0; attempt <= policy.Retry; attempt++ {
 		attempts = attempt + 1
 		execReq, err := cloneRequestForExecution(baseReq, ctx)
@@ -69,6 +83,25 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 			}
 			if cacheLookupAllowsConditionalRequest(cacheLookup) {
 				applyConditionalCacheHeaders(execReq, cacheLookup)
+			}
+			if cacheFill == nil && !cacheLookup.found {
+				fill, leader := policy.CacheRuntime.beginFill(execReq.Context(), cacheLookup)
+				if !leader {
+					result, stored, waitErr := fill.wait(execReq.Context())
+					if waitErr != nil {
+						if execReq.Context().Err() != nil {
+							lastErr = sdkerrors.New(sdkerrors.KindTransport, 0, "wait for cache fill failed", nil, waitErr)
+							observeRequest(policy.Observer, execReq, class, 0, lastErr, attempts, false, false, started)
+							return HTTPResult{}, lastErr
+						}
+					} else if stored {
+						observeRequest(policy.Observer, execReq, class, result.StatusCode, nil, attempts, true, false, started)
+						return cloneHTTPResult(result), nil
+					}
+				} else if fill != nil {
+					cacheFill = fill
+					cacheFillLookup = cacheLookup
+				}
 			}
 		}
 
@@ -152,6 +185,7 @@ func ExecuteRawHTTPRequest(ctx context.Context, req *http.Request, maxResponseBo
 
 		if policy.CacheRuntime != nil && requestCacheable(execReq) && resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
 			policy.CacheRuntime.store(execReq, resp, result, time.Now())
+			completeCacheFill(result, true, nil)
 		}
 
 		observeRequest(policy.Observer, execReq, class, resp.StatusCode, nil, attempts, false, false, started)

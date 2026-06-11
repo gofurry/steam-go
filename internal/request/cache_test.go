@@ -2,9 +2,13 @@ package request
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -199,19 +203,209 @@ func TestMemoryCacheRuntimePrunesExpiredEntriesWithoutValidators(t *testing.T) {
 func TestMemoryCacheRuntimeCapsEntryCount(t *testing.T) {
 	t.Parallel()
 
-	runtime := NewMemoryCacheRuntime(time.Minute, nil).(*memoryCacheRuntime)
+	runtime := NewMemoryCacheRuntimeWithOptions(CacheOptions{TTL: time.Minute, MaxEntries: 8}, nil).(*memoryCacheRuntime)
 	now := time.Unix(20, 0)
 	resp := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header)}
 
-	for i := 0; i < memoryCacheMaxEntries+32; i++ {
+	for i := 0; i < 32; i++ {
 		req := newCacheTestRequest(t, "https://store.steampowered.com/app/"+time.Unix(int64(i), 0).Format("150405"))
 		runtime.store(req, resp, newCacheTestResult("body"), now.Add(time.Duration(i)*time.Second))
 	}
 
 	runtime.mu.RLock()
 	defer runtime.mu.RUnlock()
-	if len(runtime.entries) > memoryCacheMaxEntries {
-		t.Fatalf("expected cache size <= %d, got %d", memoryCacheMaxEntries, len(runtime.entries))
+	if len(runtime.entries) > 8 {
+		t.Fatalf("expected cache size <= 8, got %d", len(runtime.entries))
+	}
+	if evictions := runtime.Stats().Evictions; evictions == 0 {
+		t.Fatal("expected cache evictions to be counted")
+	}
+}
+
+func TestMemoryCacheRuntimeStatsCountsHitsMissesStoresAndConditionalHits(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntime(time.Second, nil).(*memoryCacheRuntime)
+	req := newCacheTestRequest(t, "https://store.steampowered.com/app/10")
+	resp := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header)}
+	resp.Header.Set("ETag", `"etag-a"`)
+	now := time.Unix(30, 0)
+
+	if lookup := runtime.lookup(req, now); lookup.found {
+		t.Fatal("did not expect initial cache hit")
+	}
+	runtime.store(req, resp, newCacheTestResult("body-a"), now)
+	if lookup := runtime.lookup(req, now.Add(500*time.Millisecond)); !lookup.found || !lookup.fresh {
+		t.Fatalf("expected fresh cache hit, got %#v", lookup)
+	}
+	lookup := runtime.lookup(req, now.Add(2*time.Second))
+	if !lookup.found || lookup.fresh {
+		t.Fatalf("expected stale conditional lookup, got %#v", lookup)
+	}
+	if _, ok := runtime.refresh(lookup, &http.Response{StatusCode: http.StatusNotModified, Header: make(http.Header)}, now.Add(2*time.Second)); !ok {
+		t.Fatal("expected conditional refresh")
+	}
+
+	stats := runtime.Stats()
+	if stats.Entries != 1 || stats.MaxEntries != defaultMemoryCacheMaxEntries {
+		t.Fatalf("unexpected cache size stats: %#v", stats)
+	}
+	if stats.Misses != 1 || stats.Hits != 1 || stats.Stores != 1 || stats.ConditionalHits != 1 {
+		t.Fatalf("unexpected cache counters: %#v", stats)
+	}
+}
+
+func TestMemoryCacheRuntimeSingleflightSharesSuccessfulFill(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntimeWithOptions(CacheOptions{
+		TTL:          time.Minute,
+		Singleflight: true,
+	}, nil).(*memoryCacheRuntime)
+	transport := roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		time.Sleep(20 * time.Millisecond)
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader("body")),
+		}, nil
+	})
+	policy := ExecutionPolicy{
+		RetryBackoff: DefaultRetryBackoffConfig(),
+		Transport:    transport,
+		CacheRuntime: runtime,
+	}
+
+	var calls atomic.Int32
+	transport = roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		calls.Add(1)
+		time.Sleep(20 * time.Millisecond)
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader("body")),
+			Request:    req,
+		}, nil
+	})
+	policy.Transport = transport
+
+	var wg sync.WaitGroup
+	results := make(chan string, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			req := newCacheTestRequest(t, "https://store.steampowered.com/app/10")
+			result, err := ExecuteRawHTTPRequest(context.Background(), req, 1024, policy, nil)
+			if err != nil {
+				t.Errorf("ExecuteRawHTTPRequest returned error: %v", err)
+				return
+			}
+			results <- string(result.Body)
+		}()
+	}
+	wg.Wait()
+	close(results)
+
+	for result := range results {
+		if result != "body" {
+			t.Fatalf("unexpected result body: %q", result)
+		}
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("expected one upstream call, got %d", got)
+	}
+}
+
+func TestMemoryCacheRuntimeSingleflightDoesNotCacheFailure(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntimeWithOptions(CacheOptions{
+		TTL:          time.Minute,
+		Singleflight: true,
+	}, nil).(*memoryCacheRuntime)
+	var calls atomic.Int32
+	policy := ExecutionPolicy{
+		RetryBackoff: DefaultRetryBackoffConfig(),
+		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			if calls.Add(1) == 1 {
+				time.Sleep(20 * time.Millisecond)
+				return nil, errors.New("temporary failure")
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader("body")),
+			}, nil
+		}),
+		CacheRuntime: runtime,
+	}
+
+	firstDone := make(chan error, 1)
+	go func() {
+		req := newCacheTestRequest(t, "https://store.steampowered.com/app/20")
+		_, err := ExecuteRawHTTPRequest(context.Background(), req, 1024, policy, nil)
+		firstDone <- err
+	}()
+	time.Sleep(5 * time.Millisecond)
+
+	req := newCacheTestRequest(t, "https://store.steampowered.com/app/20")
+	result, err := ExecuteRawHTTPRequest(context.Background(), req, 1024, policy, nil)
+	if err != nil {
+		t.Fatalf("second ExecuteRawHTTPRequest returned error: %v", err)
+	}
+	if got := string(result.Body); got != "body" {
+		t.Fatalf("unexpected second body: %q", got)
+	}
+	if err := <-firstDone; err == nil {
+		t.Fatal("expected first leader request to fail")
+	}
+	if got := calls.Load(); got != 2 {
+		t.Fatalf("expected second request to retry upstream after failed fill, got %d calls", got)
+	}
+}
+
+func TestMemoryCacheRuntimeSingleflightFollowerRespectsContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	runtime := NewMemoryCacheRuntimeWithOptions(CacheOptions{
+		TTL:          time.Minute,
+		Singleflight: true,
+	}, nil).(*memoryCacheRuntime)
+	release := make(chan struct{})
+	policy := ExecutionPolicy{
+		RetryBackoff: DefaultRetryBackoffConfig(),
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			<-release
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader("body")),
+				Request:    req,
+			}, nil
+		}),
+		CacheRuntime: runtime,
+	}
+
+	firstDone := make(chan error, 1)
+	go func() {
+		req := newCacheTestRequest(t, "https://store.steampowered.com/app/30")
+		_, err := ExecuteRawHTTPRequest(context.Background(), req, 1024, policy, nil)
+		firstDone <- err
+	}()
+	time.Sleep(5 * time.Millisecond)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := newCacheTestRequest(t, "https://store.steampowered.com/app/30")
+	_, err := ExecuteRawHTTPRequest(ctx, req, 1024, policy, nil)
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled follower error, got %v", err)
+	}
+
+	close(release)
+	if err := <-firstDone; err != nil {
+		t.Fatalf("leader returned error: %v", err)
 	}
 }
 
@@ -231,4 +425,10 @@ func newCacheTestResult(body string) HTTPResult {
 		Header:     make(http.Header),
 		Body:       []byte(body),
 	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) Do(_ context.Context, req *http.Request) (*http.Response, error) {
+	return f(req)
 }

@@ -314,6 +314,11 @@ Notes:
 - `RequestEvent`
 - `TrafficPolicy`
 - `TrafficCachePolicy`
+- `TrafficCacheOptions`
+- `RuntimeStats`
+- `TrafficClassRuntimeStats`
+- `CacheRuntimeStats`
+- `TransportRuntimeStats`
 - `TrafficBlockPolicy`
 - `TrafficRateLimiterPolicy`
 - `TrafficRetryPolicy`
@@ -326,6 +331,7 @@ Notes:
 - `NewSuffixRawHTTPHostPolicy(suffixes ...string)`
 - `NewSteamStaticRawHTTPHostPolicy()`
 - `WithTrafficPolicy(class TrafficClass, policy TrafficPolicy)`
+- `WithTrafficCacheOptions(class TrafficClass, opts TrafficCacheOptions)`
 - `WithRequestObserver(observer RequestObserver)`
 - `WithTrafficClass(ctx context.Context, class TrafficClass) context.Context`
 - `WithRefererSource(ctx context.Context, rawURL string) context.Context`
@@ -342,6 +348,8 @@ Notes:
 - Retry is method-aware: `GET`, `HEAD`, and `OPTIONS` are retryable by default. Non-idempotent methods such as `POST`, `PUT`, `PATCH`, and `DELETE` retry only when the SDK method or `RawHTTPRequestOptions.Retryable` explicitly opts in.
 - `WithTrafficPolicy(...)` only overrides the fields you set; unset fields continue to use the client-level defaults.
 - `TrafficCachePolicy` currently applies only to `GET` requests and uses in-memory short TTL caching with `ETag` / `Last-Modified` revalidation.
+- `WithTrafficCacheOptions(...)` is the additive cache tuning API for TTL, max entries, and optional GET cache-miss singleflight. The legacy `TrafficCachePolicy{TTL: ...}` path keeps its default capacity behavior.
+- `(*Client).RuntimeStats()` returns sanitized read-only counters for cache, request-control, and proxy runtime state. It does not include raw URLs, query strings, headers, bodies, cookies, tokens, API keys, or proxy passwords.
 - `TrafficBlockPolicy` is currently supported only on `TrafficClassPublicStorePage` and detects `429`, `403`, and HTML challenge responses.
 - `HeaderProfile` only fills missing request headers and does not override explicit values already set on the request.
 - Referer selectors run before transport execution; an explicit `Referer` header on the request still wins.

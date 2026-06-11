@@ -56,7 +56,7 @@ func TestRetryAfterDelayParsesHTTPDate(t *testing.T) {
 	}
 }
 
-func TestRetryAfterDelayReturnsZeroForPastDate(t *testing.T) {
+func TestRetryAfterDelayUsesFloorForPastDate(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 4, 16, 12, 0, 0, 0, time.UTC)
@@ -70,8 +70,26 @@ func TestRetryAfterDelayReturnsZeroForPastDate(t *testing.T) {
 	if !ok {
 		t.Fatal("expected past Retry-After date to be accepted")
 	}
-	if delay != 0 {
-		t.Fatalf("expected zero delay, got %s", delay)
+	if delay != minimumRetryAfterDelay {
+		t.Fatalf("expected minimum delay, got %s", delay)
+	}
+}
+
+func TestRetryAfterDelayUsesFloorForNonPositiveSeconds(t *testing.T) {
+	t.Parallel()
+
+	for _, raw := range []string{"-1", "0"} {
+		resp := &http.Response{
+			Header: http.Header{"Retry-After": []string{raw}},
+		}
+
+		delay, ok := retryAfterDelay(resp, time.Unix(0, 0))
+		if !ok {
+			t.Fatalf("expected Retry-After %q to be parsed", raw)
+		}
+		if delay != minimumRetryAfterDelay {
+			t.Fatalf("expected minimum delay for %q, got %s", raw, delay)
+		}
 	}
 }
 

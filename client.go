@@ -200,23 +200,27 @@ type trafficRuntimeSet struct {
 	defaultPolicy request.ExecutionPolicy
 	classPolicies map[itraffic.Class]request.ExecutionPolicy
 	httpClients   []*http.Client
+	statsSources  map[itraffic.Class]runtimeStatsSource
+	proxyMetrics  []ProxyMetricsProvider
 }
 
 type runtimePolicyConfig struct {
-	proxySelector   ProxySelector
-	cookieJar       http.CookieJar
-	rateLimiter     transport.RateLimiterConfig
-	hostControl     transport.RequestControlConfig
-	sessionControl  transport.RequestControlConfig
-	cacheTTL        time.Duration
-	blockPolicy     *TrafficBlockPolicy
-	trafficClass    itraffic.Class
-	headerProfile   *HeaderProfile
-	refererSelector RefererSelector
-	transportHook   TransportHook
-	observer        request.RequestObserver
-	retry           int
-	retryBackoff    request.RetryBackoffConfig
+	proxySelector     ProxySelector
+	cookieJar         http.CookieJar
+	rateLimiter       transport.RateLimiterConfig
+	hostControl       transport.RequestControlConfig
+	sessionControl    transport.RequestControlConfig
+	cacheTTL          time.Duration
+	cacheMaxEntries   int
+	cacheSingleflight bool
+	blockPolicy       *TrafficBlockPolicy
+	trafficClass      itraffic.Class
+	headerProfile     *HeaderProfile
+	refererSelector   RefererSelector
+	transportHook     TransportHook
+	observer          request.RequestObserver
+	retry             int
+	retryBackoff      request.RetryBackoffConfig
 }
 
 func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
@@ -244,6 +248,10 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		defaultPolicy: defaultRuntime.executionPolicy,
 		classPolicies: make(map[itraffic.Class]request.ExecutionPolicy, len(cfg.trafficPolicies)),
 		httpClients:   []*http.Client{defaultRuntime.httpClient},
+		statsSources:  map[itraffic.Class]runtimeStatsSource{itraffic.ClassOfficialAPI: defaultRuntime.statsSource},
+	}
+	if provider, ok := cfg.proxySelector.(ProxyMetricsProvider); ok {
+		runtimes.proxyMetrics = append(runtimes.proxyMetrics, provider)
 	}
 
 	for class, policy := range cfg.trafficPolicies {
@@ -305,6 +313,8 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		}
 		if policy.cache != nil {
 			resolved.cacheTTL = policy.cache.TTL
+			resolved.cacheMaxEntries = policy.cacheMaxEntries
+			resolved.cacheSingleflight = policy.cacheSingleflight
 		}
 		if policy.blockPolicy != nil {
 			resolved.blockPolicy = policy.blockPolicy
@@ -326,6 +336,10 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 		class = itraffic.NormalizeClass(class)
 		runtimes.classPolicies[class] = runtime.executionPolicy
 		runtimes.httpClients = append(runtimes.httpClients, runtime.httpClient)
+		runtimes.statsSources[class] = runtime.statsSource
+		if provider, ok := resolved.proxySelector.(ProxyMetricsProvider); ok {
+			runtimes.proxyMetrics = append(runtimes.proxyMetrics, provider)
+		}
 	}
 
 	return runtimes, nil
@@ -334,6 +348,12 @@ func buildTrafficRuntimes(cfg clientConfig) (trafficRuntimeSet, error) {
 type builtRuntime struct {
 	httpClient      *http.Client
 	executionPolicy request.ExecutionPolicy
+	statsSource     runtimeStatsSource
+}
+
+type runtimeStatsSource struct {
+	cache     request.CacheRuntime
+	transport *transport.Client
 }
 
 func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigured bool) (builtRuntime, error) {
@@ -367,20 +387,30 @@ func buildRuntime(cfg clientConfig, policy runtimePolicyConfig, cookieJarConfigu
 			httpClient = hookedClient
 		}
 	}
+	cacheRuntime := request.NewMemoryCacheRuntimeWithOptions(request.CacheOptions{
+		TTL:          policy.cacheTTL,
+		MaxEntries:   policy.cacheMaxEntries,
+		Singleflight: policy.cacheSingleflight,
+	}, policy.cookieJar)
+	transportClient := transport.New(httpClient, transport.ClientConfig{
+		RateLimiter:    policy.rateLimiter,
+		HostControl:    policy.hostControl,
+		SessionControl: policy.sessionControl,
+	})
 	return builtRuntime{
 		httpClient: httpClient,
 		executionPolicy: request.ExecutionPolicy{
 			Retry:          policy.retry,
 			RetryBackoff:   policy.retryBackoff,
-			CacheRuntime:   request.NewMemoryCacheRuntime(policy.cacheTTL, policy.cookieJar),
+			CacheRuntime:   cacheRuntime,
 			BlockRuntime:   request.NewBlockRuntime(policy.trafficClass, request.BlockConfig{HTMLSniffBytes: blockSniffBytes(policy.blockPolicy)}),
 			PrepareRequest: buildRequestPreparer(policy.headerProfile, policy.refererSelector),
-			Transport: transport.New(httpClient, transport.ClientConfig{
-				RateLimiter:    policy.rateLimiter,
-				HostControl:    policy.hostControl,
-				SessionControl: policy.sessionControl,
-			}),
-			Observer: policy.observer,
+			Transport:      transportClient,
+			Observer:       policy.observer,
+		},
+		statsSource: runtimeStatsSource{
+			cache:     cacheRuntime,
+			transport: transportClient,
 		},
 	}, nil
 }

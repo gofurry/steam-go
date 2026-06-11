@@ -1,9 +1,9 @@
 package request
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"context"
 	"net/http"
 	"sort"
 	"strings"
@@ -18,6 +18,27 @@ type CacheRuntime interface {
 	lookup(req *http.Request, now time.Time) cacheLookup
 	store(req *http.Request, resp *http.Response, result HTTPResult, now time.Time)
 	refresh(lookup cacheLookup, resp *http.Response, now time.Time) (HTTPResult, bool)
+	beginFill(ctx context.Context, lookup cacheLookup) (*cacheFillCall, bool)
+	completeFill(lookup cacheLookup, call *cacheFillCall, result HTTPResult, stored bool, err error)
+	Stats() CacheStats
+}
+
+// CacheOptions configures the in-memory conditional-request cache.
+type CacheOptions struct {
+	TTL          time.Duration
+	MaxEntries   int
+	Singleflight bool
+}
+
+// CacheStats is a read-only snapshot of one cache runtime.
+type CacheStats struct {
+	Entries         int
+	MaxEntries      int
+	Hits            uint64
+	Misses          uint64
+	Stores          uint64
+	Evictions       uint64
+	ConditionalHits uint64
 }
 
 type cacheLookup struct {
@@ -27,17 +48,29 @@ type cacheLookup struct {
 	lastModified string
 	fresh        bool
 	found        bool
+	cacheable    bool
 }
 
 type memoryCacheRuntime struct {
-	ttl       time.Duration
-	cookieJar http.CookieJar
+	ttl          time.Duration
+	maxEntries   int
+	singleflight bool
+	cookieJar    http.CookieJar
 
 	mu      sync.RWMutex
 	entries map[string]cacheEntry
 
+	fillMu   sync.Mutex
+	inflight map[string]*cacheFillCall
+
 	opCount   atomic.Uint64
 	lastSweep atomic.Int64
+
+	hits            atomic.Uint64
+	misses          atomic.Uint64
+	stores          atomic.Uint64
+	evictions       atomic.Uint64
+	conditionalHits atomic.Uint64
 }
 
 type cacheEntry struct {
@@ -49,18 +82,28 @@ type cacheEntry struct {
 }
 
 const (
-	memoryCacheMaxEntries       = 512
-	memoryCacheSweepIntervalOps = 64
+	defaultMemoryCacheMaxEntries = 512
+	memoryCacheSweepIntervalOps  = 64
 )
 
 func NewMemoryCacheRuntime(ttl time.Duration, jar http.CookieJar) CacheRuntime {
-	if ttl <= 0 {
+	return NewMemoryCacheRuntimeWithOptions(CacheOptions{TTL: ttl}, jar)
+}
+
+func NewMemoryCacheRuntimeWithOptions(opts CacheOptions, jar http.CookieJar) CacheRuntime {
+	if opts.TTL <= 0 {
 		return nil
 	}
+	maxEntries := opts.MaxEntries
+	if maxEntries <= 0 {
+		maxEntries = defaultMemoryCacheMaxEntries
+	}
 	return &memoryCacheRuntime{
-		ttl:       ttl,
-		cookieJar: jar,
-		entries:   make(map[string]cacheEntry),
+		ttl:          opts.TTL,
+		maxEntries:   maxEntries,
+		singleflight: opts.Singleflight,
+		cookieJar:    jar,
+		entries:      make(map[string]cacheEntry),
 	}
 }
 
@@ -73,31 +116,40 @@ func (c *memoryCacheRuntime) lookup(req *http.Request, now time.Time) cacheLooku
 	if !ok {
 		return cacheLookup{}
 	}
+	lookup := cacheLookup{key: key, cacheable: true}
 
 	c.mu.RLock()
 	entry, ok := c.entries[key]
 	c.mu.RUnlock()
 	if !ok {
-		return cacheLookup{}
+		c.misses.Add(1)
+		return lookup
 	}
 	if entry.expiresAt.Before(now) && entry.etag == "" && entry.lastModified == "" {
+		evicted := false
 		c.mu.Lock()
 		current, ok := c.entries[key]
 		if ok && current.expiresAt.Before(now) && current.etag == "" && current.lastModified == "" {
 			delete(c.entries, key)
+			evicted = true
 		}
 		c.mu.Unlock()
-		return cacheLookup{}
+		if evicted {
+			c.evictions.Add(1)
+		}
+		c.misses.Add(1)
+		return lookup
 	}
 
-	return cacheLookup{
-		key:          key,
-		result:       cloneHTTPResult(entry.result),
-		etag:         entry.etag,
-		lastModified: entry.lastModified,
-		fresh:        !entry.expiresAt.Before(now),
-		found:        true,
+	lookup.result = cloneHTTPResult(entry.result)
+	lookup.etag = entry.etag
+	lookup.lastModified = entry.lastModified
+	lookup.fresh = !entry.expiresAt.Before(now)
+	lookup.found = true
+	if lookup.fresh {
+		c.hits.Add(1)
 	}
+	return lookup
 }
 
 func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, result HTTPResult, now time.Time) {
@@ -118,8 +170,9 @@ func (c *memoryCacheRuntime) store(req *http.Request, resp *http.Response, resul
 		storedAt:     now,
 		expiresAt:    now.Add(c.ttl),
 	}
-	if len(c.entries) > memoryCacheMaxEntries {
-		c.pruneLocked(now, len(c.entries)-memoryCacheMaxEntries)
+	c.stores.Add(1)
+	if len(c.entries) > c.maxEntries {
+		c.pruneLocked(now, len(c.entries)-c.maxEntries)
 	}
 	c.mu.Unlock()
 }
@@ -148,7 +201,94 @@ func (c *memoryCacheRuntime) refresh(lookup cacheLookup, resp *http.Response, no
 		}
 	}
 	c.entries[lookup.key] = entry
+	c.conditionalHits.Add(1)
 	return cloneHTTPResult(entry.result), true
+}
+
+type cacheFillCall struct {
+	done   chan struct{}
+	result HTTPResult
+	stored bool
+	err    error
+}
+
+func (c *memoryCacheRuntime) beginFill(ctx context.Context, lookup cacheLookup) (*cacheFillCall, bool) {
+	if c == nil || !c.singleflight || !lookup.cacheable || lookup.found || lookup.key == "" {
+		return nil, true
+	}
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			call := &cacheFillCall{
+				done: make(chan struct{}),
+				err:  ctx.Err(),
+			}
+			close(call.done)
+			return call, false
+		default:
+		}
+	}
+
+	c.fillMu.Lock()
+	defer c.fillMu.Unlock()
+
+	if c.inflight == nil {
+		c.inflight = make(map[string]*cacheFillCall)
+	}
+	if call, ok := c.inflight[lookup.key]; ok {
+		return call, false
+	}
+	call := &cacheFillCall{done: make(chan struct{})}
+	c.inflight[lookup.key] = call
+	return call, true
+}
+
+func (c *memoryCacheRuntime) completeFill(lookup cacheLookup, call *cacheFillCall, result HTTPResult, stored bool, err error) {
+	if c == nil || call == nil || lookup.key == "" {
+		return
+	}
+	c.fillMu.Lock()
+	if current, ok := c.inflight[lookup.key]; ok && current == call {
+		delete(c.inflight, lookup.key)
+	}
+	call.result = cloneHTTPResult(result)
+	call.stored = stored
+	call.err = err
+	close(call.done)
+	c.fillMu.Unlock()
+}
+
+func (c *memoryCacheRuntime) Stats() CacheStats {
+	if c == nil {
+		return CacheStats{}
+	}
+	c.mu.RLock()
+	entries := len(c.entries)
+	c.mu.RUnlock()
+	return CacheStats{
+		Entries:         entries,
+		MaxEntries:      c.maxEntries,
+		Hits:            c.hits.Load(),
+		Misses:          c.misses.Load(),
+		Stores:          c.stores.Load(),
+		Evictions:       c.evictions.Load(),
+		ConditionalHits: c.conditionalHits.Load(),
+	}
+}
+
+func (call *cacheFillCall) wait(ctx context.Context) (HTTPResult, bool, error) {
+	if call == nil {
+		return HTTPResult{}, false, nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	select {
+	case <-call.done:
+		return cloneHTTPResult(call.result), call.stored, call.err
+	case <-ctx.Done():
+		return HTTPResult{}, false, ctx.Err()
+	}
 }
 
 func (c *memoryCacheRuntime) cacheKey(req *http.Request) (string, bool) {
@@ -292,6 +432,7 @@ func (c *memoryCacheRuntime) pruneLocked(now time.Time, targetExtra int) {
 		expiredNoValidators := entry.expiresAt.Before(now) && entry.etag == "" && entry.lastModified == ""
 		if expiredNoValidators {
 			delete(c.entries, key)
+			c.evictions.Add(1)
 			continue
 		}
 		candidates = append(candidates, candidate{
@@ -301,7 +442,7 @@ func (c *memoryCacheRuntime) pruneLocked(now time.Time, targetExtra int) {
 		})
 	}
 
-	if targetExtra <= 0 || len(c.entries) <= memoryCacheMaxEntries {
+	if targetExtra <= 0 || len(c.entries) <= c.maxEntries {
 		return
 	}
 
@@ -318,6 +459,7 @@ func (c *memoryCacheRuntime) pruneLocked(now time.Time, targetExtra int) {
 			break
 		}
 		delete(c.entries, candidate.key)
+		c.evictions.Add(1)
 		toRemove--
 	}
 }

@@ -47,6 +47,16 @@ type Client struct {
 	sessionController *requestControlManager
 }
 
+// ClientStats is a read-only snapshot of transport request-control state.
+type ClientStats struct {
+	HostControlKeys    int
+	SessionControlKeys int
+	HostWaits          uint64
+	SessionWaits       uint64
+	HostPrunes         uint64
+	SessionPrunes      uint64
+}
+
 // New creates a transport client.
 func New(httpClient *http.Client, cfg ClientConfig) *Client {
 	var limiter *rate.Limiter
@@ -104,10 +114,29 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 
 	httpClient := c.httpClient
 	if jar, ok := traffic.CookieJarFromContext(execCtx); ok {
-		httpClient = cloneHTTPClientWithJar(c.httpClient, jar)
+		if c.httpClient.Jar != jar {
+			httpClient = cloneHTTPClientWithJar(c.httpClient, jar)
+		}
 	}
 
 	return httpClient.Do(req.Clone(execCtx))
+}
+
+// Stats returns one sanitized snapshot of transport runtime counters.
+func (c *Client) Stats() ClientStats {
+	if c == nil {
+		return ClientStats{}
+	}
+	host := c.hostController.stats()
+	session := c.sessionController.stats()
+	return ClientStats{
+		HostControlKeys:    host.LimiterKeys + host.SemaphoreKeys,
+		SessionControlKeys: session.LimiterKeys + session.SemaphoreKeys,
+		HostWaits:          host.Waits,
+		SessionWaits:       session.Waits,
+		HostPrunes:         host.Prunes,
+		SessionPrunes:      session.Prunes,
+	}
 }
 
 // WrapRoundTripper installs proxy selection on top of an existing transport.
