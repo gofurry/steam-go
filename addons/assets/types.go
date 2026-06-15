@@ -8,11 +8,17 @@ type Kind string
 const (
 	KindHeader           Kind = "header"
 	KindHeaderLocalized  Kind = "header_localized"
+	KindHeader2x         Kind = "header_2x"
 	KindCapsuleSmall     Kind = "capsule_small"
+	KindCapsuleSmall2x   Kind = "capsule_small_2x"
 	KindCapsuleMain      Kind = "capsule_main"
+	KindCapsuleMain2x    Kind = "capsule_main_2x"
+	KindHeroCapsule      Kind = "hero_capsule"
+	KindHeroCapsule2x    Kind = "hero_capsule_2x"
 	KindLibraryCapsule   Kind = "library_capsule"
 	KindLibraryCapsule2x Kind = "library_capsule_2x"
 	KindLibraryHero      Kind = "library_hero"
+	KindLibraryHero2x    Kind = "library_hero_2x"
 	KindLibraryLogo      Kind = "library_logo"
 	KindLibraryLogo2x    Kind = "library_logo_2x"
 	KindCommunityIconJPG Kind = "community_icon_jpg"
@@ -21,6 +27,8 @@ const (
 
 	KindStoreBackground     Kind = "store_background"
 	KindStoreBackgroundRaw  Kind = "store_background_raw"
+	KindPageBackground      Kind = "page_background"
+	KindPageBackgroundRaw   Kind = "page_background_raw"
 	KindScreenshotThumbnail Kind = "screenshot_thumbnail"
 	KindScreenshotFull      Kind = "screenshot_full"
 	KindMovieThumbnail      Kind = "movie_thumbnail"
@@ -33,13 +41,27 @@ const (
 	KindMovieHLSH264        Kind = "movie_hls_h264"
 )
 
+const (
+	// SourceLegacyStatic identifies locally constructed AppID-only asset URLs.
+	SourceLegacyStatic = "legacy_static"
+
+	// SourceStoreBrowse identifies URLs discovered from IStoreBrowseService.
+	SourceStoreBrowse = "store_browse"
+
+	// SourceStorefrontAppDetails identifies URLs discovered from Storefront appdetails.
+	SourceStorefrontAppDetails = "storefront_appdetails"
+)
+
 // URLItem describes one constructed asset URL.
 type URLItem struct {
-	AppID uint32 `json:"app_id,omitempty"`
-	Kind  Kind   `json:"kind,omitempty"`
-	ID    int    `json:"id,omitempty"`
-	Name  string `json:"name,omitempty"`
-	URL   string `json:"url"`
+	AppID    uint32 `json:"app_id,omitempty"`
+	Kind     Kind   `json:"kind,omitempty"`
+	ID       int    `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	URL      string `json:"url"`
+	Digest   string `json:"digest,omitempty"`
+	Filename string `json:"filename,omitempty"`
+	Source   string `json:"source,omitempty"`
 }
 
 // AppAssets contains the standard Store and Library static asset URLs for one AppID.
@@ -122,6 +144,9 @@ type VerifyResult struct {
 	ID            int    `json:"id,omitempty"`
 	Name          string `json:"name,omitempty"`
 	URL           string `json:"url"`
+	Digest        string `json:"digest,omitempty"`
+	Filename      string `json:"filename,omitempty"`
+	Source        string `json:"source,omitempty"`
 	Exists        bool   `json:"exists"`
 	StatusCode    int    `json:"status_code,omitempty"`
 	ContentType   string `json:"content_type,omitempty"`
@@ -135,6 +160,9 @@ type DownloadResult struct {
 	ID            int            `json:"id,omitempty"`
 	Name          string         `json:"name,omitempty"`
 	URL           string         `json:"url"`
+	Digest        string         `json:"digest,omitempty"`
+	Filename      string         `json:"filename,omitempty"`
+	Source        string         `json:"source,omitempty"`
 	Path          string         `json:"path"`
 	Status        DownloadStatus `json:"status"`
 	StatusCode    int            `json:"status_code,omitempty"`
@@ -151,6 +179,9 @@ type ReadResult struct {
 	ID            int    `json:"id,omitempty"`
 	Name          string `json:"name,omitempty"`
 	URL           string `json:"url"`
+	Digest        string `json:"digest,omitempty"`
+	Filename      string `json:"filename,omitempty"`
+	Source        string `json:"source,omitempty"`
 	StatusCode    int    `json:"status_code,omitempty"`
 	ContentType   string `json:"content_type,omitempty"`
 	ContentLength int64  `json:"content_length,omitempty"`
@@ -225,11 +256,30 @@ type StoreMediaOptions struct {
 	Kinds       []Kind
 }
 
+// StoreItemAssetOptions controls StoreBrowse-backed Store item asset discovery.
+type StoreItemAssetOptions struct {
+	CountryCode string
+	Language    string
+	Kinds       []Kind
+	BaseURL     string
+	StripQuery  bool
+}
+
 // VerifyStoreMediaOptions controls Storefront-backed media URL verification.
 type VerifyStoreMediaOptions struct {
 	CountryCode string
 	Language    string
 	Kinds       []Kind
+	HTTPClient  *http.Client
+}
+
+// VerifyStoreItemAssetOptions controls StoreBrowse-backed asset verification.
+type VerifyStoreItemAssetOptions struct {
+	CountryCode string
+	Language    string
+	Kinds       []Kind
+	BaseURL     string
+	StripQuery  bool
 	HTTPClient  *http.Client
 }
 
@@ -247,11 +297,39 @@ type DownloadStoreMediaOptions struct {
 	Concurrency   int
 }
 
+// DownloadStoreItemAssetOptions controls StoreBrowse-backed asset downloads.
+type DownloadStoreItemAssetOptions struct {
+	Dir           string
+	CountryCode   string
+	Language      string
+	Kinds         []Kind
+	BaseURL       string
+	StripQuery    bool
+	Mode          StoreMode
+	HTTPClient    *http.Client
+	Overwrite     OverwriteMode
+	SkipExisting  bool
+	FilenameStyle FilenameStyle
+	Concurrency   int
+}
+
 // ReadStoreMediaOptions controls Storefront-backed media reads.
 type ReadStoreMediaOptions struct {
 	CountryCode string
 	Language    string
 	Kinds       []Kind
+	HTTPClient  *http.Client
+	MaxBytes    int64
+	Concurrency int
+}
+
+// ReadStoreItemAssetOptions controls StoreBrowse-backed asset reads.
+type ReadStoreItemAssetOptions struct {
+	CountryCode string
+	Language    string
+	Kinds       []Kind
+	BaseURL     string
+	StripQuery  bool
 	HTTPClient  *http.Client
 	MaxBytes    int64
 	Concurrency int

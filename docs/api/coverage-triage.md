@@ -7,7 +7,7 @@ It is intentionally maintained by humans. Do not generate this file from `steama
 Current tracked counts:
 
 - `covered=27`
-- `extra_sdk=73`
+- `extra_sdk=74`
 - `missing=34`
 - `version_mismatch=2`
 

@@ -212,28 +212,34 @@ enqueue:
 
 func canceledDownloadResult(req downloadRequest, err error) DownloadResult {
 	return DownloadResult{
-		AppID:  req.item.AppID,
-		Kind:   req.item.Kind,
-		ID:     req.item.ID,
-		Name:   req.item.Name,
-		URL:    req.url,
-		Path:   req.path,
-		Status: DownloadStatusFailed,
-		Error:  err.Error(),
+		AppID:    req.item.AppID,
+		Kind:     req.item.Kind,
+		ID:       req.item.ID,
+		Name:     req.item.Name,
+		URL:      req.url,
+		Digest:   req.item.Digest,
+		Filename: req.item.Filename,
+		Source:   req.item.Source,
+		Path:     req.path,
+		Status:   DownloadStatusFailed,
+		Error:    err.Error(),
 	}
 }
 
 func downloadRequestOne(ctx context.Context, client *http.Client, overwrite OverwriteMode, req downloadRequest) (DownloadResult, error) {
 	if req.err != nil {
 		return DownloadResult{
-			AppID:  req.item.AppID,
-			Kind:   req.item.Kind,
-			ID:     req.item.ID,
-			Name:   req.item.Name,
-			URL:    req.url,
-			Path:   req.path,
-			Status: DownloadStatusFailed,
-			Error:  req.err.Error(),
+			AppID:    req.item.AppID,
+			Kind:     req.item.Kind,
+			ID:       req.item.ID,
+			Name:     req.item.Name,
+			URL:      req.url,
+			Digest:   req.item.Digest,
+			Filename: req.item.Filename,
+			Source:   req.item.Source,
+			Path:     req.path,
+			Status:   DownloadStatusFailed,
+			Error:    req.err.Error(),
 		}, req.err
 	}
 	if skipped, result, err := maybeSkipExisting(req, overwrite); skipped || err != nil {
@@ -255,6 +261,9 @@ func downloadRequestOne(ctx context.Context, client *http.Client, overwrite Over
 		ID:            req.item.ID,
 		Name:          req.item.Name,
 		URL:           resultURL,
+		Digest:        req.item.Digest,
+		Filename:      req.item.Filename,
+		Source:        req.item.Source,
 		Path:          req.path,
 		Status:        status,
 		StatusCode:    result.StatusCode,
@@ -285,6 +294,9 @@ func maybeSkipExisting(req downloadRequest, overwrite OverwriteMode) (bool, Down
 			ID:            req.item.ID,
 			Name:          req.item.Name,
 			URL:           req.url,
+			Digest:        req.item.Digest,
+			Filename:      req.item.Filename,
+			Source:        req.item.Source,
 			Path:          req.path,
 			Status:        DownloadStatusSkipped,
 			ContentLength: info.Size(),
@@ -295,14 +307,17 @@ func maybeSkipExisting(req downloadRequest, overwrite OverwriteMode) (bool, Down
 
 func failedDownloadResult(req downloadRequest, err error) DownloadResult {
 	return DownloadResult{
-		AppID:  req.item.AppID,
-		Kind:   req.item.Kind,
-		ID:     req.item.ID,
-		Name:   req.item.Name,
-		URL:    req.url,
-		Path:   req.path,
-		Status: DownloadStatusFailed,
-		Error:  err.Error(),
+		AppID:    req.item.AppID,
+		Kind:     req.item.Kind,
+		ID:       req.item.ID,
+		Name:     req.item.Name,
+		URL:      req.url,
+		Digest:   req.item.Digest,
+		Filename: req.item.Filename,
+		Source:   req.item.Source,
+		Path:     req.path,
+		Status:   DownloadStatusFailed,
+		Error:    err.Error(),
 	}
 }
 
