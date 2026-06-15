@@ -31,6 +31,29 @@ func StoreMediaKinds() []Kind {
 	return kinds
 }
 
+// StoreItemAssetKinds returns StoreBrowse-backed Store item asset kinds.
+func StoreItemAssetKinds() []Kind {
+	return []Kind{
+		KindCapsuleMain,
+		KindCapsuleMain2x,
+		KindCapsuleSmall,
+		KindCapsuleSmall2x,
+		KindHeader,
+		KindHeader2x,
+		KindHeroCapsule,
+		KindHeroCapsule2x,
+		KindLibraryCapsule,
+		KindLibraryCapsule2x,
+		KindLibraryHero,
+		KindLibraryHero2x,
+		KindLibraryLogo,
+		KindLibraryLogo2x,
+		KindPageBackground,
+		KindPageBackgroundRaw,
+		KindCommunityIconJPG,
+	}
+}
+
 // StoreBackgroundKinds returns Storefront-backed background image kinds.
 func StoreBackgroundKinds() []Kind {
 	return []Kind{KindStoreBackground, KindStoreBackgroundRaw}

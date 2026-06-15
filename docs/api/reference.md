@@ -147,6 +147,12 @@ Notes:
 ### `client.API.StoreBrowseService`
 
 - `GetContentHubConfig`
+- `GetItems`
+
+Notes:
+- `GetItems` accepts typed `input_json` through `storebrowseservice.GetItemsRequest`.
+- The `assets` field is exposed as `map[string]string` because Steam may add or remove asset keys over time.
+- Complex Store item subtrees such as `related_items` and `categories` remain `json.RawMessage`.
 
 ### `client.API.StoreCatalogService`
 

@@ -57,6 +57,7 @@ const (
 	SaleFeatureServiceGetUserYearAchievements                    = "/ISaleFeatureService/GetUserYearAchievements/v1/"
 	SaleFeatureServiceGetUserYearInReview                        = "/ISaleFeatureService/GetUserYearInReview/v1/"
 	StoreBrowseServiceGetContentHubConfig                        = "/IStoreBrowseService/GetContentHubConfig/v1/"
+	StoreBrowseServiceGetItems                                   = "/IStoreBrowseService/GetItems/v1/"
 	StoreCatalogServiceGetDevPageLinks                           = "/IStoreCatalogService/GetDevPageLinks/v1/"
 	StorePreferencesServiceGetIgnoreList                         = "/IStorePreferencesService/GetIgnoreList/v1/"
 	StoreServiceGetAppList                                       = "/IStoreService/GetAppList/v1/"

@@ -29,13 +29,19 @@ func main() {
 		verifyApps         = flag.Bool("verify-apps", false, "verify constructed app asset URLs")
 		fetchStoreMedia    = flag.Bool("store-media", false, "fetch Storefront screenshot/movie/background URLs")
 		verifyStoreMedia   = flag.Bool("verify-store-media", false, "fetch and verify Storefront screenshot/movie/background URLs")
+		fetchStoreItems    = flag.Bool("store-item-assets", false, "fetch official Store item asset URLs")
+		verifyStoreItems   = flag.Bool("verify-store-item-assets", false, "fetch and verify official Store item asset URLs")
 		readURLsRaw        = flag.String("read-urls", "", "optional comma-separated URLs to read into memory")
 		readApps           = flag.Bool("read-apps", false, "read constructed app asset URLs into memory")
 		readStoreMedia     = flag.Bool("read-store-media", false, "fetch and read Storefront screenshot/movie/background URLs into memory")
+		readStoreItems     = flag.Bool("read-store-item-assets", false, "fetch and read official Store item asset URLs into memory")
 		readMaxBytes       = flag.Int64("read-max-bytes", 32<<20, "maximum bytes to read per resource")
 		downloadURLsRaw    = flag.String("download-urls", "", "optional comma-separated URLs to download into -download-dir")
 		downloadApps       = flag.Bool("download-apps", false, "download constructed app assets into -download-dir")
 		downloadStoreMedia = flag.Bool("download-store-media", false, "fetch and download Storefront screenshot/movie/background URLs")
+		downloadStoreItems = flag.Bool("download-store-item-assets", false, "fetch and download official Store item asset URLs")
+		storeItemBaseURL   = flag.String("store-item-assets-base-url", "", "optional base URL for Store item asset resolution")
+		stripStoreItemQ    = flag.Bool("strip-store-item-asset-query", false, "strip Store item asset query parameters")
 		downloadDir        = flag.String("download-dir", "", "optional directory for downloads")
 		downloadMode       = flag.String("download-mode", string(assets.StoreFlat), "app download mode: flat or by_app_id")
 		filenameStyle      = flag.String("filename-style", string(assets.FilenameOriginal), "app filename style: original, kind, or app_kind")
@@ -68,13 +74,19 @@ func main() {
 			VerifyApps:         *verifyApps,
 			StoreMedia:         *fetchStoreMedia,
 			VerifyStoreMedia:   *verifyStoreMedia,
+			StoreItemAssets:    *fetchStoreItems,
+			VerifyStoreItems:   *verifyStoreItems,
 			ReadURLs:           splitCSV(*readURLsRaw),
 			ReadApps:           *readApps,
 			ReadStoreMedia:     *readStoreMedia,
+			ReadStoreItems:     *readStoreItems,
 			ReadMaxBytes:       *readMaxBytes,
 			DownloadURLs:       splitCSV(*downloadURLsRaw),
 			DownloadApps:       *downloadApps,
 			DownloadStoreMedia: *downloadStoreMedia,
+			DownloadStoreItems: *downloadStoreItems,
+			StoreItemBaseURL:   *storeItemBaseURL,
+			StripStoreItemQ:    *stripStoreItemQ,
 			DownloadDir:        *downloadDir,
 			DownloadMode:       assets.StoreMode(*downloadMode),
 			FilenameStyle:      assets.FilenameStyle(*filenameStyle),
@@ -153,7 +165,7 @@ func main() {
 		out.ReadAppResults = summarizeReadResults(readResults)
 		out.ReadAppError = errorString(readErr)
 	}
-	if *fetchStoreMedia || *verifyStoreMedia || *readStoreMedia || *downloadStoreMedia {
+	if *fetchStoreMedia || *verifyStoreMedia || *readStoreMedia || *downloadStoreMedia || *fetchStoreItems || *verifyStoreItems || *readStoreItems || *downloadStoreItems {
 		sdkOpts := []steam.Option{steam.WithTimeout(*timeout)}
 		if selector != nil {
 			sdkOpts = append(sdkOpts, steam.WithProxySelector(selector))
@@ -162,6 +174,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer sdk.Close()
 		if *fetchStoreMedia {
 			out.StoreMediaURLs, err = assets.FetchStoreMediaURLs(context.Background(), sdk.Web.Storefront, assets.StoreMediaOptions{
 				CountryCode: *countryCode,
@@ -215,6 +228,67 @@ func main() {
 			}, appIDs...)
 			out.DownloadStoreMediaError = errorString(downloadErr)
 		}
+		if *fetchStoreItems {
+			out.StoreItemAssetURLs, err = assets.FetchStoreItemAssetURLs(context.Background(), sdk.API.StoreBrowseService, assets.StoreItemAssetOptions{
+				CountryCode: *countryCode,
+				Language:    *language,
+				Kinds:       storeItemAssetKinds(*kind),
+				BaseURL:     *storeItemBaseURL,
+				StripQuery:  *stripStoreItemQ,
+			}, appIDs...)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		if *verifyStoreItems {
+			out.VerifyStoreItemResults, err = assets.VerifyStoreItemAssets(context.Background(), sdk.API.StoreBrowseService, assets.VerifyStoreItemAssetOptions{
+				CountryCode: *countryCode,
+				Language:    *language,
+				Kinds:       storeItemAssetKinds(*kind),
+				BaseURL:     *storeItemBaseURL,
+				StripQuery:  *stripStoreItemQ,
+				HTTPClient:  httpClient,
+			}, appIDs...)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		if *readStoreItems {
+			var readErr error
+			readResults, readErr := assets.ReadStoreItemAssets(context.Background(), sdk.API.StoreBrowseService, assets.ReadStoreItemAssetOptions{
+				CountryCode: *countryCode,
+				Language:    *language,
+				Kinds:       storeItemAssetKinds(*kind),
+				BaseURL:     *storeItemBaseURL,
+				StripQuery:  *stripStoreItemQ,
+				HTTPClient:  httpClient,
+				MaxBytes:    *readMaxBytes,
+				Concurrency: *concurrency,
+			}, appIDs...)
+			out.ReadStoreItemResults = summarizeReadResults(readResults)
+			out.ReadStoreItemError = errorString(readErr)
+		}
+		if *downloadStoreItems {
+			if *downloadDir == "" {
+				log.Fatal("-download-dir is required with -download-store-item-assets")
+			}
+			var downloadErr error
+			out.DownloadStoreItemResults, downloadErr = assets.DownloadStoreItemAssets(context.Background(), sdk.API.StoreBrowseService, assets.DownloadStoreItemAssetOptions{
+				Dir:           *downloadDir,
+				CountryCode:   *countryCode,
+				Language:      *language,
+				Kinds:         storeItemAssetKinds(*kind),
+				BaseURL:       *storeItemBaseURL,
+				StripQuery:    *stripStoreItemQ,
+				Mode:          assets.StoreMode(*downloadMode),
+				HTTPClient:    httpClient,
+				Overwrite:     assets.OverwriteMode(*overwrite),
+				SkipExisting:  *skipExisting,
+				FilenameStyle: assets.FilenameStyle(*filenameStyle),
+				Concurrency:   *concurrency,
+			}, appIDs...)
+			out.DownloadStoreItemError = errorString(downloadErr)
+		}
 	}
 
 	downloadURLs := splitCSV(*downloadURLsRaw)
@@ -257,9 +331,15 @@ func main() {
 		if len(out.StoreMediaURLs) > 0 {
 			manifest = assets.NewURLManifest(append(out.ResourceList, out.StoreMediaURLs...))
 		}
-		if len(out.DownloadAppResults) > 0 || len(out.DownloadURLResults) > 0 || len(out.DownloadStoreMediaResults) > 0 {
+		if len(out.StoreItemAssetURLs) > 0 {
+			urls := append(out.ResourceList, out.StoreMediaURLs...)
+			urls = append(urls, out.StoreItemAssetURLs...)
+			manifest = assets.NewURLManifest(urls)
+		}
+		if len(out.DownloadAppResults) > 0 || len(out.DownloadURLResults) > 0 || len(out.DownloadStoreMediaResults) > 0 || len(out.DownloadStoreItemResults) > 0 {
 			downloads := append(out.DownloadURLResults, out.DownloadAppResults...)
 			downloads = append(downloads, out.DownloadStoreMediaResults...)
+			downloads = append(downloads, out.DownloadStoreItemResults...)
 			manifest = assets.NewDownloadManifest(downloads)
 		}
 		if err := assets.WriteManifestJSON(*manifestPath, manifest); err != nil {
@@ -287,13 +367,19 @@ type exampleInput struct {
 	VerifyApps         bool                 `json:"verify_apps,omitempty"`
 	StoreMedia         bool                 `json:"store_media,omitempty"`
 	VerifyStoreMedia   bool                 `json:"verify_store_media,omitempty"`
+	StoreItemAssets    bool                 `json:"store_item_assets,omitempty"`
+	VerifyStoreItems   bool                 `json:"verify_store_item_assets,omitempty"`
 	ReadURLs           []string             `json:"read_urls,omitempty"`
 	ReadApps           bool                 `json:"read_apps,omitempty"`
 	ReadStoreMedia     bool                 `json:"read_store_media,omitempty"`
+	ReadStoreItems     bool                 `json:"read_store_item_assets,omitempty"`
 	ReadMaxBytes       int64                `json:"read_max_bytes,omitempty"`
 	DownloadURLs       []string             `json:"download_urls,omitempty"`
 	DownloadApps       bool                 `json:"download_apps,omitempty"`
 	DownloadStoreMedia bool                 `json:"download_store_media,omitempty"`
+	DownloadStoreItems bool                 `json:"download_store_item_assets,omitempty"`
+	StoreItemBaseURL   string               `json:"store_item_assets_base_url,omitempty"`
+	StripStoreItemQ    bool                 `json:"strip_store_item_asset_query,omitempty"`
 	DownloadDir        string               `json:"download_dir,omitempty"`
 	DownloadMode       assets.StoreMode     `json:"download_mode,omitempty"`
 	FilenameStyle      assets.FilenameStyle `json:"filename_style,omitempty"`
@@ -326,18 +412,24 @@ type exampleOutput struct {
 	VerifyAppResults          []assets.VerifyResult   `json:"verify_app_results,omitempty"`
 	StoreMediaURLs            []assets.URLItem        `json:"store_media_urls,omitempty"`
 	VerifyStoreMediaResults   []assets.VerifyResult   `json:"verify_store_media_results,omitempty"`
+	StoreItemAssetURLs        []assets.URLItem        `json:"store_item_asset_urls,omitempty"`
+	VerifyStoreItemResults    []assets.VerifyResult   `json:"verify_store_item_results,omitempty"`
 	ReadURLResults            []readResultSummary     `json:"read_url_results,omitempty"`
 	ReadURLError              string                  `json:"read_url_error,omitempty"`
 	ReadAppResults            []readResultSummary     `json:"read_app_results,omitempty"`
 	ReadAppError              string                  `json:"read_app_error,omitempty"`
 	ReadStoreMediaResults     []readResultSummary     `json:"read_store_media_results,omitempty"`
 	ReadStoreMediaError       string                  `json:"read_store_media_error,omitempty"`
+	ReadStoreItemResults      []readResultSummary     `json:"read_store_item_results,omitempty"`
+	ReadStoreItemError        string                  `json:"read_store_item_error,omitempty"`
 	DownloadURLResults        []assets.DownloadResult `json:"download_url_results,omitempty"`
 	DownloadURLError          string                  `json:"download_url_error,omitempty"`
 	DownloadAppResults        []assets.DownloadResult `json:"download_app_results,omitempty"`
 	DownloadAppError          string                  `json:"download_app_error,omitempty"`
 	DownloadStoreMediaResults []assets.DownloadResult `json:"download_store_media_results,omitempty"`
 	DownloadStoreMediaError   string                  `json:"download_store_media_error,omitempty"`
+	DownloadStoreItemResults  []assets.DownloadResult `json:"download_store_item_results,omitempty"`
+	DownloadStoreItemError    string                  `json:"download_store_item_error,omitempty"`
 	ManifestPath              string                  `json:"manifest_path,omitempty"`
 }
 
@@ -347,6 +439,9 @@ type readResultSummary struct {
 	ID                int         `json:"id,omitempty"`
 	Name              string      `json:"name,omitempty"`
 	URL               string      `json:"url"`
+	Digest            string      `json:"digest,omitempty"`
+	Filename          string      `json:"filename,omitempty"`
+	Source            string      `json:"source,omitempty"`
 	StatusCode        int         `json:"status_code,omitempty"`
 	ContentType       string      `json:"content_type,omitempty"`
 	ContentLength     int64       `json:"content_length,omitempty"`
@@ -400,6 +495,14 @@ func storeMediaKinds(raw string) []assets.Kind {
 	return []assets.Kind{assets.Kind(raw)}
 }
 
+func storeItemAssetKinds(raw string) []assets.Kind {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "all" {
+		return nil
+	}
+	return []assets.Kind{assets.Kind(raw)}
+}
+
 func proxyHTTPClient(proxyRaw string, timeout time.Duration) (steam.ProxySelector, *http.Client, error) {
 	selector, err := steam.NewStaticProxySelector(proxyRaw)
 	if err != nil {
@@ -425,6 +528,9 @@ func summarizeReadResults(results []assets.ReadResult) []readResultSummary {
 			ID:                result.ID,
 			Name:              result.Name,
 			URL:               result.URL,
+			Digest:            result.Digest,
+			Filename:          result.Filename,
+			Source:            result.Source,
 			StatusCode:        result.StatusCode,
 			ContentType:       result.ContentType,
 			ContentLength:     result.ContentLength,
