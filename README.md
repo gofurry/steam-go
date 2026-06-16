@@ -152,7 +152,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 | `addons/openid` | Steam OpenID login verification |
 | `addons/websession` | Manual Steam web-login session flow |
 | `addons/freeclaim` | Read-only free promotion discovery plus explicit single-package claim |
-| `addons/assets` | Store / Library asset URL construction, verification, reading, and downloading |
+| `addons/assets` | Store / Library asset URL construction, official asset discovery, verification, reading, and downloading |
 | `addons/markup` | Steam BBCode / HTML conversion, sanitizing, and plain-text summaries |
 | `addons/vdf` | Valve VDF / KeyValues text parsing via `github.com/gofurry/vdf-go` |
 | `addons/a2s` | A2S server queries through `github.com/gofurry/a2s-go` |

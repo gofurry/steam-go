@@ -100,6 +100,8 @@ go run ./examples/websession
 - 通过 `assets.ReadURLs(...)` 和 `assets.ReadAppAssets(...)` 将资源读取到内存
 - 通过 `assets.DownloadURLs(...)` 下载任意 URL
 - 通过 `assets.DownloadAppAssets(...)` 下载根据 AppID 构造出的资源
+- 通过 `assets.FetchStoreItemAssetURLs(...)` 发现官方 hashed Store item asset URL
+- 通过 `assets.VerifyStoreItemAssets(...)` / `assets.ReadStoreItemAssets(...)` / `assets.DownloadStoreItemAssets(...)` 验证、读取或下载这些官方 Store item assets
 - 通过 `assets.FetchStoreMediaURLs(...)` 请求商店页截图、视频和背景资源 URL
 - 通过 `assets.VerifyStoreMedia(...)` / `assets.ReadStoreMedia(...)` / `assets.DownloadStoreMedia(...)` 验证、读取或下载这些商店媒体资源
 - 通过 `assets.WriteManifestJSON(...)` 写出 URL / 下载 manifest
@@ -108,6 +110,7 @@ go run ./examples/websession
 
 - 创建 client
 - 静态 URL 构造不会请求 Steam；商店媒体发现、验证和下载 helper 会显式发起网络请求
+- 官方 Store item asset discovery 会通过调用方提供的 `client.API.StoreBrowseService` 请求 `IStoreBrowseService/GetItems/v1`
 - 接入 SteamGridDB
 
 示例：
@@ -125,6 +128,7 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 - `LibraryCapsuleURLs`、`LibraryCapsule2xURLs`、`LibraryHeroURLs`、`LibraryLogoURLs`、`LibraryLogo2xURLs`
 - `StoreKinds`、`StoreKindsWithLocalized`、`LibraryKinds`、`DefaultKinds`、`AllKinds`
 - `StoreMediaKinds`、`StoreBackgroundKinds`、`StoreScreenshotKinds`、`StoreMovieKinds`
+- `StoreItemAssetKinds`
 - `List`、`ListWithLanguage`、`ListKinds`、`ListKindsWithLanguage`
 - `URLs(kind, appIDs...)`、`LocalizedURLs(kind, language, appIDs...)`
 - `All(appIDs...)`、`AllWithLanguage(language, appIDs...)`
@@ -134,6 +138,10 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 - `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`、`ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`、`ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
 - `DownloadURLs(ctx, dir, urls...)`、`DownloadURLsWithClient(ctx, httpClient, dir, urls...)`
 - `DownloadAppAssets(ctx, DownloadAppOptions{...}, appIDs...)`
+- `FetchStoreItemAssetURLs(ctx, storeBrowseService, StoreItemAssetOptions{...}, appIDs...)`
+- `VerifyStoreItemAssets(ctx, storeBrowseService, VerifyStoreItemAssetOptions{...}, appIDs...)`
+- `ReadStoreItemAssets(ctx, storeBrowseService, ReadStoreItemAssetOptions{...}, appIDs...)`
+- `DownloadStoreItemAssets(ctx, storeBrowseService, DownloadStoreItemAssetOptions{...}, appIDs...)`
 - `FetchStoreMediaURLs(ctx, storefront, StoreMediaOptions{...}, appIDs...)`
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
 - `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`、`ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
@@ -154,6 +162,8 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 
 直接 URL helper 会请求调用方传入的 HTTP(S) 地址。如果这些 URL 来自用户输入或其他不可信来源，请设置 `URLValidator`，例如 `assets.SteamStaticURLValidator` 或 `assets.AllowHosts(...)`，再进行验证、读取或下载。
 
+官方 Store item asset discovery 和 legacy static URL builder 是两条独立路径。它使用 Steam 返回的 `asset_url_format` 和资源文件名，支持 `steam/apps/{appid}/{digest}/library_hero_2x.jpg` 这类 hashed path，并在 `URLItem.Digest`、`URLItem.Filename`、`URLItem.Source` 中返回来源信息。
+
 对于商店视频资源，DASH/HLS 类型会保存 `.mpd` / `.m3u8` 播放清单 URL 本身；addon 不会展开下载视频分片。
 
 运行示例：
@@ -168,6 +178,8 @@ go run ./examples/assets -app-ids 550 -store-media -kind all
 go run ./examples/assets -app-ids 550 -read-store-media -kind movie_dash_h264 -proxy http://127.0.0.1:7897
 go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/assets-media -download-mode by_app_id -kind movie_dash_h264
 go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
+go run ./examples/assets -app-ids 4710650 -store-item-assets -kind all
+go run ./examples/assets -app-ids 4710650 -download-store-item-assets -download-dir ./tmp/assets-official -download-mode by_app_id -kind library_hero_2x
 ```
 
 ## `addons/markup`

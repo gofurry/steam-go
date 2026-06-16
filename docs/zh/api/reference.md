@@ -101,6 +101,17 @@
 - 它们不实现 CDN 下载器、depot patcher、manifest resolver 或 SteamPipe client。
 - `GetCDNForVideo` 的响应主体保留为 `json.RawMessage`，因为公开 payload shape 还不够稳定。
 
+`StoreBrowseService` 覆盖商店浏览 metadata：
+
+- `GetContentHubConfig`
+- `GetItems`
+
+说明：
+
+- `GetItems` 通过 `storebrowseservice.GetItemsRequest` 传入 typed `input_json`。
+- `assets` 字段使用 `map[string]string`，以适应 Steam 增减资源 key。
+- `related_items`、`categories` 等复杂易变子树保留为 `json.RawMessage`。
+
 `PlayerService` 覆盖了常用玩家资料、徽章、装饰物、最近游戏、成就进度、Steam 等级等接口。
 
 `WishlistService` 覆盖：
@@ -147,7 +158,7 @@
 说明：
 
 - `addons/websession.NewClientFromSteamClient(...)` 和 `addons/freeclaim.NewClientFromSteamClient(...)` 会复用根 SDK 的按分类 `WithTrafficPolicy(...)` 执行链。
-- `addons/assets` 提供纯 URL 构造 helper，以及显式调用的商店媒体发现、验证、读取和下载 helper；它不创建 client。
+- `addons/assets` 提供纯 URL 构造 helper、官方 Store item asset discovery，以及显式调用的商店媒体发现、验证、读取和下载 helper；它不创建 client。
 - `addons/vdf` 是对 `github.com/gofurry/vdf-go` 的轻量桥接；它只解析调用方显式提供的文本 VDF / KeyValues 输入，不自动扫描本机 Steam 安装目录。
 - 旧的 addon `NewClient(...)` 构造器仍然保留，继续作为手动模式，依赖调用方提供的 `http.Client`、proxy、timeout、base URL 和 `CookieJar`。
 

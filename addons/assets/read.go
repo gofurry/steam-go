@@ -207,24 +207,30 @@ enqueue:
 
 func canceledReadResult(req readRequest, err error) ReadResult {
 	return ReadResult{
-		AppID: req.item.AppID,
-		Kind:  req.item.Kind,
-		ID:    req.item.ID,
-		Name:  req.item.Name,
-		URL:   req.url,
-		Error: err.Error(),
+		AppID:    req.item.AppID,
+		Kind:     req.item.Kind,
+		ID:       req.item.ID,
+		Name:     req.item.Name,
+		URL:      req.url,
+		Digest:   req.item.Digest,
+		Filename: req.item.Filename,
+		Source:   req.item.Source,
+		Error:    err.Error(),
 	}
 }
 
 func readRequestOne(ctx context.Context, client *http.Client, maxBytes int64, req readRequest) (ReadResult, error) {
 	if req.err != nil {
 		return ReadResult{
-			AppID: req.item.AppID,
-			Kind:  req.item.Kind,
-			ID:    req.item.ID,
-			Name:  req.item.Name,
-			URL:   req.url,
-			Error: req.err.Error(),
+			AppID:    req.item.AppID,
+			Kind:     req.item.Kind,
+			ID:       req.item.ID,
+			Name:     req.item.Name,
+			URL:      req.url,
+			Digest:   req.item.Digest,
+			Filename: req.item.Filename,
+			Source:   req.item.Source,
+			Error:    req.err.Error(),
 		}, req.err
 	}
 	result, data, err := httpasset.Read(ctx, client, req.url, maxBytes)
@@ -238,6 +244,9 @@ func readRequestOne(ctx context.Context, client *http.Client, maxBytes int64, re
 		ID:            req.item.ID,
 		Name:          req.item.Name,
 		URL:           resultURL,
+		Digest:        req.item.Digest,
+		Filename:      req.item.Filename,
+		Source:        req.item.Source,
 		StatusCode:    result.StatusCode,
 		ContentType:   result.ContentType,
 		ContentLength: result.ContentLength,

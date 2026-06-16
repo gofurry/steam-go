@@ -88,6 +88,47 @@ https://shared.steamstatic.com/store_item_assets/steam/apps/107100/logo_2x.png
 
 这些 helper 只是本地 URL 构造器。调用它们本身不会请求 Steam。
 
+## 官方 Store Item Assets
+
+较新的 Steam 游戏可能使用带 digest/hash 的 Store item asset 路径，这类路径不能只根据 AppID 推导：
+
+```text
+https://shared.steamstatic.com/store_item_assets/steam/apps/4710650/448851b668e4397d9863e571cf481b0e46e1315f/library_hero_2x.jpg
+```
+
+当你需要这些官方 hashed URL 时，使用 `FetchStoreItemAssetURLs`。它会通过
+`client.API.StoreBrowseService.GetItems` 请求 `data_request.include_assets=true`，
+并解析 Steam 返回的 `asset_url_format`。
+
+```go
+client, err := steam.NewClient(steam.WithSafeDefaults())
+if err != nil {
+    return err
+}
+defer client.Close()
+
+items, err := assets.FetchStoreItemAssetURLs(ctx, client.API.StoreBrowseService, assets.StoreItemAssetOptions{
+    CountryCode: "US",
+    Language:    "english",
+    Kinds: []assets.Kind{
+        assets.KindHeader2x,
+        assets.KindLibraryCapsule2x,
+        assets.KindLibraryHero2x,
+    },
+}, 4710650)
+if err != nil {
+    return err
+}
+
+for _, item := range items {
+    fmt.Println(item.AppID, item.Kind, item.URL, item.Digest, item.Filename, item.Source)
+}
+```
+
+这条路径刻意和 `FetchStoreMediaURLs` 分开。Store item assets 覆盖 header、capsule、library hero、logo、page background、community icon 等 Store/Library 图片；Storefront media 覆盖 appdetails 返回的截图、视频和商店背景。
+
+默认会保留 Steam 返回的 `?t=` 等缓存版本参数。只有当下游存储明确不需要 query 参数时，才设置 `StoreItemAssetOptions.StripQuery`。
+
 ## 需要 Hash 的 Community 与 Client Icons
 
 Community 与 client icon URL 需要已知 hash。

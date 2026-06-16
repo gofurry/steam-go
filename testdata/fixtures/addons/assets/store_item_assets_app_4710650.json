@@ -1,0 +1,39 @@
+{
+  "response": {
+    "store_items": [
+      {
+        "item_type": 0,
+        "id": 4710650,
+        "success": 1,
+        "visible": true,
+        "name": "Fixture Game",
+        "store_url_path": "app/4710650/Fixture_Game/",
+        "appid": 4710650,
+        "assets": {
+          "asset_url_format": "steam/apps/4710650/${FILENAME}?t=1781233831",
+          "main_capsule": "4219ce8fda2a9c4dfbbbfe2bd20bcb8c9e225681/capsule_616x353.jpg",
+          "main_capsule_2x": "4219ce8fda2a9c4dfbbbfe2bd20bcb8c9e225681/capsule_616x353_2x.jpg",
+          "small_capsule": "5327b33c1f1ecdad2ad231cee405a94e74a7cd48/capsule_231x87.jpg",
+          "small_capsule_2x": "5327b33c1f1ecdad2ad231cee405a94e74a7cd48/capsule_231x87_2x.jpg",
+          "header": "764669a02c79c51906d97d167413773ff93e136e/header.jpg",
+          "header_2x": "764669a02c79c51906d97d167413773ff93e136e/header_2x.jpg",
+          "library_capsule": "0508d712ca859e3ef0921a32c49088ccfb05b0a0/library_capsule.jpg",
+          "library_capsule_2x": "0508d712ca859e3ef0921a32c49088ccfb05b0a0/library_capsule_2x.jpg",
+          "library_hero": "448851b668e4397d9863e571cf481b0e46e1315f/library_hero.jpg",
+          "library_hero_2x": "448851b668e4397d9863e571cf481b0e46e1315f/library_hero_2x.jpg",
+          "logo": "ad7f9414231a7a5bb96d74e21893a84972dcbee8/logo.png",
+          "logo_2x": "ad7f9414231a7a5bb96d74e21893a84972dcbee8/logo_2x.png",
+          "community_icon": "09afddbb4f0012de04d82dd4719626e46ecaed08"
+        },
+        "related_items": {
+          "parent_appid": 4710650
+        },
+        "categories": [
+          {
+            "id": 2
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -88,6 +88,53 @@ https://shared.steamstatic.com/store_item_assets/steam/apps/107100/logo_2x.png
 
 These helpers are local URL builders. They do not call Steam by themselves.
 
+## Official Store Item Assets
+
+Newer Steam games may use hashed Store item asset paths that cannot be derived
+from the AppID alone:
+
+```text
+https://shared.steamstatic.com/store_item_assets/steam/apps/4710650/448851b668e4397d9863e571cf481b0e46e1315f/library_hero_2x.jpg
+```
+
+Use `FetchStoreItemAssetURLs` when you need those official hashed URLs. It uses
+`client.API.StoreBrowseService.GetItems` with `data_request.include_assets=true`
+and resolves Steam's returned `asset_url_format`.
+
+```go
+client, err := steam.NewClient(steam.WithSafeDefaults())
+if err != nil {
+    return err
+}
+defer client.Close()
+
+items, err := assets.FetchStoreItemAssetURLs(ctx, client.API.StoreBrowseService, assets.StoreItemAssetOptions{
+    CountryCode: "US",
+    Language:    "english",
+    Kinds: []assets.Kind{
+        assets.KindHeader2x,
+        assets.KindLibraryCapsule2x,
+        assets.KindLibraryHero2x,
+    },
+}, 4710650)
+if err != nil {
+    return err
+}
+
+for _, item := range items {
+    fmt.Println(item.AppID, item.Kind, item.URL, item.Digest, item.Filename, item.Source)
+}
+```
+
+This path is intentionally separate from `FetchStoreMediaURLs`. Store item assets
+cover Store/Library images such as headers, capsules, library hero, logo, page
+background, and community icon. Storefront media covers screenshots, movies, and
+Storefront backgrounds returned by appdetails.
+
+By default, Steam's returned query string such as `?t=` is preserved. Set
+`StoreItemAssetOptions.StripQuery` only when your downstream storage deliberately
+does not want cache-version query parameters.
+
 ## Hash-Based Community and Client Icons
 
 Community and client icon URLs require a known hash.

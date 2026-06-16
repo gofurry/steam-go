@@ -113,6 +113,8 @@ What it does:
 - reads resources into memory with `assets.ReadURLs(...)` and `assets.ReadAppAssets(...)`
 - downloads arbitrary URLs with `assets.DownloadURLs(...)`
 - downloads constructed AppID assets with `assets.DownloadAppAssets(...)`
+- discovers official hashed Store item asset URLs with `assets.FetchStoreItemAssetURLs(...)`
+- verifies, reads, or downloads those official Store item assets with `assets.VerifyStoreItemAssets(...)`, `assets.ReadStoreItemAssets(...)`, and `assets.DownloadStoreItemAssets(...)`
 - requests Storefront screenshot, movie, and background URLs with `assets.FetchStoreMediaURLs(...)`
 - verifies, reads, or downloads those Storefront media URLs with `assets.VerifyStoreMedia(...)`, `assets.ReadStoreMedia(...)`, and `assets.DownloadStoreMedia(...)`
 - writes URL/download manifests with `assets.WriteManifestJSON(...)`
@@ -121,6 +123,7 @@ What it does not do:
 
 - it does not create a client
 - static URL construction does not call Steam; Store media discovery, verification, and download helpers perform explicit network requests
+- official Store item asset discovery calls `IStoreBrowseService/GetItems/v1` through a caller-provided `client.API.StoreBrowseService`
 - it does not integrate SteamGridDB
 
 Example:
@@ -138,6 +141,7 @@ Exported helpers:
 - `LibraryCapsuleURLs`, `LibraryCapsule2xURLs`, `LibraryHeroURLs`, `LibraryLogoURLs`, `LibraryLogo2xURLs`
 - `StoreKinds`, `StoreKindsWithLocalized`, `LibraryKinds`, `DefaultKinds`, `AllKinds`
 - `StoreMediaKinds`, `StoreBackgroundKinds`, `StoreScreenshotKinds`, `StoreMovieKinds`
+- `StoreItemAssetKinds`
 - `List`, `ListWithLanguage`, `ListKinds`, `ListKindsWithLanguage`
 - `URLs(kind, appIDs...)`, `LocalizedURLs(kind, language, appIDs...)`
 - `All(appIDs...)`, `AllWithLanguage(language, appIDs...)`
@@ -147,6 +151,10 @@ Exported helpers:
 - `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`, `ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`, `ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
 - `DownloadURLs(ctx, dir, urls...)`, `DownloadURLsWithClient(ctx, httpClient, dir, urls...)`
 - `DownloadAppAssets(ctx, DownloadAppOptions{...}, appIDs...)`
+- `FetchStoreItemAssetURLs(ctx, storeBrowseService, StoreItemAssetOptions{...}, appIDs...)`
+- `VerifyStoreItemAssets(ctx, storeBrowseService, VerifyStoreItemAssetOptions{...}, appIDs...)`
+- `ReadStoreItemAssets(ctx, storeBrowseService, ReadStoreItemAssetOptions{...}, appIDs...)`
+- `DownloadStoreItemAssets(ctx, storeBrowseService, DownloadStoreItemAssetOptions{...}, appIDs...)`
 - `FetchStoreMediaURLs(ctx, storefront, StoreMediaOptions{...}, appIDs...)`
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
 - `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`, `ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
@@ -167,6 +175,8 @@ Read helpers return `ReadResult.Data` as `[]byte` for callers that want to proce
 
 Direct URL helpers accept caller-supplied HTTP(S) URLs. If those URLs come from users or another untrusted source, set `URLValidator`, for example `assets.SteamStaticURLValidator` or `assets.AllowHosts(...)`, before verifying, reading, or downloading them.
 
+Official Store item asset discovery is separate from the legacy static URL builders. It uses Steam's returned `asset_url_format` and asset filenames, supports hashed paths such as `steam/apps/{appid}/{digest}/library_hero_2x.jpg`, and returns `URLItem.Digest`, `URLItem.Filename`, and `URLItem.Source`.
+
 For Storefront movie resources, DASH/HLS kinds save the `.mpd` / `.m3u8` playlist URL itself. The addon does not expand playlists into video segments.
 
 Run the example:
@@ -181,6 +191,8 @@ go run ./examples/assets -app-ids 550 -store-media -kind all
 go run ./examples/assets -app-ids 550 -read-store-media -kind movie_dash_h264 -proxy http://127.0.0.1:7897
 go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/assets-media -download-mode by_app_id -kind movie_dash_h264
 go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
+go run ./examples/assets -app-ids 4710650 -store-item-assets -kind all
+go run ./examples/assets -app-ids 4710650 -download-store-item-assets -download-dir ./tmp/assets-official -download-mode by_app_id -kind library_hero_2x
 ```
 
 ## `addons/markup`
