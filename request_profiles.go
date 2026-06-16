@@ -2,22 +2,13 @@ package steam
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/gofurry/steam-go/internal/request"
+	"github.com/gofurry/steam-go/internal/requestprofile"
 )
 
-const sdkDefaultUserAgent = "steam-go/1"
-
-type refererSourceContextKey struct{}
-
-type refererSourceContextValue struct {
-	value string
-	err   error
-}
+const sdkDefaultUserAgent = requestprofile.SDKDefaultUserAgent
 
 // HeaderProfile describes one lightweight browser-like default request profile.
 type HeaderProfile struct {
@@ -74,62 +65,30 @@ func DefaultPublicStoreHeaderProfileEN() HeaderProfile {
 
 // WithRefererSource attaches one explicit referer source URL to a request context.
 func WithRefererSource(ctx context.Context, rawURL string) context.Context {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	rawURL = strings.TrimSpace(rawURL)
-	if rawURL == "" {
-		return ctx
-	}
-
-	normalized, err := normalizeRefererURL(rawURL)
-	return context.WithValue(ctx, refererSourceContextKey{}, refererSourceContextValue{
-		value: normalized,
-		err:   err,
-	})
+	return requestprofile.WithRefererSource(ctx, rawURL)
 }
 
 // NewStaticRefererSelector returns one fixed Referer selector.
 func NewStaticRefererSelector(rawURL string) (RefererSelector, error) {
-	rawURL = strings.TrimSpace(rawURL)
-	if rawURL == "" {
-		return nil, nil
-	}
-	normalized, err := normalizeRefererURL(rawURL)
-	if err != nil {
-		return nil, err
-	}
-	return staticRefererSelector{value: normalized}, nil
+	return requestprofile.NewStaticRefererSelector(rawURL)
 }
 
 // NewRoutingRefererSelector routes Referer values by host/path.
 func NewRoutingRefererSelector(routes ...RefererRoute) (RefererSelector, error) {
-	compiled := make([]compiledRefererRoute, 0, len(routes))
+	mapped := make([]requestprofile.RefererRoute, 0, len(routes))
 	for _, route := range routes {
-		normalized := ""
-		if strings.TrimSpace(route.RefererURL) != "" {
-			var err error
-			normalized, err = normalizeRefererURL(route.RefererURL)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		compiled = append(compiled, compiledRefererRoute{
-			host:       strings.ToLower(strings.TrimSpace(route.Host)),
-			pathPrefix: strings.TrimSpace(route.PathPrefix),
-			refererURL: normalized,
+		mapped = append(mapped, requestprofile.RefererRoute{
+			Host:       route.Host,
+			PathPrefix: route.PathPrefix,
+			RefererURL: route.RefererURL,
 		})
 	}
-	if len(compiled) == 0 {
-		return nil, nil
-	}
-	return routingRefererSelector{routes: compiled}, nil
+	return requestprofile.NewRoutingRefererSelector(mapped...)
 }
 
 // NewContextRefererSelector prefers one referer source stored in context and falls back when absent.
 func NewContextRefererSelector(fallback RefererSelector) RefererSelector {
-	return contextRefererSelector{fallback: fallback}
+	return requestprofile.NewContextRefererSelector(fallback)
 }
 
 func cloneHeaderProfile(profile *HeaderProfile) *HeaderProfile {
@@ -144,74 +103,25 @@ func cloneHeaderProfile(profile *HeaderProfile) *HeaderProfile {
 }
 
 func buildRequestPreparer(profile *HeaderProfile, selector RefererSelector) request.RequestPreparer {
-	if profile == nil && selector == nil {
-		return nil
-	}
-	clonedProfile := cloneHeaderProfile(profile)
-	return func(req *http.Request) error {
-		if req == nil {
-			return nil
-		}
-		applyHeaderProfile(req, clonedProfile)
-		return applyRefererSelector(req, selector)
-	}
+	return requestprofile.BuildRequestPreparer(mapHeaderProfile(profile), selector)
 }
 
-func applyHeaderProfile(req *http.Request, profile *HeaderProfile) {
-	if req == nil || profile == nil {
-		return
-	}
-
-	setHeaderIfMissing(req.Header, "Accept", profile.Accept)
-	setHeaderIfMissing(req.Header, "Accept-Language", profile.AcceptLanguage)
-	setHeaderIfMissing(req.Header, "Accept-Encoding", profile.AcceptEncoding)
-	setHeaderIfMissing(req.Header, "Upgrade-Insecure-Requests", profile.UpgradeInsecureRequests)
-	setHeaderIfMissing(req.Header, "Sec-Fetch-Dest", profile.SecFetchDest)
-	setHeaderIfMissing(req.Header, "Sec-Fetch-Mode", profile.SecFetchMode)
-	setHeaderIfMissing(req.Header, "Sec-Fetch-Site", profile.SecFetchSite)
-
-	if profile.UserAgent != "" {
-		current := req.Header.Get("User-Agent")
-		if current == "" || current == sdkDefaultUserAgent {
-			req.Header.Set("User-Agent", profile.UserAgent)
-		}
-	}
-
-	for key, values := range profile.Extra {
-		if req.Header.Get(key) != "" || len(values) == 0 {
-			continue
-		}
-		copied := make([]string, len(values))
-		copy(copied, values)
-		req.Header[key] = copied
-	}
-}
-
-func applyRefererSelector(req *http.Request, selector RefererSelector) error {
-	if req == nil || selector == nil || req.Header.Get("Referer") != "" {
+func mapHeaderProfile(profile *HeaderProfile) *requestprofile.HeaderProfile {
+	cloned := cloneHeaderProfile(profile)
+	if cloned == nil {
 		return nil
 	}
-	referer, err := selector.Next(req)
-	if err != nil {
-		return err
+	return &requestprofile.HeaderProfile{
+		UserAgent:               cloned.UserAgent,
+		Accept:                  cloned.Accept,
+		AcceptLanguage:          cloned.AcceptLanguage,
+		AcceptEncoding:          cloned.AcceptEncoding,
+		UpgradeInsecureRequests: cloned.UpgradeInsecureRequests,
+		SecFetchDest:            cloned.SecFetchDest,
+		SecFetchMode:            cloned.SecFetchMode,
+		SecFetchSite:            cloned.SecFetchSite,
+		Extra:                   cloned.Extra,
 	}
-	referer = strings.TrimSpace(referer)
-	if referer == "" {
-		return nil
-	}
-	normalized, err := normalizeRefererURL(referer)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Referer", normalized)
-	return nil
-}
-
-func setHeaderIfMissing(header http.Header, key, value string) {
-	if header == nil || value == "" || header.Get(key) != "" {
-		return
-	}
-	header.Set(key, value)
 }
 
 func cloneHTTPHeader(header http.Header) http.Header {
@@ -225,84 +135,4 @@ func cloneHTTPHeader(header http.Header) http.Header {
 		cloned[key] = copied
 	}
 	return cloned
-}
-
-func normalizeRefererURL(rawURL string) (string, error) {
-	parsed, err := url.Parse(strings.TrimSpace(rawURL))
-	if err != nil {
-		return "", fmt.Errorf("parse referer url %q: %w", rawURL, err)
-	}
-	if parsed.Scheme == "" || parsed.Host == "" {
-		return "", fmt.Errorf("referer url must include scheme and host")
-	}
-	return parsed.String(), nil
-}
-
-func refererSourceFromContext(ctx context.Context) (string, error, bool) {
-	if ctx == nil {
-		return "", nil, false
-	}
-	value, ok := ctx.Value(refererSourceContextKey{}).(refererSourceContextValue)
-	if !ok {
-		return "", nil, false
-	}
-	if value.err != nil {
-		return "", value.err, true
-	}
-	if value.value == "" {
-		return "", nil, false
-	}
-	return value.value, nil, true
-}
-
-type staticRefererSelector struct {
-	value string
-}
-
-func (s staticRefererSelector) Next(*http.Request) (string, error) {
-	return s.value, nil
-}
-
-type compiledRefererRoute struct {
-	host       string
-	pathPrefix string
-	refererURL string
-}
-
-type routingRefererSelector struct {
-	routes []compiledRefererRoute
-}
-
-func (s routingRefererSelector) Next(req *http.Request) (string, error) {
-	if req == nil || req.URL == nil {
-		return "", nil
-	}
-	host := strings.ToLower(req.URL.Hostname())
-	path := req.URL.Path
-	for _, route := range s.routes {
-		if route.host != "" && route.host != host {
-			continue
-		}
-		if route.pathPrefix != "" && !strings.HasPrefix(path, route.pathPrefix) {
-			continue
-		}
-		return route.refererURL, nil
-	}
-	return "", nil
-}
-
-type contextRefererSelector struct {
-	fallback RefererSelector
-}
-
-func (s contextRefererSelector) Next(req *http.Request) (string, error) {
-	if req != nil {
-		if value, err, ok := refererSourceFromContext(req.Context()); ok {
-			return value, err
-		}
-	}
-	if s.fallback == nil {
-		return "", nil
-	}
-	return s.fallback.Next(req)
 }

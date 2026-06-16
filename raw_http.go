@@ -2,12 +2,11 @@ package steam
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	sdkerrors "github.com/gofurry/steam-go/internal/errors"
+	"github.com/gofurry/steam-go/internal/rawhttp"
 	"github.com/gofurry/steam-go/internal/request"
 	itraffic "github.com/gofurry/steam-go/internal/traffic"
 )
@@ -27,18 +26,6 @@ type RawHTTPRequestOptions struct {
 // RawHTTPHostPolicy validates one raw HTTP request host before execution.
 type RawHTTPHostPolicy interface {
 	Allow(req *http.Request) error
-}
-
-type allowedRawHTTPHostPolicy struct {
-	hosts map[string]struct{}
-}
-
-type suffixRawHTTPHostPolicy struct {
-	suffixes []string
-}
-
-type anyRawHTTPHostPolicy struct {
-	policies []RawHTTPHostPolicy
 }
 
 // RawHTTPBlockResult exposes block-detection metadata without discarding the raw response.
@@ -111,18 +98,7 @@ func (c *Client) DoRawHTTPRequest(ctx context.Context, req *http.Request, opts *
 // NewAllowedRawHTTPHostPolicy returns a raw HTTP policy that allows only exact host matches.
 // Hosts may be plain host names, host:port values, or absolute URLs.
 func NewAllowedRawHTTPHostPolicy(hosts ...string) (RawHTTPHostPolicy, error) {
-	allowed := make(map[string]struct{}, len(hosts))
-	for _, host := range hosts {
-		normalized, err := normalizeRawHTTPPolicyHost(host)
-		if err != nil {
-			return nil, err
-		}
-		allowed[normalized] = struct{}{}
-	}
-	if len(allowed) == 0 {
-		return nil, fmt.Errorf("at least one raw http host is required")
-	}
-	return allowedRawHTTPHostPolicy{hosts: allowed}, nil
+	return rawhttp.NewAllowedHostPolicy(hosts...)
 }
 
 // NewSteamRawHTTPHostPolicy returns a raw HTTP policy for common Steam API, Web, and static hosts.
@@ -140,150 +116,14 @@ func NewSteamRawHTTPHostPolicy() RawHTTPHostPolicy {
 // NewSuffixRawHTTPHostPolicy returns a raw HTTP policy that allows exact host
 // matches or subdomains under the configured suffixes.
 func NewSuffixRawHTTPHostPolicy(suffixes ...string) (RawHTTPHostPolicy, error) {
-	allowed := make([]string, 0, len(suffixes))
-	seen := make(map[string]struct{}, len(suffixes))
-	for _, suffix := range suffixes {
-		normalized, err := normalizeRawHTTPPolicySuffix(suffix)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := seen[normalized]; ok {
-			continue
-		}
-		seen[normalized] = struct{}{}
-		allowed = append(allowed, normalized)
-	}
-	if len(allowed) == 0 {
-		return nil, fmt.Errorf("at least one raw http host suffix is required")
-	}
-	return suffixRawHTTPHostPolicy{suffixes: allowed}, nil
+	return rawhttp.NewSuffixHostPolicy(suffixes...)
 }
 
 // NewSteamStaticRawHTTPHostPolicy returns a raw HTTP policy for common Steam static/CDN hosts.
 func NewSteamStaticRawHTTPHostPolicy() RawHTTPHostPolicy {
 	suffixPolicy, _ := NewSuffixRawHTTPHostPolicy("steamstatic.com")
 	exactPolicy, _ := NewAllowedRawHTTPHostPolicy("steamcdn-a.akamaihd.net")
-	return anyRawHTTPHostPolicy{policies: []RawHTTPHostPolicy{suffixPolicy, exactPolicy}}
-}
-
-func (p allowedRawHTTPHostPolicy) Allow(req *http.Request) error {
-	if req == nil || req.URL == nil {
-		return fmt.Errorf("request url is required")
-	}
-	host := strings.ToLower(strings.TrimSpace(req.URL.Host))
-	if host == "" {
-		return fmt.Errorf("request host is required")
-	}
-	if _, ok := p.hosts[host]; ok {
-		return nil
-	}
-	return fmt.Errorf("host %q is not allowed", host)
-}
-
-func (p suffixRawHTTPHostPolicy) Allow(req *http.Request) error {
-	if req == nil || req.URL == nil {
-		return fmt.Errorf("request url is required")
-	}
-	host := strings.ToLower(strings.Trim(strings.TrimSpace(req.URL.Hostname()), "."))
-	if host == "" {
-		return fmt.Errorf("request host is required")
-	}
-	for _, suffix := range p.suffixes {
-		if host == suffix || strings.HasSuffix(host, "."+suffix) {
-			return nil
-		}
-	}
-	return fmt.Errorf("host %q does not match allowed suffixes", host)
-}
-
-func (p anyRawHTTPHostPolicy) Allow(req *http.Request) error {
-	if len(p.policies) == 0 {
-		return fmt.Errorf("no raw http host policies configured")
-	}
-	var lastErr error
-	for _, policy := range p.policies {
-		if policy == nil {
-			continue
-		}
-		if err := policy.Allow(req); err == nil {
-			return nil
-		} else {
-			lastErr = err
-		}
-	}
-	if lastErr != nil {
-		return lastErr
-	}
-	return fmt.Errorf("no raw http host policies configured")
-}
-
-func normalizeRawHTTPPolicyHost(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return "", fmt.Errorf("raw http host must not be empty")
-	}
-	if strings.Contains(raw, "://") {
-		parsed, err := url.Parse(raw)
-		if err != nil {
-			return "", fmt.Errorf("invalid raw http host %q: %w", raw, err)
-		}
-		raw = parsed.Host
-	} else {
-		if strings.ContainsAny(raw, "/?#") {
-			return "", fmt.Errorf("raw http host %q must be a host or absolute url", raw)
-		}
-		if parsed, err := url.Parse("//" + raw); err == nil {
-			raw = parsed.Host
-		}
-	}
-	raw = strings.ToLower(strings.TrimSpace(raw))
-	if raw == "" || raw == "*" {
-		return "", fmt.Errorf("raw http host must be a concrete host")
-	}
-	return raw, nil
-}
-
-func normalizeRawHTTPPolicySuffix(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return "", fmt.Errorf("raw http host suffix must not be empty")
-	}
-
-	var host string
-	if strings.Contains(raw, "://") {
-		parsed, err := url.Parse(raw)
-		if err != nil {
-			return "", fmt.Errorf("invalid raw http host suffix %q: %w", raw, err)
-		}
-		if parsed.Path != "" && parsed.Path != "/" || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.User != nil {
-			return "", fmt.Errorf("raw http host suffix %q must not include path, query, fragment, or userinfo", raw)
-		}
-		if parsed.Port() != "" {
-			return "", fmt.Errorf("raw http host suffix %q must not include a port", raw)
-		}
-		host = parsed.Hostname()
-	} else {
-		if strings.ContainsAny(raw, "/?#@") {
-			return "", fmt.Errorf("raw http host suffix %q must be a host suffix", raw)
-		}
-		parsed, err := url.Parse("//" + raw)
-		if err != nil {
-			return "", fmt.Errorf("invalid raw http host suffix %q: %w", raw, err)
-		}
-		if parsed.Port() != "" {
-			return "", fmt.Errorf("raw http host suffix %q must not include a port", raw)
-		}
-		host = parsed.Hostname()
-	}
-
-	host = strings.ToLower(strings.Trim(strings.TrimSpace(host), "."))
-	if host == "" || host == "*" || strings.Contains(host, "*") {
-		return "", fmt.Errorf("raw http host suffix must be a concrete host suffix")
-	}
-	if strings.Contains(host, "..") {
-		return "", fmt.Errorf("raw http host suffix %q is malformed", raw)
-	}
-	return host, nil
+	return rawhttp.NewAnyHostPolicy(suffixPolicy, exactPolicy)
 }
 
 func (c *Client) rawExecutionPolicy(class TrafficClass) request.ExecutionPolicy {
