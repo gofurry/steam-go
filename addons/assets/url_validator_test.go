@@ -54,10 +54,27 @@ func TestVerifyURLsWithOptionsValidator(t *testing.T) {
 }
 
 func TestSteamStaticURLValidator(t *testing.T) {
-	if err := validateDirectURL("https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/550/header.jpg", SteamStaticURLValidator); err != nil {
-		t.Fatalf("SteamStaticURLValidator rejected steamstatic URL: %v", err)
+	allowed := []string{
+		"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/550/header.jpg",
+		"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/550/header.jpg",
+		"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/550/header.jpg",
+		"https://shared.st.dl.eccdnx.com/store_item_assets/steam/apps/550/header.jpg",
+		"https://shared.cdn.steamchina.queniuam.com/store_item_assets/steam/apps/550/header.jpg",
 	}
-	if err := validateDirectURL("https://example.com/header.jpg", SteamStaticURLValidator); err == nil {
-		t.Fatal("SteamStaticURLValidator accepted non-steamstatic URL")
+	for _, rawURL := range allowed {
+		if err := validateDirectURL(rawURL, SteamStaticURLValidator); err != nil {
+			t.Fatalf("SteamStaticURLValidator rejected %s: %v", rawURL, err)
+		}
+	}
+
+	rejected := []string{
+		"https://example.com/header.jpg",
+		"https://shared.st.dl.eccdnx.com.evil.example/header.jpg",
+		"https://shared.cdn.steamchina.queniuam.com.evil.example/header.jpg",
+	}
+	for _, rawURL := range rejected {
+		if err := validateDirectURL(rawURL, SteamStaticURLValidator); err == nil {
+			t.Fatalf("SteamStaticURLValidator accepted %s", rawURL)
+		}
 	}
 }

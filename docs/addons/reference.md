@@ -104,6 +104,7 @@ Use `addons/assets` when you want high-value public Store and Library image asse
 What it does:
 
 - locally builds static URLs such as `header.jpg`, `capsule_616x353.jpg`, `library_600x900_2x.jpg`, `library_hero.jpg`, and `logo_2x.png`
+- lists known Steam static resource CDN base URLs with `assets.StaticCDNBaseURLs()` helpers
 - provides one helper per asset family, for example `assets.HeaderURLs(...)` and `assets.LibraryLogoURLs(...)`
 - provides preset kind groups such as `assets.StoreKinds()`, `assets.LibraryKinds()`, and `assets.AllKinds()`
 - provides resource list helpers such as `assets.ListWithLanguage(...)`
@@ -146,6 +147,7 @@ Exported helpers:
 - `URLs(kind, appIDs...)`, `LocalizedURLs(kind, language, appIDs...)`
 - `All(appIDs...)`, `AllWithLanguage(language, appIDs...)`
 - `CommunityIconURL`, `CommunityIconURLs`, `CommunityLogoURL`, `CommunityLogoURLs`, `ClientIconURL`, `ClientIconURLs` for known AppID/hash pairs
+- `StaticCDNBaseURLs`, `StaticCDNBaseURLsWithPath`, `StaticStoreItemAssetBaseURLs` for known Steam static CDN prefixes
 - `VerifyURLs(ctx, urls...)`, `VerifyURLsWithClient(ctx, httpClient, urls...)`, `VerifyURLsWithOptions(ctx, VerifyOptions{...}, urls...)`, `VerifyAppAssets(ctx, opts, appIDs...)`
 - `ReadURLs(ctx, urls...)`, `ReadURLsWithClient(ctx, httpClient, urls...)`, `ReadURLsWithOptions(ctx, ReadOptions{...}, urls...)`
 - `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`, `ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`, `ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
@@ -174,6 +176,8 @@ Download options include `FilenameStyle`, `Overwrite`, `SkipExisting`, and `Conc
 Read helpers return `ReadResult.Data` as `[]byte` for callers that want to process the resource themselves. They default to a 32 MiB per-resource limit; set `MaxBytes` explicitly for larger files. For large batches, use `ReadEachURLs`, `ReadEachAppAssets`, or `ReadEachStoreMedia` to process each result without retaining the whole batch in memory.
 
 Direct URL helpers accept caller-supplied HTTP(S) URLs. If those URLs come from users or another untrusted source, set `URLValidator`, for example `assets.SteamStaticURLValidator` or `assets.AllowHosts(...)`, before verifying, reading, or downloading them.
+
+`assets.StaticCDNBaseURLs()` returns known Steam static resource CDN prefixes, including the canonical `shared.steamstatic.com` host and observed Akamai, Cloudflare, Fastly, and Steam China shared CDN hosts. `assets.StaticStoreItemAssetBaseURLs()` appends `store_item_assets/` for callers that want to try the same Store item asset path against multiple CDN prefixes. The default local builders still use `assets.DefaultStaticCDNBaseURL`.
 
 Official Store item asset discovery is separate from the legacy static URL builders. It uses Steam's returned `asset_url_format` and asset filenames, supports hashed paths such as `steam/apps/{appid}/{digest}/library_hero_2x.jpg`, and returns `URLItem.Digest`, `URLItem.Filename`, and `URLItem.Source`.
 

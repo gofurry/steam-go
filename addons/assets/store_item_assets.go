@@ -13,7 +13,7 @@ import (
 	"github.com/gofurry/steam-go/api/storebrowseservice"
 )
 
-const DefaultStoreItemAssetBaseURL = "https://shared.steamstatic.com/store_item_assets/"
+const DefaultStoreItemAssetBaseURL = DefaultStaticCDNBaseURL + "store_item_assets/"
 
 var storeItemAssetPathRE = regexp.MustCompile(`/steam/apps/\d+/([0-9a-fA-F]{40})/([^/?#]+)`)
 

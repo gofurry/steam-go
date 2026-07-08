@@ -46,10 +46,16 @@ In practice, developers usually see these public resource hosts:
 | Host | Typical use |
 |---|---|
 | `shared.steamstatic.com` | Store and Library static assets such as `header.jpg`, `library_600x900_2x.jpg`, `library_hero.jpg`, and `logo_2x.png` |
+| `shared.akamai.steamstatic.com` | Akamai-backed shared static resource CDN host |
+| `shared.cloudflare.steamstatic.com` | Cloudflare-backed shared static resource CDN host |
 | `cdn.cloudflare.steamstatic.com` | Steam Community and client image resources, often with AppID/hash-based paths |
 | `shared.fastly.steamstatic.com` | CDN host that may appear in returned URLs or browser-observed URLs |
+| `shared.st.dl.eccdnx.com` | Steam China shared static resource CDN host |
+| `shared.cdn.steamchina.queniuam.com` | Steam China shared static resource CDN host |
 
 `addons/assets` uses `https://shared.steamstatic.com` as the canonical static asset base for locally constructed Store and Library URLs.
+
+`assets.StaticCDNBaseURLs()` returns the known shared static CDN base URLs in the table above. `assets.StaticStoreItemAssetBaseURLs()` appends `store_item_assets/` when callers want Store item asset prefixes for each CDN.
 
 It also builds community/client icon URLs under:
 
@@ -435,6 +441,8 @@ assets.SteamStaticURLValidator
 ```
 
 `SteamStaticURLValidator` accepts hosts under `steamstatic.com`. Use stricter validators when your application needs stricter host controls.
+
+It also accepts the known Steam China shared static CDN hosts returned by `assets.StaticCDNBaseURLs()`.
 
 ## What `addons/assets` Does Not Do
 

@@ -184,6 +184,8 @@
 
 Raw HTTP 只接受 absolute URL。不要把不可信的用户输入 URL 直接传给 `DoRawHTTPRequest(...)`；当 URL 来源不完全受控时，优先通过 `RawHTTPRequestOptions.HostPolicy`、`NewAllowedRawHTTPHostPolicy(...)`、`NewSuffixRawHTTPHostPolicy(...)`、`NewSteamRawHTTPHostPolicy()` 或 `NewSteamStaticRawHTTPHostPolicy()` 限制允许访问的 host。
 
+`NewSteamStaticRawHTTPHostPolicy()` 会允许常见 Steam static/CDN host，包括 `addons/assets` 中 `assets.StaticCDNBaseURLs()` 返回的 shared CDN 前缀。
+
 Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST`、`PUT`、`PATCH`、`DELETE` 等非幂等方法只有在 SDK 方法或 `RawHTTPRequestOptions.Retryable` 显式 opt-in 后才会自动重试。
 
 `WithTrafficCacheOptions(...)` 是兼容性加法，用于按 traffic class 配置 cache TTL、最大 entry 数和可选 GET cache miss singleflight。旧的 `TrafficCachePolicy{TTL: ...}` 仍保持默认容量语义。
