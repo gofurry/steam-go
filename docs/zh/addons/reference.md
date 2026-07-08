@@ -91,6 +91,7 @@ go run ./examples/websession
 它负责：
 
 - 本地构造 `header.jpg`、`capsule_616x353.jpg`、`library_600x900_2x.jpg`、`library_hero.jpg`、`logo_2x.png` 等静态 URL
+- 通过 `assets.StaticCDNBaseURLs()` 等 helper 列出已知 Steam 静态资源 CDN 前缀
 - 为每类资源提供一个直接 helper，例如 `assets.HeaderURLs(...)`、`assets.LibraryLogoURLs(...)`
 - 提供 `assets.StoreKinds()`、`assets.LibraryKinds()`、`assets.AllKinds()` 等预设 kind 组
 - 提供 `assets.ListWithLanguage(...)` 等资源清单 helper
@@ -133,6 +134,7 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 - `URLs(kind, appIDs...)`、`LocalizedURLs(kind, language, appIDs...)`
 - `All(appIDs...)`、`AllWithLanguage(language, appIDs...)`
 - `CommunityIconURL`、`CommunityIconURLs`、`CommunityLogoURL`、`CommunityLogoURLs`、`ClientIconURL`、`ClientIconURLs`：用于已知 AppID/hash 的图标 URL
+- `StaticCDNBaseURLs`、`StaticCDNBaseURLsWithPath`、`StaticStoreItemAssetBaseURLs`：用于已知 Steam 静态 CDN 前缀
 - `VerifyURLs(ctx, urls...)`、`VerifyURLsWithClient(ctx, httpClient, urls...)`、`VerifyURLsWithOptions(ctx, VerifyOptions{...}, urls...)`、`VerifyAppAssets(ctx, opts, appIDs...)`
 - `ReadURLs(ctx, urls...)`、`ReadURLsWithClient(ctx, httpClient, urls...)`、`ReadURLsWithOptions(ctx, ReadOptions{...}, urls...)`
 - `ReadEachURLs(ctx, ReadOptions{...}, handler, urls...)`、`ReadAppAssets(ctx, ReadAppOptions{...}, appIDs...)`、`ReadEachAppAssets(ctx, ReadAppOptions{...}, handler, appIDs...)`
@@ -161,6 +163,8 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 读取 helper 会把完整资源放到 `ReadResult.Data []byte`，适合调用方自行处理。默认每个资源最多读取 32 MiB；需要更大文件时显式设置 `MaxBytes`。大批量读取时优先用 `ReadEachURLs`、`ReadEachAppAssets` 或 `ReadEachStoreMedia`，可以逐个处理结果，不需要把整批数据都留在内存里。
 
 直接 URL helper 会请求调用方传入的 HTTP(S) 地址。如果这些 URL 来自用户输入或其他不可信来源，请设置 `URLValidator`，例如 `assets.SteamStaticURLValidator` 或 `assets.AllowHosts(...)`，再进行验证、读取或下载。
+
+`assets.StaticCDNBaseURLs()` 会返回已知 Steam 静态资源 CDN 前缀，包括 canonical `shared.steamstatic.com`，以及观察到的 Akamai、Cloudflare、Fastly 和 Steam China shared CDN host。`assets.StaticStoreItemAssetBaseURLs()` 会追加 `store_item_assets/`，适合调用方用同一 Store item asset 路径尝试多个 CDN 前缀。默认本地构造器仍使用 `assets.DefaultStaticCDNBaseURL`。
 
 官方 Store item asset discovery 和 legacy static URL builder 是两条独立路径。它使用 Steam 返回的 `asset_url_format` 和资源文件名，支持 `steam/apps/{appid}/{digest}/library_hero_2x.jpg` 这类 hashed path，并在 `URLItem.Digest`、`URLItem.Filename`、`URLItem.Source` 中返回来源信息。
 

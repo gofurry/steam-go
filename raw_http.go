@@ -8,6 +8,7 @@ import (
 	sdkerrors "github.com/gofurry/steam-go/internal/errors"
 	"github.com/gofurry/steam-go/internal/rawhttp"
 	"github.com/gofurry/steam-go/internal/request"
+	"github.com/gofurry/steam-go/internal/steamstatic"
 	itraffic "github.com/gofurry/steam-go/internal/traffic"
 )
 
@@ -103,13 +104,14 @@ func NewAllowedRawHTTPHostPolicy(hosts ...string) (RawHTTPHostPolicy, error) {
 
 // NewSteamRawHTTPHostPolicy returns a raw HTTP policy for common Steam API, Web, and static hosts.
 func NewSteamRawHTTPHostPolicy() RawHTTPHostPolicy {
-	policy, _ := NewAllowedRawHTTPHostPolicy(
+	hosts := []string{
 		"api.steampowered.com",
 		"store.steampowered.com",
 		"steamcommunity.com",
-		"shared.steamstatic.com",
-		"cdn.cloudflare.steamstatic.com",
-	)
+	}
+	hosts = append(hosts, steamstatic.CDNHosts()...)
+	hosts = append(hosts, "cdn.cloudflare.steamstatic.com")
+	policy, _ := NewAllowedRawHTTPHostPolicy(hosts...)
 	return policy
 }
 
@@ -121,8 +123,10 @@ func NewSuffixRawHTTPHostPolicy(suffixes ...string) (RawHTTPHostPolicy, error) {
 
 // NewSteamStaticRawHTTPHostPolicy returns a raw HTTP policy for common Steam static/CDN hosts.
 func NewSteamStaticRawHTTPHostPolicy() RawHTTPHostPolicy {
-	suffixPolicy, _ := NewSuffixRawHTTPHostPolicy("steamstatic.com")
-	exactPolicy, _ := NewAllowedRawHTTPHostPolicy("steamcdn-a.akamaihd.net")
+	suffixPolicy, _ := NewSuffixRawHTTPHostPolicy(steamstatic.HostSuffix)
+	exactHosts := steamstatic.NonSteamStaticCDNHosts()
+	exactHosts = append(exactHosts, "steamcdn-a.akamaihd.net")
+	exactPolicy, _ := NewAllowedRawHTTPHostPolicy(exactHosts...)
 	return rawhttp.NewAnyHostPolicy(suffixPolicy, exactPolicy)
 }
 

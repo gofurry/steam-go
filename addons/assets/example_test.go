@@ -17,3 +17,15 @@ func Example() {
 	// https://shared.steamstatic.com/store_item_assets/steam/apps/440/header.jpg
 	// https://shared.steamstatic.com/store_item_assets/steam/apps/440/library_hero.jpg
 }
+
+func ExampleStaticCDNBaseURLs() {
+	baseURLs := assets.StaticCDNBaseURLs()
+	storeItemBaseURLs := assets.StaticStoreItemAssetBaseURLs()
+
+	fmt.Println(baseURLs[0])
+	fmt.Println(storeItemBaseURLs[0])
+
+	// Output:
+	// https://shared.steamstatic.com/
+	// https://shared.steamstatic.com/store_item_assets/
+}

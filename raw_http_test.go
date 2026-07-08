@@ -509,12 +509,51 @@ func TestSteamStaticRawHTTPHostPolicyAllowsCommonStaticHosts(t *testing.T) {
 	t.Parallel()
 
 	policy := steam.NewSteamStaticRawHTTPHostPolicy()
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://cdn.cloudflare.steamstatic.com/path", nil)
-	if err != nil {
-		t.Fatalf("NewRequestWithContext returned error: %v", err)
+	tests := []struct {
+		rawURL string
+		allow  bool
+	}{
+		{rawURL: "https://cdn.cloudflare.steamstatic.com/path", allow: true},
+		{rawURL: "https://shared.akamai.steamstatic.com/path", allow: true},
+		{rawURL: "https://shared.fastly.steamstatic.com/path", allow: true},
+		{rawURL: "https://shared.st.dl.eccdnx.com/path", allow: true},
+		{rawURL: "https://shared.cdn.steamchina.queniuam.com/path", allow: true},
+		{rawURL: "https://shared.st.dl.eccdnx.com.evil.example/path", allow: false},
 	}
-	if err := policy.Allow(req); err != nil {
-		t.Fatalf("expected steamstatic host to be allowed: %v", err)
+	for _, tc := range tests {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, tc.rawURL, nil)
+		if err != nil {
+			t.Fatalf("NewRequestWithContext returned error: %v", err)
+		}
+		err = policy.Allow(req)
+		if tc.allow && err != nil {
+			t.Fatalf("expected %s to be allowed: %v", tc.rawURL, err)
+		}
+		if !tc.allow && err == nil {
+			t.Fatalf("expected %s to be rejected", tc.rawURL)
+		}
+	}
+}
+
+func TestSteamRawHTTPHostPolicyAllowsStaticCDNHosts(t *testing.T) {
+	t.Parallel()
+
+	policy := steam.NewSteamRawHTTPHostPolicy()
+	for _, rawURL := range []string{
+		"https://shared.steamstatic.com/path",
+		"https://shared.akamai.steamstatic.com/path",
+		"https://shared.cloudflare.steamstatic.com/path",
+		"https://shared.fastly.steamstatic.com/path",
+		"https://shared.st.dl.eccdnx.com/path",
+		"https://shared.cdn.steamchina.queniuam.com/path",
+	} {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, rawURL, nil)
+		if err != nil {
+			t.Fatalf("NewRequestWithContext returned error: %v", err)
+		}
+		if err := policy.Allow(req); err != nil {
+			t.Fatalf("expected %s to be allowed: %v", rawURL, err)
+		}
 	}
 }
 

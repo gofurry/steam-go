@@ -19,6 +19,7 @@
 - `client.API.CommunityService`
 - `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
+- `client.API.GameServersService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
 - `client.API.NewsService`
@@ -101,6 +102,17 @@
 - 它们不实现 CDN 下载器、depot patcher、manifest resolver 或 SteamPipe client。
 - `GetCDNForVideo` 的响应主体保留为 `json.RawMessage`，因为公开 payload shape 还不够稳定。
 
+`GameServersService` 覆盖游戏服务器候选发现接口：
+
+- `GetServerList`
+
+说明：
+
+- `GetServerList` 通过 `IGameServersService/GetServerList/v1` 使用 Steam Web API 凭证和可选 Master Server 风格 filter 发现候选服务器。
+- 常用过滤条件建议用 `gameserversservice.NewFilter().AppID(730).Secure().NotEmpty().String()` 构造；高级上游过滤可以通过 `Raw(key, value)` 兜底。
+- 它适合做服务器发现，不替代 A2S。需要严格实时状态时，应继续对返回地址使用 `addons/a2s` 查询。
+- 上游 filter 结果是 best-effort；重要条件应在本地或 A2S 查询后再次校验。
+
 `StoreBrowseService` 覆盖商店浏览 metadata：
 
 - `GetContentHubConfig`
@@ -172,6 +184,8 @@
 
 Raw HTTP 只接受 absolute URL。不要把不可信的用户输入 URL 直接传给 `DoRawHTTPRequest(...)`；当 URL 来源不完全受控时，优先通过 `RawHTTPRequestOptions.HostPolicy`、`NewAllowedRawHTTPHostPolicy(...)`、`NewSuffixRawHTTPHostPolicy(...)`、`NewSteamRawHTTPHostPolicy()` 或 `NewSteamStaticRawHTTPHostPolicy()` 限制允许访问的 host。
 
+`NewSteamStaticRawHTTPHostPolicy()` 会允许常见 Steam static/CDN host，包括 `addons/assets` 中 `assets.StaticCDNBaseURLs()` 返回的 shared CDN 前缀。
+
 Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST`、`PUT`、`PATCH`、`DELETE` 等非幂等方法只有在 SDK 方法或 `RawHTTPRequestOptions.Retryable` 显式 opt-in 后才会自动重试。
 
 `WithTrafficCacheOptions(...)` 是兼容性加法，用于按 traffic class 配置 cache TTL、最大 entry 数和可选 GET cache miss singleflight。旧的 `TrafficCachePolicy{TTL: ...}` 仍保持默认容量语义。
@@ -189,6 +203,7 @@ Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST
 - addon 手动示例：`go run ./examples/assets -app-ids 550,107100`
 - addon 手动示例：`go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - addon 手动示例：`go run ./examples/freeclaim`
+- live smoke 示例：`go run ./examples/live/gameserversservice`
 - 请求观测示例：`go run ./examples/observer`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

@@ -46,10 +46,16 @@ Steamworks 文档将 Store assets、Library assets、Community / Client icons �
 | Host | 常见用途 |
 |---|---|
 | `shared.steamstatic.com` | Store 与 Library 静态资源，例如 `header.jpg`、`library_600x900_2x.jpg`、`library_hero.jpg`、`logo_2x.png` |
+| `shared.akamai.steamstatic.com` | Akamai-backed shared 静态资源 CDN host |
+| `shared.cloudflare.steamstatic.com` | Cloudflare-backed shared 静态资源 CDN host |
 | `cdn.cloudflare.steamstatic.com` | Steam Community 与客户端图片资源，通常是 AppID/hash 路径 |
 | `shared.fastly.steamstatic.com` | 可能在 Steam 返回的 URL 或浏览器观察到的资源里出现的 CDN host |
+| `shared.st.dl.eccdnx.com` | Steam China shared 静态资源 CDN host |
+| `shared.cdn.steamchina.queniuam.com` | Steam China shared 静态资源 CDN host |
 
 `addons/assets` 使用 `https://shared.steamstatic.com` 作为本地构造 Store 与 Library URL 时的 canonical static asset base。
+
+`assets.StaticCDNBaseURLs()` 会返回这里列出的已知 shared static CDN base URL。`assets.StaticStoreItemAssetBaseURLs()` 会为每个 CDN 前缀追加 `store_item_assets/`，适合调用方尝试 Store item asset 前缀。
 
 它也会在下面这个路径下构造 community/client icon URL：
 
@@ -429,6 +435,8 @@ assets.SteamStaticURLValidator
 ```
 
 `SteamStaticURLValidator` 接受 `steamstatic.com` 下的 host。如果你的应用需要更严格的 host 控制，请使用更严格的 validator。
+
+它也接受 `assets.StaticCDNBaseURLs()` 返回的已知 Steam China shared static CDN host。
 
 ## `addons/assets` 不做什么
 

@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/url"
 	"strings"
+
+	"github.com/gofurry/steam-go/internal/steamstatic"
 )
 
 // URLValidator checks whether a direct URL is allowed before the package sends
@@ -59,7 +61,27 @@ func SteamStaticURLValidator(parsed *url.URL) error {
 	return steamStaticURLValidator(parsed)
 }
 
-var steamStaticURLValidator = AllowHostSuffixes("steamstatic.com")
+var steamStaticURLValidator = anyURLValidators(
+	AllowHostSuffixes(steamstatic.HostSuffix),
+	AllowHosts(steamstatic.NonSteamStaticCDNHosts()...),
+)
+
+func anyURLValidators(validators ...URLValidator) URLValidator {
+	return func(parsed *url.URL) error {
+		var lastErr error
+		for _, validator := range validators {
+			if validator == nil {
+				return nil
+			}
+			if err := validator(parsed); err == nil {
+				return nil
+			} else {
+				lastErr = err
+			}
+		}
+		return lastErr
+	}
+}
 
 func validateDirectURL(rawURL string, validator URLValidator) error {
 	parsed, err := parseDirectURL(rawURL)

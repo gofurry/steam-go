@@ -17,6 +17,7 @@ import (
 	steam "github.com/gofurry/steam-go"
 	"github.com/gofurry/steam-go/api/accountcartservice"
 	"github.com/gofurry/steam-go/api/familygroupsservice"
+	"github.com/gofurry/steam-go/api/gameserversservice"
 	"github.com/gofurry/steam-go/api/loyaltyrewardsservice"
 	"github.com/gofurry/steam-go/api/newsservice"
 	"github.com/gofurry/steam-go/api/playerservice"
@@ -58,6 +59,9 @@ func TestNewClientRequiresAPIKey(t *testing.T) {
 	}
 	if client.API.FamilyGroupsService == nil || client.API.LoyaltyRewardsService == nil {
 		t.Fatal("expected access-token services to be initialized")
+	}
+	if client.API.GameServersService == nil {
+		t.Fatal("expected game servers service to be initialized")
 	}
 	if client.API.MobileNotificationService == nil || client.API.NewsService == nil {
 		t.Fatal("expected additional service groups to be initialized")
@@ -834,6 +838,41 @@ func TestSteamAppsValidation(t *testing.T) {
 
 	_, err = client.API.SteamApps.UpToDateCheck(context.Background(), 550, 0)
 	expectKind(t, err, steam.ErrorKindRequestBuild)
+}
+
+func TestGameServersService(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/IGameServersService/GetServerList/v1/" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		query := r.URL.Query()
+		if got := query.Get("key"); got != "test-key" {
+			t.Fatalf("unexpected key: %s", got)
+		}
+		if got := query.Get("filter"); got != `\appid\730\secure\1` {
+			t.Fatalf("unexpected filter: %s", got)
+		}
+		if got := query.Get("limit"); got != "2" {
+			t.Fatalf("unexpected limit: %s", got)
+		}
+		_, _ = w.Write([]byte(`{"response":{"servers":[{"addr":"1.2.3.4:27015","gameport":27015,"steamid":"90285522207964181","appid":730,"name":"Test Server","players":1,"max_players":10,"secure":true}]}}`))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+	filter := gameserversservice.NewFilter().AppID(730).Secure()
+	resp, err := client.API.GameServersService.GetServerList(context.Background(), &gameserversservice.GetServerListOptions{
+		Filter: filter.String(),
+		Limit:  2,
+	})
+	if err != nil {
+		t.Fatalf("GetServerList returned error: %v", err)
+	}
+	if len(resp.Response.Servers) != 1 || resp.Response.Servers[0].Addr != "1.2.3.4:27015" {
+		t.Fatalf("unexpected response: %#v", resp.Response)
+	}
 }
 
 func TestSteamChartsService(t *testing.T) {

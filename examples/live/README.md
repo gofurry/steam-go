@@ -29,6 +29,7 @@ Run one service-specific smoke command, for example:
 - `go run ./examples/live/billingservice`
 - `go run ./examples/live/communityservice`
 - `go run ./examples/live/familygroupsservice`
+- `go run ./examples/live/gameserversservice`
 - `go run ./examples/live/loyaltyrewardsservice`
 - `go run ./examples/live/mobilenotificationservice`
 - `go run ./examples/live/newsservice`

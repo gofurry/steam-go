@@ -23,6 +23,7 @@ const (
 	FamilyGroupsServiceGetFamilyGroupForUser                     = "/IFamilyGroupsService/GetFamilyGroupForUser/v1/"
 	FamilyGroupsServiceGetPlaytimeSummary                        = "/IFamilyGroupsService/GetPlaytimeSummary/v1/"
 	FamilyGroupsServiceGetSharedLibraryApps                      = "/IFamilyGroupsService/GetSharedLibraryApps/v1/"
+	GameServersServiceGetServerList                              = "/IGameServersService/GetServerList/v1/"
 	LoyaltyRewardsServiceGetEquippedProfileItems                 = "/ILoyaltyRewardsService/GetEquippedProfileItems/v1/"
 	LoyaltyRewardsServiceGetReactionsSummaryForUser              = "/ILoyaltyRewardsService/GetReactionsSummaryForUser/v1/"
 	LoyaltyRewardsServiceGetSummary                              = "/ILoyaltyRewardsService/GetSummary/v1/"

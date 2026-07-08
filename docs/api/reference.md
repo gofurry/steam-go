@@ -17,6 +17,7 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 - `client.API.CommunityService`
 - `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
+- `client.API.GameServersService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
 - `client.API.NewsService`
@@ -97,6 +98,16 @@ Notes:
 - These helpers expose low-level read-only directory metadata for CDN/video, Steam client update hosts, depot patch availability, and SteamPipe server candidates.
 - They do not implement CDN downloading, depot patching, manifest resolution, or a SteamPipe client.
 - `GetCDNForVideo` keeps the nested payload as `json.RawMessage` because the public response shape is not stable enough to model yet.
+
+### `client.API.GameServersService`
+
+- `GetServerList`
+
+Notes:
+- `GetServerList` discovers candidate game servers through `IGameServersService/GetServerList/v1` using Steam Web API credentials and optional Master Server style filters.
+- Use `gameserversservice.NewFilter().AppID(730).Secure().NotEmpty().String()` for common filters, and `Raw(key, value)` for advanced upstream filters.
+- The endpoint is useful for server discovery, not as a replacement for A2S. For strict real-time server state, query returned addresses with `addons/a2s`.
+- Filter results are best-effort upstream results. Validate important conditions locally or with A2S when correctness matters.
 
 ### `client.API.PlayerService`
 
@@ -381,6 +392,7 @@ Notes:
 - `client.Web.Storefront.*` defaults to `TrafficClassPublicStorePage`, `client.Web.Community.*` defaults to `TrafficClassCommunityWeb`, and `client.Web.Market.*` defaults to `TrafficClassMarketWeb`.
 - `(*Client).DoRawHTTPRequest(...)` is intended for addon-style raw HTTP flows that still need the SDK's class-aware execution stack.
 - Raw HTTP accepts only absolute URLs. Do not pass untrusted user-controlled URLs directly; use `RawHTTPRequestOptions.HostPolicy` with `NewAllowedRawHTTPHostPolicy(...)`, `NewSuffixRawHTTPHostPolicy(...)`, `NewSteamRawHTTPHostPolicy()`, or `NewSteamStaticRawHTTPHostPolicy()` when the URL source is not fully controlled by your code.
+- `NewSteamStaticRawHTTPHostPolicy()` allows common Steam static/CDN hosts, including the shared CDN prefixes returned by `assets.StaticCDNBaseURLs()` from `addons/assets`.
 - Retry is method-aware: `GET`, `HEAD`, and `OPTIONS` are retryable by default. Non-idempotent methods such as `POST`, `PUT`, `PATCH`, and `DELETE` retry only when the SDK method or `RawHTTPRequestOptions.Retryable` explicitly opts in.
 - `WithTrafficPolicy(...)` only overrides the fields you set; unset fields continue to use the client-level defaults.
 - `TrafficCachePolicy` currently applies only to `GET` requests and uses in-memory short TTL caching with `ETag` / `Last-Modified` revalidation.
@@ -405,6 +417,7 @@ Notes:
 - `go run ./examples/assets -app-ids 550,107100`
 - `go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - `go run ./examples/freeclaim`
+- `go run ./examples/live/gameserversservice`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`
 - `go run ./examples/observer`
