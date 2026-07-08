@@ -19,6 +19,7 @@
 - `client.API.CommunityService`
 - `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
+- `client.API.GameServersService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
 - `client.API.NewsService`
@@ -100,6 +101,17 @@
 - 这些 helper 只暴露 CDN/video、Steam client update hosts、depot patch availability 和 SteamPipe server candidates 等低层目录元数据。
 - 它们不实现 CDN 下载器、depot patcher、manifest resolver 或 SteamPipe client。
 - `GetCDNForVideo` 的响应主体保留为 `json.RawMessage`，因为公开 payload shape 还不够稳定。
+
+`GameServersService` 覆盖游戏服务器候选发现接口：
+
+- `GetServerList`
+
+说明：
+
+- `GetServerList` 通过 `IGameServersService/GetServerList/v1` 使用 Steam Web API 凭证和可选 Master Server 风格 filter 发现候选服务器。
+- 常用过滤条件建议用 `gameserversservice.NewFilter().AppID(730).Secure().NotEmpty().String()` 构造；高级上游过滤可以通过 `Raw(key, value)` 兜底。
+- 它适合做服务器发现，不替代 A2S。需要严格实时状态时，应继续对返回地址使用 `addons/a2s` 查询。
+- 上游 filter 结果是 best-effort；重要条件应在本地或 A2S 查询后再次校验。
 
 `StoreBrowseService` 覆盖商店浏览 metadata：
 
@@ -189,6 +201,7 @@ Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST
 - addon 手动示例：`go run ./examples/assets -app-ids 550,107100`
 - addon 手动示例：`go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - addon 手动示例：`go run ./examples/freeclaim`
+- live smoke 示例：`go run ./examples/live/gameserversservice`
 - 请求观测示例：`go run ./examples/observer`
 
 `examples/live/` 需要真实凭证，不属于离线示例。

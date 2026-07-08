@@ -22,6 +22,7 @@ The repository currently exposes these grouped services under `client.API.*`:
 - `BillingService`
 - `CommunityService`
 - `FamilyGroupsService`
+- `GameServersService`
 - `LoyaltyRewardsService`
 - `MobileNotificationService`
 - `NewsService`
@@ -56,6 +57,8 @@ The practical interpretation is:
 - the current official service groups are already broad enough to justify a stable `v1.0.0`
 - missing official endpoints do not block `v1.0.0`
 - new official endpoints can be added compatibly in later `v1.x` releases
+
+`GameServersService.GetServerList` is intentionally documented as server discovery. If the generated coverage reports mark it as `extra_sdk`, treat that as expected drift for this useful endpoint rather than an automatic removal signal.
 
 ## Read-only web surfaces in v1.1.0
 

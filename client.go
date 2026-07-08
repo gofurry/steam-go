@@ -11,6 +11,7 @@ import (
 	"github.com/gofurry/steam-go/api/communityservice"
 	"github.com/gofurry/steam-go/api/contentserverdirectoryservice"
 	"github.com/gofurry/steam-go/api/familygroupsservice"
+	"github.com/gofurry/steam-go/api/gameserversservice"
 	"github.com/gofurry/steam-go/api/loyaltyrewardsservice"
 	"github.com/gofurry/steam-go/api/mobilenotificationservice"
 	"github.com/gofurry/steam-go/api/newsservice"
@@ -61,6 +62,7 @@ type API struct {
 	CommunityService              *communityservice.Service
 	ContentServerDirectoryService *contentserverdirectoryservice.Service
 	FamilyGroupsService           *familygroupsservice.Service
+	GameServersService            *gameserversservice.Service
 	LoyaltyRewardsService         *loyaltyrewardsservice.Service
 	MobileNotificationService     *mobilenotificationservice.Service
 	NewsService                   *newsservice.Service
@@ -153,6 +155,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		CommunityService:              communityservice.NewService(officialExecutor),
 		ContentServerDirectoryService: contentserverdirectoryservice.NewService(officialExecutor),
 		FamilyGroupsService:           familygroupsservice.NewService(officialExecutor),
+		GameServersService:            gameserversservice.NewService(officialExecutor),
 		LoyaltyRewardsService:         loyaltyrewardsservice.NewService(officialExecutor),
 		MobileNotificationService:     mobilenotificationservice.NewService(officialExecutor),
 		NewsService:                   newsservice.NewService(officialExecutor),

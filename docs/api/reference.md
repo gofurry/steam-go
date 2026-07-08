@@ -17,6 +17,7 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 - `client.API.CommunityService`
 - `client.API.ContentServerDirectoryService`
 - `client.API.FamilyGroupsService`
+- `client.API.GameServersService`
 - `client.API.LoyaltyRewardsService`
 - `client.API.MobileNotificationService`
 - `client.API.NewsService`
@@ -97,6 +98,16 @@ Notes:
 - These helpers expose low-level read-only directory metadata for CDN/video, Steam client update hosts, depot patch availability, and SteamPipe server candidates.
 - They do not implement CDN downloading, depot patching, manifest resolution, or a SteamPipe client.
 - `GetCDNForVideo` keeps the nested payload as `json.RawMessage` because the public response shape is not stable enough to model yet.
+
+### `client.API.GameServersService`
+
+- `GetServerList`
+
+Notes:
+- `GetServerList` discovers candidate game servers through `IGameServersService/GetServerList/v1` using Steam Web API credentials and optional Master Server style filters.
+- Use `gameserversservice.NewFilter().AppID(730).Secure().NotEmpty().String()` for common filters, and `Raw(key, value)` for advanced upstream filters.
+- The endpoint is useful for server discovery, not as a replacement for A2S. For strict real-time server state, query returned addresses with `addons/a2s`.
+- Filter results are best-effort upstream results. Validate important conditions locally or with A2S when correctness matters.
 
 ### `client.API.PlayerService`
 
@@ -405,6 +416,7 @@ Notes:
 - `go run ./examples/assets -app-ids 550,107100`
 - `go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - `go run ./examples/freeclaim`
+- `go run ./examples/live/gameserversservice`
 - `go run ./examples/proxy`
 - `go run ./examples/traffic`
 - `go run ./examples/observer`

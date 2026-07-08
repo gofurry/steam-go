@@ -16,6 +16,7 @@
 - `BillingService`
 - `CommunityService`
 - `FamilyGroupsService`
+- `GameServersService`
 - `LoyaltyRewardsService`
 - `MobileNotificationService`
 - `NewsService`
@@ -48,6 +49,8 @@
 - 当前官方 service group 已足够支撑首个稳定版本
 - 缺失的官方 endpoint 不阻塞 `v1.0.0`
 - 新官方 endpoint 可以在后续 `v1.x` 中兼容加入
+
+`GameServersService.GetServerList` 会被文档化为服务器发现接口。如果 generated coverage 将它标记为 `extra_sdk`，这是该实用 endpoint 没有稳定出现在公开 inventory 中的预期 drift，不是自动删除信号。
 
 ## `v1.1.0` 只读 Web surface
 

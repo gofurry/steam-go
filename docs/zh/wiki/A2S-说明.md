@@ -13,6 +13,8 @@
 | 需要时使用 SDK client 和凭证 | 不使用 Steam Web API key |
 | 适合玩家资料、成就、应用数据 | 适合服务器 info、players、rules |
 
+`client.API.GameServersService.GetServerList` 是 Steam Web API 的服务器发现 helper。它返回 Steam Web API 侧的候选服务器；需要当前服务器 info、players 或 rules 时，仍应继续使用 A2S 查询返回地址。
+
 ## 支持的查询类型
 
 A2S addon 暴露常见服务器查询能力：
@@ -50,6 +52,7 @@ go run ./examples/a2s -server 1.2.3.4:27015 -query rules
 ## 实用建议
 
 - 把 A2S 看作对游戏服务器的网络探测。
+- 把 `GetServerList` 结果看作候选列表，不要当作每台服务器仍然满足全部 filter 的证明。
 - 预期会遇到超时和部分失败。
 - 扫描时使用有界并发。
 - 不要把 A2S 错误处理和 Web API 错误处理混在一起。
