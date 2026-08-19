@@ -85,6 +85,7 @@ const (
 	SteamUserGetPlayerBans                                       = "/ISteamUser/GetPlayerBans/v1/"
 	SteamUserGetPlayerSummaries                                  = "/ISteamUser/GetPlayerSummaries/v2/"
 	SteamUserGetUserGroupList                                    = "/ISteamUser/GetUserGroupList/v1/"
+	SteamUserResolveVanityURL                                    = "/ISteamUser/ResolveVanityURL/v1/"
 	SteamUserOAuthGetFriendList                                  = "/ISteamUserOAuth/GetFriendList/v1/"
 	SteamUserOAuthGetUserSummaries                               = "/ISteamUserOAuth/GetUserSummaries/v1/"
 	PlayerServiceGetOwnedGames                                   = "/IPlayerService/GetOwnedGames/v1/"

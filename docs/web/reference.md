@@ -28,6 +28,21 @@ JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
 Use `AppDetailsData.DecodeRatings` for common rating board fields and
 `AppDetailsData.SteamGermanyRequiredAge` for Steam Germany age requirements.
 
+The original `ReleaseDate` and `SupportedLanguages` fields remain unchanged.
+Use the local helpers when you need calculable release-date precision or
+structured language metadata:
+
+```go
+release := storefront.NormalizeReleaseDate(result.Data.ReleaseDate)
+languages := storefront.ParseSupportedLanguages(result.Data.SupportedLanguages)
+schinese, ok := storefront.LookupLanguage("schinese")
+```
+
+`NormalizeReleaseDate` recognizes exact days, months, quarters, years, and TBA
+values. Unrecognized non-empty text is preserved with `unknown` precision.
+`ParseSupportedLanguages` preserves unknown language names and the optional
+full-audio marker instead of failing the surrounding Storefront response.
+
 `GetAdjacentPartnerEvents` wraps the public Store events JSON endpoint used by
 Steam partner news pages. The method exposes a stable typed subset and preserves
 raw nested payloads for callers that need fields not yet typed by the SDK.

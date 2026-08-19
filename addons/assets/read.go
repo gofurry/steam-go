@@ -208,6 +208,7 @@ enqueue:
 func canceledReadResult(req readRequest, err error) ReadResult {
 	return ReadResult{
 		AppID:    req.item.AppID,
+		SteamID:  req.item.SteamID,
 		Kind:     req.item.Kind,
 		ID:       req.item.ID,
 		Name:     req.item.Name,
@@ -223,6 +224,7 @@ func readRequestOne(ctx context.Context, client *http.Client, maxBytes int64, re
 	if req.err != nil {
 		return ReadResult{
 			AppID:    req.item.AppID,
+			SteamID:  req.item.SteamID,
 			Kind:     req.item.Kind,
 			ID:       req.item.ID,
 			Name:     req.item.Name,
@@ -240,6 +242,7 @@ func readRequestOne(ctx context.Context, client *http.Client, maxBytes int64, re
 	}
 	return ReadResult{
 		AppID:         req.item.AppID,
+		SteamID:       req.item.SteamID,
 		Kind:          req.item.Kind,
 		ID:            req.item.ID,
 		Name:          req.item.Name,

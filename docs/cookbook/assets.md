@@ -1,6 +1,6 @@
 # Cookbook: Assets Addon
 
-Use `addons/assets` for public Store and Library asset URLs.
+Use `addons/assets` for public Store, Library, and player/Profile asset URLs.
 
 ## Build Static URLs
 
@@ -56,9 +56,46 @@ for _, item := range items {
 }
 ```
 
+## Discover Player Assets
+
+Player avatars come from the URLs returned by official
+`ISteamUser/GetPlayerSummaries/v2`. Equipped Profile backgrounds, mini-profile
+backgrounds, avatar frames, and animated-avatar media come from the currently
+observed `IPlayerService/GetProfileItemsEquipped/v1` surface.
+
+```go
+avatars, err := assets.FetchPlayerAvatarURLs(
+	ctx,
+	client.API.SteamUser,
+	assets.PlayerAvatarOptions{},
+	"76561198000000000",
+)
+if err != nil {
+	panic(err)
+}
+
+profile, err := assets.FetchEquippedProfileAssetURLs(
+	ctx,
+	client.API.PlayerService,
+	assets.PlayerProfileAssetOptions{Language: "english"},
+	"76561198000000000",
+)
+if err != nil {
+	panic(err)
+}
+
+fmt.Println(avatars, profile)
+```
+
+The helpers use Steam-returned URLs and never guess avatar CDN paths from a
+hash or Profile paths from item IDs. Verify, read, and download variants keep
+the optional `SteamID` metadata; player downloads use
+`<Dir>/<SteamID>/<kind>.<ext>`.
+
 ## Notes
 
 - Static URL builders do not perform network requests.
-- Verification, read, download, Store media discovery, and Store item asset discovery helpers do perform explicit network requests.
+- Verification, read, download, Store media discovery, Store item asset discovery, and player asset discovery helpers do perform explicit network requests.
 - For direct URLs from untrusted input, configure a URL validator such as `assets.SteamStaticURLValidator`.
 - Full example: `go run ./examples/assets -app-ids 4710650 -store-item-assets -kind all`.
+- Live player example: `go run ./examples/live/playerassets -verify` (requires configured Steam credentials).

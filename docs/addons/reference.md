@@ -99,7 +99,7 @@ go run ./examples/websession
 
 ## `addons/assets`
 
-Use `addons/assets` when you want high-value public Store and Library image asset URLs from one or more Steam AppIDs.
+Use `addons/assets` when you want public Store, Library, or player/Profile asset URLs discovered from Steam AppIDs or SteamIDs.
 
 What it does:
 
@@ -118,6 +118,9 @@ What it does:
 - verifies, reads, or downloads those official Store item assets with `assets.VerifyStoreItemAssets(...)`, `assets.ReadStoreItemAssets(...)`, and `assets.DownloadStoreItemAssets(...)`
 - requests Storefront screenshot, movie, and background URLs with `assets.FetchStoreMediaURLs(...)`
 - verifies, reads, or downloads those Storefront media URLs with `assets.VerifyStoreMedia(...)`, `assets.ReadStoreMedia(...)`, and `assets.DownloadStoreMedia(...)`
+- discovers official player avatar URLs with `assets.FetchPlayerAvatarURLs(...)`
+- discovers equipped Profile item image/movie URLs with `assets.FetchEquippedProfileAssetURLs(...)`
+- verifies, reads, or downloads player assets through the same result pipeline while preserving `SteamID`
 - writes URL/download manifests with `assets.WriteManifestJSON(...)`
 
 What it does not do:
@@ -125,6 +128,7 @@ What it does not do:
 - it does not create a client
 - static URL construction does not call Steam; Store media discovery, verification, and download helpers perform explicit network requests
 - official Store item asset discovery calls `IStoreBrowseService/GetItems/v1` through a caller-provided `client.API.StoreBrowseService`
+- it does not construct avatar URLs from hashes, guess Profile item CDN paths, or scrape Steam Community HTML
 - it does not integrate SteamGridDB
 
 Example:
@@ -161,6 +165,10 @@ Exported helpers:
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
 - `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`, `ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
 - `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `FetchPlayerAvatarURLs(ctx, steamUser, PlayerAvatarOptions{...}, steamIDs...)`
+- `VerifyPlayerAvatars`, `ReadPlayerAvatars`, `DownloadPlayerAvatars`
+- `FetchEquippedProfileAssetURLs(ctx, playerService, PlayerProfileAssetOptions{...}, steamIDs...)`
+- `VerifyEquippedProfileAssets`, `ReadEquippedProfileAssets`, `DownloadEquippedProfileAssets`
 - `AllowHosts`, `AllowHostSuffixes`, `SteamStaticURLValidator` for direct URL validation
 - `NewURLManifest`, `NewDownloadManifest`, `MarshalManifestJSON`, `WriteManifestJSON`
 
@@ -183,6 +191,18 @@ Official Store item asset discovery is separate from the legacy static URL build
 
 For Storefront movie resources, DASH/HLS kinds save the `.mpd` / `.m3u8` playlist URL itself. The addon does not expand playlists into video segments.
 
+Player avatars use the complete `avatar`, `avatarmedium`, and `avatarfull`
+URLs returned by the official `ISteamUser/GetPlayerSummaries/v2` endpoint.
+Equipped Profile backgrounds, frames, animated-avatar images, and movies use
+`IPlayerService/GetProfileItemsEquipped/v1`, an observed surface not currently
+listed in Valve's public Web API reference. Both discovery paths prefer
+returned URLs and skip empty or unresolved relative paths.
+
+Player downloads use `<Dir>/<SteamID>/<kind>.<ext>`. Image URLs without an
+extension fall back to `.jpg`; animated-avatar movies fall back to `.webm` or
+`.mp4`. `URLItem`, `VerifyResult`, `ReadResult`, and `DownloadResult` preserve
+the optional `SteamID` metadata.
+
 Run the example:
 
 ```bash
@@ -197,6 +217,8 @@ go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/
 go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
 go run ./examples/assets -app-ids 4710650 -store-item-assets -kind all
 go run ./examples/assets -app-ids 4710650 -download-store-item-assets -download-dir ./tmp/assets-official -download-mode by_app_id -kind library_hero_2x
+go run ./examples/live/playerassets -verify
+go run ./examples/live/playerassets -read-small -download-dir ./tmp/player-assets
 ```
 
 ## `addons/markup`

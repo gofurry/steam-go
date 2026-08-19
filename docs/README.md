@@ -39,6 +39,8 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.3.2 release notes](releases/v1.3.2.md)
 - [v1.3.3 release notes](releases/v1.3.3.md)
 - [v1.3.4 release notes](releases/v1.3.4.md)
+- [v1.3.6 release notes](releases/v1.3.6.md)
+- [v1.3.9 release notes](releases/v1.3.9.md)
 - [Release checklist](releases/checklist.md)
 
 ## Chinese
@@ -50,6 +52,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [API 覆盖 Triage](api/coverage-triage.md)
 - [Addon 参考](zh/addons/reference.md)
 - [Addon 安全边界](zh/addons/safety.md)
+- [Web 参考](zh/web/reference.md)
 - [Storefront appdetails 限流实验](zh/experiments/store-rate-limit-20260607.md)
 - Cookbook:
   - [基础官方 API](zh/cookbook/basic-api.md)
@@ -77,6 +80,8 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.3.2 Release Notes](zh/releases/v1.3.2.md)
 - [v1.3.3 Release Notes](zh/releases/v1.3.3.md)
 - [v1.3.4 Release Notes](zh/releases/v1.3.4.md)
+- [v1.3.6 Release Notes](zh/releases/v1.3.6.md)
+- [v1.3.9 Release Notes](zh/releases/v1.3.9.md)
 
 ## Chinese-only Operational Docs
 

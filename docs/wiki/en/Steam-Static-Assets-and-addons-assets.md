@@ -1,12 +1,12 @@
 # Steam Static Assets
 
-Steam has many useful public image and media resources around each AppID.
+Steam has many useful public image and media resources around AppIDs and player SteamIDs.
 
-They are not all exposed through one official Web API method, and they are not all stored under the same host or path shape. Some assets can be built from an AppID, while others require a hash or a URL returned by Storefront metadata.
+They are not all exposed through one official Web API method, and they are not all stored under the same host or path shape. Some assets can be built from an AppID, while others require a hash or a URL returned by Storefront or player metadata.
 
 `addons/assets` exists to make this easier for Go developers.
 
-It provides small helpers for building common public Steam Store and Library static asset URLs, resolving Storefront media URLs, verifying whether URLs exist, reading resources into memory, downloading files, and writing asset manifests.
+It provides small helpers for building common public Steam Store and Library static asset URLs, resolving Storefront and player/Profile media URLs, verifying whether URLs exist, reading resources into memory, downloading files, and writing asset manifests.
 
 ## What This Page Covers
 
@@ -16,6 +16,7 @@ This page explains:
 - where those resources are commonly requested from
 - what can be built from only an AppID
 - what requires a hash or Storefront metadata
+- which player assets are discovered from Steam-returned URLs
 - how `steam-go/addons/assets` helps with these resources
 - what the addon intentionally does not do
 
@@ -31,6 +32,7 @@ Steamworks groups graphical assets into several broad families.
 | Library assets | Steam client library presentation | library capsule, library hero, library logo, library header |
 | Community and client icons | Steam Community and Steam client compact presentation | App icon JPG, shortcut/client icon ICO or PNG |
 | Storefront media | Media returned by Store appdetails | screenshots, movie thumbnails, WebM/MP4/HLS/DASH URLs, backgrounds |
+| Player and Profile assets | Public player presentation | avatars, Profile backgrounds, mini-profile backgrounds, avatar frames, animated-avatar images and videos |
 
 Steamworks documentation describes Store assets, Library assets, and Community / Client icons separately:
 
@@ -209,6 +211,38 @@ assets.KindMovieHLSH264
 ```
 
 DASH/HLS helpers return the playlist or manifest URL itself. The addon does not expand playlists into video segments.
+
+## Player Avatars and Equipped Profile Assets
+
+Player assets are discovered from Steam-returned URLs rather than constructed
+from a SteamID, avatar hash, or Profile item ID:
+
+- `FetchPlayerAvatarURLs` uses the `avatar`, `avatarmedium`, and `avatarfull`
+  URLs returned by official `ISteamUser/GetPlayerSummaries/v2`.
+- `FetchEquippedProfileAssetURLs` returns equipped Profile backgrounds,
+  mini-profile backgrounds, avatar frames, and animated-avatar image/WebM/MP4
+  URLs from `IPlayerService/GetProfileItemsEquipped/v1`.
+
+```go
+avatars, err := assets.FetchPlayerAvatarURLs(
+    ctx,
+    client.API.SteamUser,
+    assets.PlayerAvatarOptions{},
+    "76561198000000000",
+)
+
+profile, err := assets.FetchEquippedProfileAssetURLs(
+    ctx,
+    client.API.PlayerService,
+    assets.PlayerProfileAssetOptions{Language: "english"},
+    "76561198000000000",
+)
+```
+
+The PlayerService method is a currently observed surface that is not listed in
+Valve's public Web API reference. Relative paths without a returned host and
+empty fields are skipped. Verify, read, and download helpers preserve optional
+`SteamID` metadata; downloads use `<Dir>/<SteamID>/<kind>.<ext>`.
 
 ## Basic Usage
 
@@ -454,6 +488,7 @@ It does not:
 - integrate SteamGridDB
 - parse Steam client appinfo
 - discover client icon hashes by itself
+- scrape Steam Community HTML or guess player asset CDN paths
 - guarantee that every generated URL exists
 - expand DASH/HLS playlists into video segments
 - treat public static URLs as official stable Web API endpoints
@@ -469,6 +504,7 @@ It is a practical toolkit for constructing, validating, reading, and downloading
 - For large batches, use low concurrency and streaming read helpers.
 - Keep manifests so downstream jobs know exactly which URLs were resolved and which downloads succeeded.
 - Prefer URLs returned by Steam metadata when available.
+- Treat the observed equipped-Profile surface as more volatile than the official player-summary avatar path.
 - Treat Steam static resource paths as public resources, not as an official enumeration API.
 
 ## CLI Example
@@ -502,6 +538,12 @@ Fetch Storefront media:
 
 ```bash
 go run ./examples/assets -app-ids 550 -store-media -kind all
+```
+
+Inspect and optionally verify player assets (requires configured Steam credentials):
+
+```bash
+go run ./examples/live/playerassets -verify
 ```
 
 ## Related Wiki Pages

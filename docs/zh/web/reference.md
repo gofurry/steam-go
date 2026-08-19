@@ -27,6 +27,19 @@ ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAp
 常见 rating board 字段可通过 `AppDetailsData.DecodeRatings` 读取，德国年龄限制可
 通过 `AppDetailsData.SteamGermanyRequiredAge` 读取。
 
+原有 `ReleaseDate` 与 `SupportedLanguages` 字段保持不变。需要可计算的发行日期
+精度或结构化语言 metadata 时，使用本地 helper：
+
+```go
+release := storefront.NormalizeReleaseDate(result.Data.ReleaseDate)
+languages := storefront.ParseSupportedLanguages(result.Data.SupportedLanguages)
+schinese, ok := storefront.LookupLanguage("schinese")
+```
+
+`NormalizeReleaseDate` 支持 exact day、month、quarter、year 和 TBA；无法识别的
+非空文本会原样保留并标记为 `unknown`。`ParseSupportedLanguages` 会保留未知语言
+名称与可选的 full-audio 标记，不会让外围 Storefront response 失败。
+
 `GetAdjacentPartnerEvents` 封装公开 Store events JSON 接口，适合读取 Steam
 商店新闻 / 活动页附近的 partner event。方法提供稳定 typed 子集，并保留嵌套
 raw payload，方便调用方读取 SDK 暂未 typed 的字段。

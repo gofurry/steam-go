@@ -7,7 +7,7 @@ It is intentionally maintained by humans. Do not generate this file from `steama
 Current tracked counts:
 
 - `covered=27`
-- `extra_sdk=74`
+- `extra_sdk=76`
 - `missing=34`
 - `version_mismatch=2`
 
@@ -22,7 +22,7 @@ Current tracked counts:
 
 ## P1 Candidates
 
-These are reasonable candidates for future endpoint work after `v1.3.4` stabilization if users need more official endpoint coverage.
+These are reasonable candidates for future endpoint work if users need more official endpoint coverage.
 
 | Endpoint | Why it is interesting | Initial boundary |
 |---|---|---|

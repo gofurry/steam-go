@@ -13,6 +13,12 @@ Place credential files in `examples/live/`:
 - `family-group-id.txt` (optional, only for `familygroupsservice`)
 - `proxy.txt` (optional, used when `STEAM_PROXY` is unset)
 
+For temporary credentials, environment variables take precedence over files:
+
+- `STEAM_API_KEY`
+- `STEAM_ACCESS_TOKEN`
+- `STEAM_FAMILY_GROUP_ID`
+
 Optional environment variables for web smoke tests:
 
 - `STEAM_AUTH_ACCOUNT_NAME` for `examples/live/authenticationservice`
@@ -34,6 +40,7 @@ Run one service-specific smoke command, for example:
 - `go run ./examples/live/mobilenotificationservice`
 - `go run ./examples/live/newsservice`
 - `go run ./examples/live/playerservice`
+- `go run ./examples/live/playerassets`
 - `go run ./examples/live/questservice`
 - `go run ./examples/live/salefeatureservice`
 - `go run ./examples/live/steamapps`
@@ -90,3 +97,5 @@ Report fields are intentionally small: check name, status, message, duration, re
 - These programs are intended for manual validation, not CI.
 - Keep real credentials out of Git.
 - Use the regular `examples/` directory for lightweight usage demos that should not depend on live credentials.
+- `playerassets` discovers URLs by default. Add `-verify`, `-read-small`, or
+  `-download-dir ./tmp/player-assets` to exercise the shared asset pipeline.

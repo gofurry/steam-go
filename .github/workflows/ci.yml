@@ -22,7 +22,7 @@ jobs:
       matrix:
         go-version:
           - "1.25"
-          - "1.26.4"
+          - "1.26.6"
 
     steps:
       - name: Checkout
@@ -50,7 +50,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.4"
+          go-version: "1.26.6"
           cache: true
 
       - name: Show Go version
@@ -81,7 +81,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.4"
+          go-version: "1.26.6"
           cache: true
 
       - name: Show Go version
