@@ -39,6 +39,38 @@ const (
 	KindMovieDASHAV1        Kind = "movie_dash_av1"
 	KindMovieDASHH264       Kind = "movie_dash_h264"
 	KindMovieHLSH264        Kind = "movie_hls_h264"
+
+	// KindPlayerAvatar identifies the small avatar returned by GetPlayerSummaries.
+	KindPlayerAvatar Kind = "player_avatar"
+	// KindPlayerAvatarMedium identifies the medium avatar returned by GetPlayerSummaries.
+	KindPlayerAvatarMedium Kind = "player_avatar_medium"
+	// KindPlayerAvatarFull identifies the full avatar returned by GetPlayerSummaries.
+	KindPlayerAvatarFull Kind = "player_avatar_full"
+
+	// KindProfileBackgroundSmall identifies an equipped profile background's small image.
+	KindProfileBackgroundSmall Kind = "profile_background_small"
+	// KindProfileBackgroundLarge identifies an equipped profile background's large image.
+	KindProfileBackgroundLarge Kind = "profile_background_large"
+	// KindMiniProfileBackgroundSmall identifies an equipped mini-profile background's small image.
+	KindMiniProfileBackgroundSmall Kind = "mini_profile_background_small"
+	// KindMiniProfileBackgroundLarge identifies an equipped mini-profile background's large image.
+	KindMiniProfileBackgroundLarge Kind = "mini_profile_background_large"
+	// KindAvatarFrameSmall identifies an equipped avatar frame's small image.
+	KindAvatarFrameSmall Kind = "avatar_frame_small"
+	// KindAvatarFrameLarge identifies an equipped avatar frame's large image.
+	KindAvatarFrameLarge Kind = "avatar_frame_large"
+	// KindAnimatedAvatarSmall identifies an equipped animated avatar's small image.
+	KindAnimatedAvatarSmall Kind = "animated_avatar_small"
+	// KindAnimatedAvatarLarge identifies an equipped animated avatar's large image.
+	KindAnimatedAvatarLarge Kind = "animated_avatar_large"
+	// KindAnimatedAvatarWebM identifies an equipped animated avatar's WebM movie.
+	KindAnimatedAvatarWebM Kind = "animated_avatar_webm"
+	// KindAnimatedAvatarMP4 identifies an equipped animated avatar's MP4 movie.
+	KindAnimatedAvatarMP4 Kind = "animated_avatar_mp4"
+	// KindAnimatedAvatarWebMSmall identifies an equipped animated avatar's small WebM movie.
+	KindAnimatedAvatarWebMSmall Kind = "animated_avatar_webm_small"
+	// KindAnimatedAvatarMP4Small identifies an equipped animated avatar's small MP4 movie.
+	KindAnimatedAvatarMP4Small Kind = "animated_avatar_mp4_small"
 )
 
 const (
@@ -50,11 +82,18 @@ const (
 
 	// SourceStorefrontAppDetails identifies URLs discovered from Storefront appdetails.
 	SourceStorefrontAppDetails = "storefront_appdetails"
+
+	// SourceSteamUserPlayerSummaries identifies avatar URLs returned by GetPlayerSummaries.
+	SourceSteamUserPlayerSummaries = "steamuser_player_summaries"
+
+	// SourcePlayerServiceProfileItemsEquipped identifies URLs returned by GetProfileItemsEquipped.
+	SourcePlayerServiceProfileItemsEquipped = "playerservice_profile_items_equipped"
 )
 
 // URLItem describes one constructed asset URL.
 type URLItem struct {
 	AppID    uint32 `json:"app_id,omitempty"`
+	SteamID  string `json:"steam_id,omitempty"`
 	Kind     Kind   `json:"kind,omitempty"`
 	ID       int    `json:"id,omitempty"`
 	Name     string `json:"name,omitempty"`
@@ -140,6 +179,7 @@ const (
 // VerifyResult is the result of checking one URL.
 type VerifyResult struct {
 	AppID         uint32 `json:"app_id,omitempty"`
+	SteamID       string `json:"steam_id,omitempty"`
 	Kind          Kind   `json:"kind,omitempty"`
 	ID            int    `json:"id,omitempty"`
 	Name          string `json:"name,omitempty"`
@@ -156,6 +196,7 @@ type VerifyResult struct {
 // DownloadResult is the result of saving one URL to disk.
 type DownloadResult struct {
 	AppID         uint32         `json:"app_id,omitempty"`
+	SteamID       string         `json:"steam_id,omitempty"`
 	Kind          Kind           `json:"kind,omitempty"`
 	ID            int            `json:"id,omitempty"`
 	Name          string         `json:"name,omitempty"`
@@ -175,6 +216,7 @@ type DownloadResult struct {
 // ReadResult is the result of reading one URL into memory.
 type ReadResult struct {
 	AppID         uint32 `json:"app_id,omitempty"`
+	SteamID       string `json:"steam_id,omitempty"`
 	Kind          Kind   `json:"kind,omitempty"`
 	ID            int    `json:"id,omitempty"`
 	Name          string `json:"name,omitempty"`
@@ -254,6 +296,68 @@ type StoreMediaOptions struct {
 	CountryCode string
 	Language    string
 	Kinds       []Kind
+}
+
+// PlayerAvatarOptions controls player avatar URL discovery.
+type PlayerAvatarOptions struct {
+	Kinds []Kind
+}
+
+// VerifyPlayerAvatarOptions controls player avatar URL verification.
+type VerifyPlayerAvatarOptions struct {
+	Kinds      []Kind
+	HTTPClient *http.Client
+}
+
+// ReadPlayerAvatarOptions controls player avatar reads.
+type ReadPlayerAvatarOptions struct {
+	Kinds       []Kind
+	HTTPClient  *http.Client
+	MaxBytes    int64
+	Concurrency int
+}
+
+// DownloadPlayerAvatarOptions controls player avatar downloads.
+type DownloadPlayerAvatarOptions struct {
+	Dir          string
+	Kinds        []Kind
+	HTTPClient   *http.Client
+	Overwrite    OverwriteMode
+	SkipExisting bool
+	Concurrency  int
+}
+
+// PlayerProfileAssetOptions controls equipped profile asset URL discovery.
+type PlayerProfileAssetOptions struct {
+	Language string
+	Kinds    []Kind
+}
+
+// VerifyPlayerProfileAssetOptions controls equipped profile asset verification.
+type VerifyPlayerProfileAssetOptions struct {
+	Language   string
+	Kinds      []Kind
+	HTTPClient *http.Client
+}
+
+// ReadPlayerProfileAssetOptions controls equipped profile asset reads.
+type ReadPlayerProfileAssetOptions struct {
+	Language    string
+	Kinds       []Kind
+	HTTPClient  *http.Client
+	MaxBytes    int64
+	Concurrency int
+}
+
+// DownloadPlayerProfileAssetOptions controls equipped profile asset downloads.
+type DownloadPlayerProfileAssetOptions struct {
+	Dir          string
+	Language     string
+	Kinds        []Kind
+	HTTPClient   *http.Client
+	Overwrite    OverwriteMode
+	SkipExisting bool
+	Concurrency  int
 }
 
 // StoreItemAssetOptions controls StoreBrowse-backed Store item asset discovery.

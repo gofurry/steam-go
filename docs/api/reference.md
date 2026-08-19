@@ -67,6 +67,30 @@ Notes:
 - Batch helpers preserve input order and report per-item errors.
 - Community inventory helpers do not log in, refresh cookies, or guarantee access to private inventories.
 
+### Storefront normalization
+
+`GetAppDetails` keeps the raw `SupportedLanguages string` and
+`ReleaseDate *StoreReleaseDate` fields for compatibility. Call the local-only
+normalizers when business code needs stable typed values:
+
+```go
+release := storefront.NormalizeReleaseDate(details.ReleaseDate)
+languages := storefront.ParseSupportedLanguages(details.SupportedLanguages)
+```
+
+- `NormalizeReleaseDate` reports `day`, `month`, `quarter`, `year`, `tba`,
+  `none`, or `unknown`. Only day precision sets `ExactDate`; coarser precision
+  supplies inclusive UTC calendar-date ranges. `ComingSoon` is independent of
+  precision, and unknown text remains in `RawText`.
+- `LookupLanguage` accepts canonical steam-go codes, Steam API codes, Steam Web
+  codes, Storefront names, and documented aliases. `LanguageDefinitions`
+  returns a copy of the registry.
+- `ParseSupportedLanguages` preserves unknown languages and decodes Steam's
+  full-audio footnote as a three-state `FullAudio` pointer. `Interface` and
+  `Subtitles` remain nil because appdetails does not reliably encode them.
+- Canonical `Code` values are steam-go normalization policy; do not confuse
+  them with Valve's `SteamAPICode` or `SteamWebCode`.
+
 ## Selected Endpoint Coverage
 
 These are not exhaustive lists, but they reflect the main typed SDK coverage available today.
@@ -135,6 +159,13 @@ Notes:
 - `GetPurchasedAndUpgradedProfileCustomizations`
 - `GetSteamLevel`
 - `GetSteamLevelDistribution`
+
+Notes:
+- Badge, level, and other methods listed in Valve's public Web API reference
+  remain the stable official surface.
+- Profile item methods such as `GetProfileItemsEquipped`, `GetAnimatedAvatar`,
+  `GetAvatarFrame`, and background methods are an observed PlayerService
+  surface that is not currently listed in Valve's public Web API reference.
 
 ### `client.API.MobileNotificationService`
 
@@ -221,6 +252,12 @@ Notes:
 - `GetPlayerBans`
 - `GetPlayerSummaries`
 - `GetUserGroupList`
+- `ResolveVanityURL`
+
+`ResolveVanityURL` accepts a vanity token, not a full Community URL. A nil or
+zero-valued option omits `url_type`; values 1, 2, and 3 select individual,
+group, and official game group namespaces. The typed response preserves
+Valve's integer `success` field.
 
 ### `client.API.SteamUserOAuth`
 
@@ -314,7 +351,11 @@ Additional rules:
 
 Notes:
 - `addons/websession.NewClientFromSteamClient(...)` and `addons/freeclaim.NewClientFromSteamClient(...)` reuse the root SDK per-class `WithTrafficPolicy(...)` execution stack.
-- `addons/assets` has pure URL builders plus explicit Store media discovery, verification, read, and download helpers; it does not create a client.
+- `addons/assets` has pure URL builders plus explicit Store, player avatar, and equipped Profile asset discovery, verification, read, and download helpers; it does not create a client.
+- Player avatars use the complete URLs returned by official
+  `ISteamUser/GetPlayerSummaries/v2`; the addon never constructs them from
+  `avatarhash`. Equipped Profile assets use the observed PlayerService surface
+  described above and only consume URLs returned by Steam.
 - `addons/vdf` is a thin bridge to `github.com/gofurry/vdf-go`; it parses only caller-provided text VDF / KeyValues input and does not scan local Steam installations.
 - The legacy addon `NewClient(...)` constructors remain manual mode and still rely on caller-supplied `http.Client`, proxy, timeout, base URL, and `CookieJar`.
 

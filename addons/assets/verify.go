@@ -78,6 +78,7 @@ func verifyURLItem(ctx context.Context, client *http.Client, item URLItem) (Veri
 	}
 	return VerifyResult{
 		AppID:         item.AppID,
+		SteamID:       item.SteamID,
 		Kind:          item.Kind,
 		ID:            item.ID,
 		Name:          item.Name,

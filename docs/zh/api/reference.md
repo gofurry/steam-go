@@ -70,6 +70,27 @@
 - batch helper 保持输入顺序，并通过 per-item error 表示单项失败。
 - Community inventory helper 不负责登录、不刷新 cookie，也不保证能访问 private inventory。
 
+### Storefront 规范化
+
+为保持兼容，`GetAppDetails` 继续保留原始的 `SupportedLanguages string` 和
+`ReleaseDate *StoreReleaseDate` 字段。业务需要稳定 typed value 时，可以调用纯本地 helper：
+
+```go
+release := storefront.NormalizeReleaseDate(details.ReleaseDate)
+languages := storefront.ParseSupportedLanguages(details.SupportedLanguages)
+```
+
+- `NormalizeReleaseDate` 返回 `day`、`month`、`quarter`、`year`、`tba`、
+  `none` 或 `unknown`。只有 day precision 会设置 `ExactDate`；较粗粒度返回
+  inclusive UTC calendar-date range。`ComingSoon` 与 precision 正交，未知文本保留在 `RawText`。
+- `LookupLanguage` 支持 steam-go canonical code、Steam API code、Steam Web code、
+  Storefront name 和已记录 alias；`LanguageDefinitions` 返回 registry copy。
+- `ParseSupportedLanguages` 保留未知语言，并把 Steam full-audio footnote 解析为
+  三态 `FullAudio` pointer。因为 appdetails 无法可靠恢复对应列，`Interface` 和
+  `Subtitles` 保持 nil。
+- canonical `Code` 是 steam-go 的规范化策略，不等同于 Valve 的
+  `SteamAPICode` 或 `SteamWebCode`。
+
 ## 重点覆盖
 
 `AuthenticationService` 覆盖低层 auth-session API：
@@ -126,6 +147,15 @@
 
 `PlayerService` 覆盖了常用玩家资料、徽章、装饰物、最近游戏、成就进度、Steam 等级等接口。
 
+其中徽章、等级等 Valve 公开 Web API reference 已列出的方法属于稳定 official
+surface；`GetProfileItemsEquipped`、`GetAnimatedAvatar`、`GetAvatarFrame` 和背景类
+方法属于当前可用但未在 Valve 公开 Web API reference 列出的 observed
+PlayerService surface。
+
+`SteamUser` 新增 `ResolveVanityURL` / `ResolveVanityURLRaw`。参数是 vanity token，
+不是完整 Community URL；`url_type` 省略时使用 Valve 默认 individual，1/2/3 分别表示
+individual、group 与 official game group。typed result 保留 Valve 的整数 `success` 字段。
+
 `WishlistService` 覆盖：
 
 - `GetWishlist`
@@ -170,7 +200,10 @@
 说明：
 
 - `addons/websession.NewClientFromSteamClient(...)` 和 `addons/freeclaim.NewClientFromSteamClient(...)` 会复用根 SDK 的按分类 `WithTrafficPolicy(...)` 执行链。
-- `addons/assets` 提供纯 URL 构造 helper、官方 Store item asset discovery，以及显式调用的商店媒体发现、验证、读取和下载 helper；它不创建 client。
+- `addons/assets` 提供纯 URL 构造 helper、官方 Store item asset discovery，以及显式调用的商店媒体、玩家头像和已装备 Profile 资源发现、验证、读取和下载 helper；它不创建 client。
+- 玩家头像只使用 official `ISteamUser/GetPlayerSummaries/v2` 返回的完整 URL，
+  不根据 `avatarhash` 拼接。已装备 Profile 资源复用上文标注的 observed
+  PlayerService surface，并且只消费 Steam 返回的 URL。
 - `addons/vdf` 是对 `github.com/gofurry/vdf-go` 的轻量桥接；它只解析调用方显式提供的文本 VDF / KeyValues 输入，不自动扫描本机 Steam 安装目录。
 - 旧的 addon `NewClient(...)` 构造器仍然保留，继续作为手动模式，依赖调用方提供的 `http.Client`、proxy、timeout、base URL 和 `CookieJar`。
 

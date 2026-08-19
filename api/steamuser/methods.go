@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gofurry/steam-go/internal/endpoint"
@@ -119,6 +120,37 @@ func (s *Service) GetUserGroupListRaw(ctx context.Context, steamID string) ([]by
 	return s.executor.DoRaw(ctx, request.RequestSpec{
 		Method: http.MethodGet,
 		Path:   endpoint.SteamUserGetUserGroupList,
+		Query:  query,
+	})
+}
+
+// ResolveVanityURL resolves one Steam Community vanity token to a Steam ID.
+func (s *Service) ResolveVanityURL(ctx context.Context, vanityURL string, opts *ResolveVanityURLOptions) (ResolveVanityURLResponse, error) {
+	body, err := s.ResolveVanityURLRaw(ctx, vanityURL, opts)
+	if err != nil {
+		return ResolveVanityURLResponse{}, err
+	}
+	return response.DecodeJSON[ResolveVanityURLResponse](body)
+}
+
+// ResolveVanityURLRaw returns the raw JSON response body for a vanity-token lookup.
+func (s *Service) ResolveVanityURLRaw(ctx context.Context, vanityURL string, opts *ResolveVanityURLOptions) ([]byte, error) {
+	vanityURL = strings.TrimSpace(vanityURL)
+	if vanityURL == "" {
+		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "vanity url must not be empty", nil, nil)
+	}
+
+	query := url.Values{}
+	query.Set("vanityurl", vanityURL)
+	if opts != nil && opts.URLType != 0 {
+		if opts.URLType < VanityURLTypeIndividual || opts.URLType > VanityURLTypeOfficialGameGroup {
+			return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "vanity url type must be 1, 2, or 3", nil, nil)
+		}
+		query.Set("url_type", strconv.Itoa(int(opts.URLType)))
+	}
+	return s.executor.DoRaw(ctx, request.RequestSpec{
+		Method: http.MethodGet,
+		Path:   endpoint.SteamUserResolveVanityURL,
 		Query:  query,
 	})
 }

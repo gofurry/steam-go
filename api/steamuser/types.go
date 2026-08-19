@@ -78,3 +78,36 @@ type UserGroupList struct {
 type SteamGroup struct {
 	GID string `json:"gid"`
 }
+
+// VanityURLType identifies the Steam Community vanity namespace to resolve.
+type VanityURLType int32
+
+const (
+	// VanityURLTypeIndividual resolves an individual user vanity name.
+	VanityURLTypeIndividual VanityURLType = 1
+
+	// VanityURLTypeGroup resolves a group vanity name.
+	VanityURLTypeGroup VanityURLType = 2
+
+	// VanityURLTypeOfficialGameGroup resolves an official game group vanity name.
+	VanityURLTypeOfficialGameGroup VanityURLType = 3
+)
+
+// ResolveVanityURLOptions controls optional ResolveVanityURL query parameters.
+// A zero URLType omits url_type and uses Valve's individual-user default.
+type ResolveVanityURLOptions struct {
+	URLType VanityURLType
+}
+
+// ResolveVanityURLResponse matches ISteamUser/ResolveVanityURL/v1.
+type ResolveVanityURLResponse struct {
+	Response ResolveVanityURLResult `json:"response"`
+}
+
+// ResolveVanityURLResult is Valve's wire result for a vanity-name lookup.
+// Success intentionally remains an integer to preserve the response contract.
+type ResolveVanityURLResult struct {
+	SteamID string `json:"steamid,omitempty"`
+	Success int    `json:"success"`
+	Message string `json:"message,omitempty"`
+}

@@ -35,7 +35,9 @@
 - Functional options for API key, access token, timeout, retry, rate limit, proxy, cookies, and traffic policy
 - Safe defaults for external traffic with bounded response bodies and URL redaction helpers
 - Typed responses for stable payloads, with raw methods and `json.RawMessage` for volatile subtrees
+- Storefront release-date and supported-language normalization without changing the raw appdetails fields
 - Rotating and health-checked API key providers for resilient `401/429` handling
+- Player avatar and equipped Profile asset discovery through the shared assets verify/read/download pipeline
 - Addons for OpenID, web sessions, assets, markup, VDF, free-claim workflows, and A2S without bloating the core SDK
 
 ## Installation
@@ -152,7 +154,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 | `addons/openid` | Steam OpenID login verification |
 | `addons/websession` | Manual Steam web-login session flow |
 | `addons/freeclaim` | Read-only free promotion discovery plus explicit single-package claim |
-| `addons/assets` | Store / Library asset URL construction, official asset discovery, verification, reading, and downloading |
+| `addons/assets` | Store, Library, player avatar, and equipped Profile asset discovery, verification, reading, and downloading |
 | `addons/markup` | Steam BBCode / HTML conversion, sanitizing, and plain-text summaries |
 | `addons/vdf` | Valve VDF / KeyValues text parsing via `github.com/gofurry/vdf-go` |
 | `addons/a2s` | A2S server queries through `github.com/gofurry/a2s-go` |

@@ -213,6 +213,7 @@ enqueue:
 func canceledDownloadResult(req downloadRequest, err error) DownloadResult {
 	return DownloadResult{
 		AppID:    req.item.AppID,
+		SteamID:  req.item.SteamID,
 		Kind:     req.item.Kind,
 		ID:       req.item.ID,
 		Name:     req.item.Name,
@@ -230,6 +231,7 @@ func downloadRequestOne(ctx context.Context, client *http.Client, overwrite Over
 	if req.err != nil {
 		return DownloadResult{
 			AppID:    req.item.AppID,
+			SteamID:  req.item.SteamID,
 			Kind:     req.item.Kind,
 			ID:       req.item.ID,
 			Name:     req.item.Name,
@@ -257,6 +259,7 @@ func downloadRequestOne(ctx context.Context, client *http.Client, overwrite Over
 	}
 	return DownloadResult{
 		AppID:         req.item.AppID,
+		SteamID:       req.item.SteamID,
 		Kind:          req.item.Kind,
 		ID:            req.item.ID,
 		Name:          req.item.Name,
@@ -290,6 +293,7 @@ func maybeSkipExisting(req downloadRequest, overwrite OverwriteMode) (bool, Down
 	if overwrite == OverwriteNever || (overwrite == OverwriteIfZero && info.Size() > 0) {
 		return true, DownloadResult{
 			AppID:         req.item.AppID,
+			SteamID:       req.item.SteamID,
 			Kind:          req.item.Kind,
 			ID:            req.item.ID,
 			Name:          req.item.Name,
@@ -308,6 +312,7 @@ func maybeSkipExisting(req downloadRequest, overwrite OverwriteMode) (bool, Down
 func failedDownloadResult(req downloadRequest, err error) DownloadResult {
 	return DownloadResult{
 		AppID:    req.item.AppID,
+		SteamID:  req.item.SteamID,
 		Kind:     req.item.Kind,
 		ID:       req.item.ID,
 		Name:     req.item.Name,

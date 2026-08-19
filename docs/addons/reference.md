@@ -118,6 +118,9 @@ What it does:
 - verifies, reads, or downloads those official Store item assets with `assets.VerifyStoreItemAssets(...)`, `assets.ReadStoreItemAssets(...)`, and `assets.DownloadStoreItemAssets(...)`
 - requests Storefront screenshot, movie, and background URLs with `assets.FetchStoreMediaURLs(...)`
 - verifies, reads, or downloads those Storefront media URLs with `assets.VerifyStoreMedia(...)`, `assets.ReadStoreMedia(...)`, and `assets.DownloadStoreMedia(...)`
+- discovers official player avatar URLs with `assets.FetchPlayerAvatarURLs(...)`
+- discovers equipped Profile item image/movie URLs with `assets.FetchEquippedProfileAssetURLs(...)`
+- verifies, reads, or downloads player assets through the same result pipeline while preserving `SteamID`
 - writes URL/download manifests with `assets.WriteManifestJSON(...)`
 
 What it does not do:
@@ -125,6 +128,7 @@ What it does not do:
 - it does not create a client
 - static URL construction does not call Steam; Store media discovery, verification, and download helpers perform explicit network requests
 - official Store item asset discovery calls `IStoreBrowseService/GetItems/v1` through a caller-provided `client.API.StoreBrowseService`
+- it does not construct avatar URLs from hashes, guess Profile item CDN paths, or scrape Steam Community HTML
 - it does not integrate SteamGridDB
 
 Example:
@@ -161,6 +165,10 @@ Exported helpers:
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
 - `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`, `ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
 - `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `FetchPlayerAvatarURLs(ctx, steamUser, PlayerAvatarOptions{...}, steamIDs...)`
+- `VerifyPlayerAvatars`, `ReadPlayerAvatars`, `DownloadPlayerAvatars`
+- `FetchEquippedProfileAssetURLs(ctx, playerService, PlayerProfileAssetOptions{...}, steamIDs...)`
+- `VerifyEquippedProfileAssets`, `ReadEquippedProfileAssets`, `DownloadEquippedProfileAssets`
 - `AllowHosts`, `AllowHostSuffixes`, `SteamStaticURLValidator` for direct URL validation
 - `NewURLManifest`, `NewDownloadManifest`, `MarshalManifestJSON`, `WriteManifestJSON`
 
@@ -182,6 +190,18 @@ Direct URL helpers accept caller-supplied HTTP(S) URLs. If those URLs come from 
 Official Store item asset discovery is separate from the legacy static URL builders. It uses Steam's returned `asset_url_format` and asset filenames, supports hashed paths such as `steam/apps/{appid}/{digest}/library_hero_2x.jpg`, and returns `URLItem.Digest`, `URLItem.Filename`, and `URLItem.Source`.
 
 For Storefront movie resources, DASH/HLS kinds save the `.mpd` / `.m3u8` playlist URL itself. The addon does not expand playlists into video segments.
+
+Player avatars use the complete `avatar`, `avatarmedium`, and `avatarfull`
+URLs returned by the official `ISteamUser/GetPlayerSummaries/v2` endpoint.
+Equipped Profile backgrounds, frames, animated-avatar images, and movies use
+`IPlayerService/GetProfileItemsEquipped/v1`, an observed surface not currently
+listed in Valve's public Web API reference. Both discovery paths prefer
+returned URLs and skip empty or unresolved relative paths.
+
+Player downloads use `<Dir>/<SteamID>/<kind>.<ext>`. Image URLs without an
+extension fall back to `.jpg`; animated-avatar movies fall back to `.webm` or
+`.mp4`. `URLItem`, `VerifyResult`, `ReadResult`, and `DownloadResult` preserve
+the optional `SteamID` metadata.
 
 Run the example:
 

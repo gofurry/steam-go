@@ -105,6 +105,9 @@ go run ./examples/websession
 - 通过 `assets.VerifyStoreItemAssets(...)` / `assets.ReadStoreItemAssets(...)` / `assets.DownloadStoreItemAssets(...)` 验证、读取或下载这些官方 Store item assets
 - 通过 `assets.FetchStoreMediaURLs(...)` 请求商店页截图、视频和背景资源 URL
 - 通过 `assets.VerifyStoreMedia(...)` / `assets.ReadStoreMedia(...)` / `assets.DownloadStoreMedia(...)` 验证、读取或下载这些商店媒体资源
+- 通过 `assets.FetchPlayerAvatarURLs(...)` 发现 official 玩家头像 URL
+- 通过 `assets.FetchEquippedProfileAssetURLs(...)` 发现已装备 Profile item 的图片和视频 URL
+- 让 player assets 复用同一 Verify / Read / Download pipeline，并完整保留 `SteamID`
 - 通过 `assets.WriteManifestJSON(...)` 写出 URL / 下载 manifest
 
 它不负责：
@@ -112,6 +115,7 @@ go run ./examples/websession
 - 创建 client
 - 静态 URL 构造不会请求 Steam；商店媒体发现、验证和下载 helper 会显式发起网络请求
 - 官方 Store item asset discovery 会通过调用方提供的 `client.API.StoreBrowseService` 请求 `IStoreBrowseService/GetItems/v1`
+- 不根据 hash 拼头像 URL，不猜 Profile item CDN path，也不抓 Steam Community HTML
 - 接入 SteamGridDB
 
 示例：
@@ -148,6 +152,10 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 - `VerifyStoreMedia(ctx, storefront, VerifyStoreMediaOptions{...}, appIDs...)`
 - `ReadStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, appIDs...)`、`ReadEachStoreMedia(ctx, storefront, ReadStoreMediaOptions{...}, handler, appIDs...)`
 - `DownloadStoreMedia(ctx, storefront, DownloadStoreMediaOptions{...}, appIDs...)`
+- `FetchPlayerAvatarURLs(ctx, steamUser, PlayerAvatarOptions{...}, steamIDs...)`
+- `VerifyPlayerAvatars`、`ReadPlayerAvatars`、`DownloadPlayerAvatars`
+- `FetchEquippedProfileAssetURLs(ctx, playerService, PlayerProfileAssetOptions{...}, steamIDs...)`
+- `VerifyEquippedProfileAssets`、`ReadEquippedProfileAssets`、`DownloadEquippedProfileAssets`
 - `AllowHosts`、`AllowHostSuffixes`、`SteamStaticURLValidator`：用于直接 URL 校验
 - `NewURLManifest`、`NewDownloadManifest`、`MarshalManifestJSON`、`WriteManifestJSON`
 
@@ -169,6 +177,16 @@ all := assets.AllWithLanguage("schinese", 550, 107100)
 官方 Store item asset discovery 和 legacy static URL builder 是两条独立路径。它使用 Steam 返回的 `asset_url_format` 和资源文件名，支持 `steam/apps/{appid}/{digest}/library_hero_2x.jpg` 这类 hashed path，并在 `URLItem.Digest`、`URLItem.Filename`、`URLItem.Source` 中返回来源信息。
 
 对于商店视频资源，DASH/HLS 类型会保存 `.mpd` / `.m3u8` 播放清单 URL 本身；addon 不会展开下载视频分片。
+
+玩家头像直接使用 official `ISteamUser/GetPlayerSummaries/v2` 返回的
+`avatar`、`avatarmedium`、`avatarfull` 完整 URL。已装备的 Profile 背景、头像框、
+动态头像图片和视频复用 `IPlayerService/GetProfileItemsEquipped/v1`；这是当前可用但
+未在 Valve 公开 Web API reference 列出的 observed surface。两条 discovery 路径都
+优先使用返回 URL，空字段或无法确定 host 的 relative path 会被跳过。
+
+player download 统一写入 `<Dir>/<SteamID>/<kind>.<ext>`。无扩展名图片回退
+`.jpg`，动态头像视频回退 `.webm` 或 `.mp4`。`URLItem`、`VerifyResult`、
+`ReadResult` 和 `DownloadResult` 都会保留 optional `SteamID` metadata。
 
 运行示例：
 
