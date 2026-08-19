@@ -234,6 +234,8 @@ Retry 会识别请求方法：`GET`、`HEAD`、`OPTIONS` 默认可重试；`POST
 - addon 手动示例：`go run ./examples/openid`
 - addon 手动示例：`go run ./examples/websession`
 - addon 手动示例：`go run ./examples/assets -app-ids 550,107100`
+- Storefront 规范化示例：`go run ./examples/storefrontnormalization`
+- player assets live 示例：`go run ./examples/live/playerassets -verify`
 - addon 手动示例：`go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - addon 手动示例：`go run ./examples/freeclaim`
 - live smoke 示例：`go run ./examples/live/gameserversservice`

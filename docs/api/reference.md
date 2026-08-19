@@ -456,6 +456,8 @@ Notes:
 - `go run ./examples/openid --proxy http://127.0.0.1:7897`
 - `go run ./examples/websession`
 - `go run ./examples/assets -app-ids 550,107100`
+- `go run ./examples/storefrontnormalization`
+- `go run ./examples/live/playerassets -verify`
 - `go run ./examples/vdf -file ./steamapps/appmanifest_730.acf -key AppState`
 - `go run ./examples/freeclaim`
 - `go run ./examples/live/gameserversservice`

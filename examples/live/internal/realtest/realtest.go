@@ -34,12 +34,19 @@ func LoadConfig() (Config, error) {
 	}
 
 	return Config{
-		Key:           readCredential("key.txt"),
-		AccessToken:   readCredential("access-token.txt"),
-		FamilyGroupID: readCredential("family-group-id.txt"),
+		Key:           readCredentialEnvOrFile("STEAM_API_KEY", "key.txt"),
+		AccessToken:   readCredentialEnvOrFile("STEAM_ACCESS_TOKEN", "access-token.txt"),
+		FamilyGroupID: readCredentialEnvOrFile("STEAM_FAMILY_GROUP_ID", "family-group-id.txt"),
 		ProxySelector: proxySelector,
 		ProxyLabel:    proxyLabel,
 	}, nil
+}
+
+func readCredentialEnvOrFile(envKey, name string) string {
+	if value := strings.TrimSpace(os.Getenv(envKey)); value != "" {
+		return value
+	}
+	return readCredential(name)
 }
 
 // NewClient builds a smoke-test client from the loaded config.

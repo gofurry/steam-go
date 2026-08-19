@@ -217,6 +217,8 @@ go run ./examples/assets -app-ids 550 -download-store-media -download-dir ./tmp/
 go run ./examples/assets -app-ids 550 -store-media -kind all -proxy http://127.0.0.1:7897
 go run ./examples/assets -app-ids 4710650 -store-item-assets -kind all
 go run ./examples/assets -app-ids 4710650 -download-store-item-assets -download-dir ./tmp/assets-official -download-mode by_app_id -kind library_hero_2x
+go run ./examples/live/playerassets -verify
+go run ./examples/live/playerassets -read-small -download-dir ./tmp/player-assets
 ```
 
 ## `addons/markup`

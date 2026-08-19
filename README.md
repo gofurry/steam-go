@@ -167,6 +167,8 @@ Detailed addon notes: [docs/addons/reference.md](docs/addons/reference.md).
 - [API reference](docs/api/reference.md)
 - [Web reference](docs/web/reference.md)
 - [Addon reference](docs/addons/reference.md)
+- [Storefront normalization example](examples/storefrontnormalization/main.go)
+- [Live player assets example](examples/live/playerassets/main.go)
 - [Cookbook](docs/cookbook/basic-api.md)
 - [Rate limiting strategy](docs/wiki/en/Rate-Limiting-Strategy.md)
 - [Storefront appdetails rate-limit experiment](docs/experiments/store-rate-limit-20260607.md)
