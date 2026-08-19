@@ -252,8 +252,6 @@ func (testAPI *playerProfileTestAPI) queries(t *testing.T) []url.Values {
 	testAPI.mu.Lock()
 	defer testAPI.mu.Unlock()
 	queries := make([]url.Values, len(testAPI.requests))
-	for index, query := range testAPI.requests {
-		queries[index] = query
-	}
+	copy(queries, testAPI.requests)
 	return queries
 }

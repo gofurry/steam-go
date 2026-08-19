@@ -86,7 +86,7 @@ go run ./examples/websession
 
 ## `addons/assets`
 
-当你需要根据一个或多个 Steam AppID 构造高价值公开 Store / Library 图片资源 URL 时，可以使用 `addons/assets`。
+当你需要根据 Steam AppID 或 SteamID 获取公开 Store、Library、玩家头像或 Profile 资源 URL 时，可以使用 `addons/assets`。
 
 它负责：
 

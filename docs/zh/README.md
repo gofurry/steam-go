@@ -153,7 +153,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 | `addons/openid` | Steam OpenID 登录验证 |
 | `addons/websession` | 手动 Steam网页登录态流程 |
 | `addons/freeclaim` | 只读限免发现，以及显式单 package 领取 |
-| `addons/assets` | Store / Library 资源 URL 构造、验证、读取和下载 |
+| `addons/assets` | Store / Library 与玩家 Profile 资源 URL 的发现、验证、读取和下载 |
 | `addons/markup` | Steam BBCode / HTML 转换、清洗和纯文本摘要 |
 | `addons/vdf` | 通过 `github.com/gofurry/vdf-go` 解析 Valve VDF / KeyValues 文本文件 |
 | `addons/a2s` | 通过 `github.com/gofurry/a2s-go` 查询 A2S 服务器 |
@@ -192,3 +192,5 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 - [v1.3.2 Release Notes](releases/v1.3.2.md)
 - [v1.3.3 Release Notes](releases/v1.3.3.md)
 - [v1.3.4 Release Notes](releases/v1.3.4.md)
+- [v1.3.6 Release Notes](releases/v1.3.6.md)
+- [v1.3.9 Release Notes](releases/v1.3.9.md)

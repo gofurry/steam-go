@@ -99,7 +99,7 @@ go run ./examples/websession
 
 ## `addons/assets`
 
-Use `addons/assets` when you want high-value public Store and Library image asset URLs from one or more Steam AppIDs.
+Use `addons/assets` when you want public Store, Library, or player/Profile asset URLs discovered from Steam AppIDs or SteamIDs.
 
 What it does:
 

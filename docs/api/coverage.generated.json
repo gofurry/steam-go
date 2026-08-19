@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "official_endpoint_count": 63,
-  "sdk_endpoint_count": 101,
+  "sdk_endpoint_count": 103,
   "status_counts": {
     "covered": 27,
-    "extra_sdk": 74,
+    "extra_sdk": 76,
     "missing": 34,
     "version_mismatch": 2
   },
@@ -844,6 +844,17 @@
       ],
       "sdk_typed": false,
       "sdk_raw": false
+    },
+    {
+      "interface": "IGameServersService",
+      "method": "GetServerList",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/gameserversservice",
+      "sdk_path": "/IGameServersService/GetServerList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
     },
     {
       "interface": "IHelpRequestLogsService",
@@ -1767,6 +1778,17 @@
       "status": "extra_sdk",
       "sdk_package": "api/steamuser",
       "sdk_path": "/ISteamUser/GetUserGroupList/v1/",
+      "sdk_typed": true,
+      "sdk_raw": true
+    },
+    {
+      "interface": "ISteamUser",
+      "method": "ResolveVanityURL",
+      "version": 1,
+      "auth": "unknown",
+      "status": "extra_sdk",
+      "sdk_package": "api/steamuser",
+      "sdk_path": "/ISteamUser/ResolveVanityURL/v1/",
       "sdk_typed": true,
       "sdk_raw": true
     },

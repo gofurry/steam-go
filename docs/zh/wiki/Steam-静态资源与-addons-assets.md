@@ -1,12 +1,12 @@
 # Steam 静态资源
 
-Steam 的每个 AppID 周围都有很多有价值的公开图片与媒体资源。
+Steam 的 AppID 与玩家 SteamID 周围都有很多有价值的公开图片与媒体资源。
 
-这些资源并不是都由某一个官方 Web API 方法统一返回，也不总是使用同一种 host 或路径结构。有些资源可以只根据 AppID 构造出来；有些资源则需要额外的 hash，或者需要从 Storefront metadata 中读取 Steam 返回的真实 URL。
+这些资源并不是都由某一个官方 Web API 方法统一返回，也不总是使用同一种 host 或路径结构。有些资源可以只根据 AppID 构造出来；有些资源则需要额外的 hash，或者需要从 Storefront 或玩家 metadata 中读取 Steam 返回的真实 URL。
 
 `addons/assets` 的目标就是让 Go 开发者更容易处理这些资源。
 
-它提供了一组轻量工具，用于构造常见的公开 Steam Store 与 Library 静态资源 URL、解析 Storefront 媒体 URL、验证 URL 是否存在、将资源读入内存、下载文件，以及写出资源 manifest。
+它提供了一组轻量工具，用于构造常见的公开 Steam Store 与 Library 静态资源 URL、解析 Storefront 与玩家/Profile 媒体 URL、验证 URL 是否存在、将资源读入内存、下载文件，以及写出资源 manifest。
 
 ## 这篇说明覆盖什么
 
@@ -16,6 +16,7 @@ Steam 的每个 AppID 周围都有很多有价值的公开图片与媒体资源�
 - 这些资源通常可以从哪些地方请求
 - 哪些资源只需要 AppID 就能构造
 - 哪些资源需要 hash 或 Storefront metadata
+- 哪些玩家资源需要从 Steam 返回的 URL 中发现
 - `steam-go/addons/assets` 如何帮助处理这些资源
 - 这个 addon 有哪些刻意不做的事情
 
@@ -31,6 +32,7 @@ Steamworks 大体把图形资源分为几类。
 | Library assets | Steam 客户端库展示 | library capsule、library hero、library logo、library header |
 | Community and client icons | Steam Community 与 Steam 客户端的小尺寸展示 | App icon JPG、shortcut/client icon ICO 或 PNG |
 | Storefront media | Store appdetails 返回的媒体 | 截图、视频缩略图、WebM/MP4/HLS/DASH URL、背景图 |
+| 玩家与 Profile 资源 | 公开玩家展示 | 头像、Profile 背景、迷你背景、头像框、动态头像图片与视频 |
 
 Steamworks 文档将 Store assets、Library assets、Community / Client icons 分开说明：
 
@@ -203,6 +205,39 @@ assets.KindMovieHLSH264
 ```
 
 DASH/HLS helper 返回的是 playlist 或 manifest URL 本身。该 addon 不会把 playlist 展开成视频分片。
+
+## 玩家头像与已装备 Profile 资源
+
+玩家资源从 Steam 返回的 URL 中发现，不根据 SteamID、avatar hash 或 Profile
+item ID 构造：
+
+- `FetchPlayerAvatarURLs` 使用 official
+  `ISteamUser/GetPlayerSummaries/v2` 返回的 `avatar`、`avatarmedium` 和
+  `avatarfull` URL。
+- `FetchEquippedProfileAssetURLs` 从
+  `IPlayerService/GetProfileItemsEquipped/v1` 返回已装备的 Profile 背景、
+  迷你背景、头像框，以及动态头像图片/WebM/MP4 URL。
+
+```go
+avatars, err := assets.FetchPlayerAvatarURLs(
+    ctx,
+    client.API.SteamUser,
+    assets.PlayerAvatarOptions{},
+    "76561198000000000",
+)
+
+profile, err := assets.FetchEquippedProfileAssetURLs(
+    ctx,
+    client.API.PlayerService,
+    assets.PlayerProfileAssetOptions{Language: "schinese"},
+    "76561198000000000",
+)
+```
+
+PlayerService 方法是当前 observed、但 Valve 公开 Web API reference 尚未列出的
+surface。没有返回 host 的 relative path 和空字段会被跳过。verify、read、download
+helper 会保留 optional `SteamID` metadata；下载路径为
+`<Dir>/<SteamID>/<kind>.<ext>`。
 
 ## 基础用法
 
@@ -448,6 +483,7 @@ assets.SteamStaticURLValidator
 - 接入 SteamGridDB
 - 解析 Steam client appinfo
 - 自己发现 client icon hash
+- 抓取 Steam Community HTML 或猜测玩家资源 CDN path
 - 保证每一个生成的 URL 都一定存在
 - 将 DASH/HLS playlist 展开成视频分片
 - 将公开静态资源 URL 当作官方稳定 Web API endpoint
@@ -463,6 +499,7 @@ assets.SteamStaticURLValidator
 - 大批量处理时使用低并发，并优先使用 streaming read helper。
 - 保留 manifest，让下游任务知道到底解析了哪些 URL、哪些下载成功。
 - 如果 Steam metadata 已经返回了真实 URL，优先使用返回值。
+- 将 observed 的已装备 Profile surface 视为比 official player-summary 头像路径更易波动。
 - 将 Steam 静态资源路径视为公开资源路径，而不是官方枚举 API。
 
 ## CLI 示例
@@ -496,6 +533,12 @@ go run ./examples/assets \
 
 ```bash
 go run ./examples/assets -app-ids 550 -store-media -kind all
+```
+
+检查并按需验证玩家资源（需要配置 Steam 凭据）：
+
+```bash
+go run ./examples/live/playerassets -verify
 ```
 
 ## 相关 Wiki 页面
