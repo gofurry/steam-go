@@ -6,10 +6,11 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ## Unreleased
 
-### Changed
+## 1.3.10 - 2026-09-04
 
-- StoreBrowse asset decoding now tolerates non-string metadata such as Steam's numeric `last_modified`.
-- Preserve the existing string-based `StoreItemAssets` API and asset URL discovery behavior.
+### Fixed
+
+- Restore StoreBrowse asset discovery after Steam's upstream `IStoreBrowseService/GetItems/v1` payload began returning `assets.last_modified` as a JSON number. The string-based `StoreItemAssets` API and existing asset URL discovery behavior remain unchanged.
 
 ## 1.3.9 - 2026-08-19
 
