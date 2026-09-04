@@ -1,6 +1,9 @@
 package storebrowseservice
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/json"
+)
 
 // GetContentHubConfigResponse matches IStoreBrowseService/GetContentHubConfig/v1.
 type GetContentHubConfigResponse struct {
@@ -81,4 +84,40 @@ type StoreItem struct {
 // StoreItemAssets contains Steam's asset metadata for one Store item.
 //
 // Steam may add keys over time, so assets are intentionally exposed as a map.
+// Only string values used for asset URL discovery are retained; non-string
+// metadata is ignored.
 type StoreItemAssets map[string]string
+
+// UnmarshalJSON decodes Store item assets as a string-field view of Steam's
+// asset metadata. Unknown non-string metadata is ignored so upstream additions
+// do not prevent known asset filenames from being discovered.
+func (a *StoreItemAssets) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	if fields == nil {
+		*a = nil
+		return nil
+	}
+
+	assets := *a
+	if assets == nil {
+		assets = make(StoreItemAssets, len(fields))
+	}
+	for key, rawValue := range fields {
+		rawValue = bytes.TrimSpace(rawValue)
+		if len(rawValue) == 0 || rawValue[0] != '"' {
+			delete(assets, key)
+			continue
+		}
+
+		var value string
+		if err := json.Unmarshal(rawValue, &value); err != nil {
+			return err
+		}
+		assets[key] = value
+	}
+	*a = assets
+	return nil
+}

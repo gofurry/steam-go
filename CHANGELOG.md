@@ -6,6 +6,12 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ## Unreleased
 
+## 1.3.10 - 2026-09-04
+
+### Fixed
+
+- Restore StoreBrowse asset discovery after Steam's upstream `IStoreBrowseService/GetItems/v1` payload began returning `assets.last_modified` as a JSON number. The string-based `StoreItemAssets` API and existing asset URL discovery behavior remain unchanged.
+
 ## 1.3.9 - 2026-08-19
 
 ### Added

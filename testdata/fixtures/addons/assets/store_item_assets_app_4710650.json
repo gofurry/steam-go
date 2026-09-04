@@ -11,6 +11,11 @@
         "appid": 4710650,
         "assets": {
           "asset_url_format": "steam/apps/4710650/${FILENAME}?t=1781233831",
+          "last_modified": 1744981707,
+          "experimental_flag": true,
+          "future_metadata": {
+            "foo": "bar"
+          },
           "main_capsule": "4219ce8fda2a9c4dfbbbfe2bd20bcb8c9e225681/capsule_616x353.jpg",
           "main_capsule_2x": "4219ce8fda2a9c4dfbbbfe2bd20bcb8c9e225681/capsule_616x353_2x.jpg",
           "small_capsule": "5327b33c1f1ecdad2ad231cee405a94e74a7cd48/capsule_231x87.jpg",

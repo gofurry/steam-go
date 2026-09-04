@@ -98,6 +98,31 @@ func TestFetchStoreItemAssetURLsStripQuery(t *testing.T) {
 	}
 }
 
+func TestFetchStoreItemAssetURLsIgnoresNonStringMetadata(t *testing.T) {
+	t.Parallel()
+
+	service := newStoreItemAssetsTestService(t, &storeItemAssetsTransport{body: readStoreItemAssetFixture(t)})
+	items, err := FetchStoreItemAssetURLs(context.Background(), service, StoreItemAssetOptions{
+		Kinds: []Kind{KindLibraryCapsule, KindLibraryCapsule2x},
+	}, 4710650)
+	if err != nil {
+		t.Fatalf("FetchStoreItemAssetURLs returned error: %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("item count = %d, want 2: %#v", len(items), items)
+	}
+
+	wantURLs := map[Kind]string{
+		KindLibraryCapsule:   "https://shared.steamstatic.com/store_item_assets/steam/apps/4710650/0508d712ca859e3ef0921a32c49088ccfb05b0a0/library_capsule.jpg?t=1781233831",
+		KindLibraryCapsule2x: "https://shared.steamstatic.com/store_item_assets/steam/apps/4710650/0508d712ca859e3ef0921a32c49088ccfb05b0a0/library_capsule_2x.jpg?t=1781233831",
+	}
+	for _, item := range items {
+		if want := wantURLs[item.Kind]; item.URL != want {
+			t.Fatalf("%s URL = %q, want %q", item.Kind, item.URL, want)
+		}
+	}
+}
+
 func TestResolveStoreItemAssetURL(t *testing.T) {
 	t.Parallel()
 
@@ -203,6 +228,15 @@ func TestFixtureStoreItemAssetsExtractsURLs(t *testing.T) {
 	}
 	if len(resp.Response.StoreItems) != 1 {
 		t.Fatalf("store item count = %d, want 1", len(resp.Response.StoreItems))
+	}
+	assets := resp.Response.StoreItems[0].Assets
+	if got := assets["library_capsule"]; !strings.HasSuffix(got, "/library_capsule.jpg") {
+		t.Fatalf("library_capsule = %q", got)
+	}
+	for _, key := range []string{"last_modified", "experimental_flag", "future_metadata"} {
+		if _, ok := assets[key]; ok {
+			t.Fatalf("non-string field %q should not be retained: %#v", key, assets)
+		}
 	}
 	items := storeItemAssetItems(4710650, resp.Response.StoreItems[0], []Kind{
 		KindHeader2x,
