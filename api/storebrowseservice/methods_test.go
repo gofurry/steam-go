@@ -29,6 +29,8 @@ func TestGetItemsBuildsInputJSONAndDecodesAssets(t *testing.T) {
 					"appid": 4710650,
 					"assets": {
 						"asset_url_format": "steam/apps/4710650/${FILENAME}?t=1781233831",
+						"library_capsule": "0508d712ca859e3ef0921a32c49088ccfb05b0a0/library_capsule.jpg",
+						"last_modified": 1744981707,
 						"library_hero_2x": "448851b668e4397d9863e571cf481b0e46e1315f/library_hero_2x.jpg"
 					},
 					"related_items": {"parent_appid": 1},
@@ -63,6 +65,12 @@ func TestGetItemsBuildsInputJSONAndDecodesAssets(t *testing.T) {
 	}
 	if got := item.Assets["library_hero_2x"]; !strings.HasSuffix(got, "/library_hero_2x.jpg") {
 		t.Fatalf("library_hero_2x = %q", got)
+	}
+	if got := item.Assets["library_capsule"]; !strings.HasSuffix(got, "/library_capsule.jpg") {
+		t.Fatalf("library_capsule = %q", got)
+	}
+	if _, ok := item.Assets["last_modified"]; ok {
+		t.Fatalf("last_modified should not be retained: %#v", item.Assets)
 	}
 	if len(item.RelatedItems) == 0 || len(item.Categories) == 0 {
 		t.Fatalf("raw subtrees were not retained: %#v", item)
