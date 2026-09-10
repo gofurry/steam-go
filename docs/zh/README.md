@@ -162,6 +162,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 
 ## 文档
 
+- [SteamID 本地解析与转换](steamid.md)
 - [文档索引](../README.md)
 - [API 参考](api/reference.md)
 - [Generated API 覆盖报告](../api/coverage.generated.md)
