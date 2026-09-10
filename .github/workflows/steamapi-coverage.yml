@@ -122,22 +122,72 @@ jobs:
             echo '```'
           } > "$body_file"
 
-          gh label create maintenance --color "6f42c1" --description "Repository maintenance work" || true
-          gh label create steam-api-drift --color "0969da" --description "Steam Web API inventory changed upstream" || true
-          gh label create needs-triage --color "fbca04" --description "Needs maintainer triage" || true
+          if ! label_names="$(gh api --method GET --paginate 'repos/{owner}/{repo}/labels?per_page=100' --jq '.[].name')"; then
+            echo "::error::Failed to list repository labels."
+            exit 1
+          fi
 
-          issue_number="$(gh issue list --state open --search "$title in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)"
+          ensure_label() {
+            local name="$1" color="$2" description="$3" existing
+            while IFS= read -r existing; do
+              if [ "$existing" = "$name" ]; then
+                return 0
+              fi
+            done <<< "$label_names"
+
+            if ! gh label create "$name" --color "$color" --description "$description"; then
+              echo "::error::Failed to create missing label '$name'."
+              return 1
+            fi
+          }
+
+          ensure_label maintenance "6f42c1" "Repository maintenance work"
+          ensure_label steam-api-drift "0969da" "Steam Web API inventory changed upstream"
+          ensure_label needs-triage "fbca04" "Needs maintainer triage"
+
+          issue_number="$(gh issue list --state open --label steam-api-drift --search "$title in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")"
           if [ -z "$issue_number" ]; then
             gh issue create \
               --title "$title" \
               --body-file "$body_file" \
               --label maintenance \
               --label steam-api-drift \
-              --label needs-triage || \
-            gh issue create \
-              --title "$title" \
-              --body-file "$body_file"
+              --label needs-triage
           else
-            gh issue edit "$issue_number" --add-label "maintenance,steam-api-drift,needs-triage" || true
+            gh issue edit "$issue_number" --add-label "maintenance,steam-api-drift,needs-triage"
             gh issue comment "$issue_number" --body-file "$body_file"
           fi
+
+      - name: Close resolved drift issues
+        if: steps.coverage_diff.outputs.drift == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Paginate before mutating issues so closing one cannot shift later pages.
+          if ! issue_rows="$(gh api --method GET --paginate 'repos/{owner}/{repo}/issues' \
+            -f state=open -f labels=steam-api-drift -f per_page=100 \
+            --jq '.[] | select(.state == "open" and .title == "Steam Web API coverage drift detected" and (.pull_request | not) and any(.labels[]; .name == "steam-api-drift")) | [.number, any(.labels[]; .name == "needs-triage")] | @tsv')"; then
+            echo "::error::Failed to list open Steam API drift issues."
+            exit 1
+          fi
+
+          body_file="$RUNNER_TEMP/steamapi-coverage-resolved.md"
+          printf '%s\n' 'The tracked Steam Web API coverage snapshot matches the newly generated report. Closing this drift issue as resolved.' > "$body_file"
+
+          while IFS=$'\t' read -r issue_number needs_triage; do
+            [ -n "$issue_number" ] || continue
+            if ! gh issue comment "$issue_number" --body-file "$body_file"; then
+              echo "::error::Failed to comment on resolved drift issue #$issue_number."
+              exit 1
+            fi
+            if [ "$needs_triage" = true ]; then
+              if ! gh issue edit "$issue_number" --remove-label needs-triage; then
+                echo "::error::Failed to remove needs-triage from issue #$issue_number."
+                exit 1
+              fi
+            fi
+            if ! gh issue close "$issue_number" --reason completed; then
+              echo "::error::Failed to close resolved drift issue #$issue_number."
+              exit 1
+            fi
+          done <<< "$issue_rows"

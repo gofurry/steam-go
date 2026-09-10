@@ -19,6 +19,26 @@ func TestValidateSteamID64(t *testing.T) {
 	}
 }
 
+// Existing v1 request validation accepts decimal uint64 text, independently of
+// the strict identity semantics in the public steamid package.
+func TestValidateSteamID64PreservesPermissiveRequestSemantics(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		input string
+		want  string
+	}{
+		{"0", "0"},
+		{"12345", "12345"},
+		{" 00012345\n", "00012345"},
+		{"18446744073709551615", "18446744073709551615"},
+	} {
+		got, err := steamid.ValidateSteamID64(tt.input)
+		if err != nil || got != tt.want {
+			t.Errorf("ValidateSteamID64(%q) = %q, %v; want %q", tt.input, got, err, tt.want)
+		}
+	}
+}
+
 func TestValidateSteamID64RejectsInvalidValues(t *testing.T) {
 	t.Parallel()
 
