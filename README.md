@@ -165,6 +165,7 @@ Detailed addon notes: [docs/addons/reference.md](docs/addons/reference.md).
 
 - [Documentation index](docs/README.md)
 - [API reference](docs/api/reference.md)
+- [Local SteamID parsing and conversion](docs/steamid.md)
 - [Web reference](docs/web/reference.md)
 - [Addon reference](docs/addons/reference.md)
 - [Storefront normalization example](examples/storefrontnormalization/main.go)

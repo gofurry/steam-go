@@ -6,6 +6,10 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ## Unreleased
 
+### Added
+
+- Add a public, local-only `steamid` package for SteamID64, AccountID, Steam2, Steam3, component access, structural validation, lossless conversion, and numeric Steam Community profile URL parsing.
+
 ## 1.3.10 - 2026-09-04
 
 ### Fixed

@@ -5,6 +5,7 @@ This directory keeps project documentation that is too detailed for the reposito
 ## English
 
 - [API reference](api/reference.md)
+- [Local SteamID parsing and conversion](steamid.md)
 - [Generated API coverage](api/coverage.generated.md)
 - [API coverage diff](api/coverage-diff.md)
 - [API coverage triage](api/coverage-triage.md)
@@ -47,6 +48,7 @@ This directory keeps project documentation that is too detailed for the reposito
 
 - [中文文档首页](zh/README.md)
 - [API 参考](zh/api/reference.md)
+- [SteamID 本地解析与转换](zh/steamid.md)
 - [Generated API 覆盖报告](api/coverage.generated.md)
 - [API 覆盖差异](api/coverage-diff.md)
 - [API 覆盖 Triage](api/coverage-triage.md)
