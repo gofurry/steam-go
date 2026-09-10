@@ -90,3 +90,46 @@ func TestProfileURLRequiresIndividual(t *testing.T) {
 		}
 	}
 }
+
+func TestParseCommunityURLPercentEncoding(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name  string
+		path  string
+		extra string
+		err   error
+	}{
+		{"encoded profiles", "/%70rofiles/76561197960278073", "", steamid.ErrInvalidFormat},
+		{"encoded id", "/%69d/example", "", steamid.ErrInvalidFormat},
+		{"encoded digit", "/profiles/%376561197960278073", "", steamid.ErrInvalidFormat},
+		{"encoded numeric id", "/profiles/%37%36%35%36%31%31%39%37%39%36%30%32%37%38%30%37%33", "", steamid.ErrInvalidFormat},
+		{"encoded separator", "/profiles%2f76561197960278073", "", steamid.ErrInvalidFormat},
+		{"encoded trailing slash", "/profiles/76561197960278073%2F", "", steamid.ErrInvalidFormat},
+		{"encoded vanity", "/id/%65xample", "", steamid.ErrInvalidFormat},
+		{"canonical escaping", "/id/example%20name", "", steamid.ErrInvalidFormat},
+		{"escaped percent", "/id/example%25name", "", steamid.ErrInvalidFormat},
+		{"query encoding", "/profiles/76561197960278073", "?next=%2F%70rofiles%2F%37&token=offline-sensitive-value", nil},
+		{"fragment encoding", "/profiles/76561197960278073", "#%69d%2Fexample%20name", nil},
+		{"query and fragment", "/profiles/76561197960278073/", "?q=%E4%B8%AD#%23%25", nil},
+		{"vanity query and fragment", "/id/example", "?q=%70#%69d", steamid.ErrVanityReference},
+		{"encoded path with sensitive query", "/%70rofiles/76561197960278073", "?token=offline-sensitive-value", steamid.ErrInvalidFormat},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			input := "https://steamcommunity.com" + tt.path + tt.extra
+			id, err := steamid.ParseCommunityURL(input)
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("ParseCommunityURL = %d, %v; want %v", id, err, tt.err)
+			}
+			if err != nil {
+				if id != 0 || strings.Contains(err.Error(), input) || strings.Contains(err.Error(), "offline-sensitive-value") {
+					t.Fatal("failure must return zero without echoing the URL or sensitive content")
+				}
+				return
+			}
+			if id.Uint64() != 76561197960278073 {
+				t.Fatalf("unexpected profile ID: %d", id)
+			}
+			assertRoundTrips(t, id)
+		})
+	}
+}

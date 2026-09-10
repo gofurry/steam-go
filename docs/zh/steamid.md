@@ -104,7 +104,7 @@ Steam3 字符区分大小写：`g` 是 Clan，`G` 是 GameServer。支持 `[U:1:
 
 ## Community URL 与 Vanity 边界
 
-`ParseCommunityURL` 仅接受 `http`/`https`，Hostname 必须精确匹配 `steamcommunity.com` 或 `www.steamcommunity.com`。`/profiles/<SteamID64>` 必须对应结构有效的 Individual。允许一个尾部 `/`、query 和 fragment；拒绝仿冒相似域名、userinfo、多余路径段、群组/Workshop URL 及 `steam://` URI。
+`ParseCommunityURL` 仅接受 `http`/`https`，Hostname 必须精确匹配 `steamcommunity.com` 或 `www.steamcommunity.com`。`/profiles/<SteamID64>` 必须对应结构有效的 Individual。路径必须按字面形式出现：路径任何位置（包括 `/profiles/`、`/id/` 和数字 ID）存在 percent-encoding 都返回 `ErrInvalidFormat`。允许一个尾部 `/`、query 和 fragment，query 和 fragment 中可以包含 percent-encoding；拒绝仿冒相似域名、userinfo、多余路径段、群组/Workshop URL 及 `steam://` URI。
 
 `/id/<vanity>` 返回 `ErrVanityReference`，本地包不会自动访问 Steam。需要网络解析时，将 vanity **token**（如 `example-user`）传给现有 `client.API.SteamUser.ResolveVanityURL(ctx, token, nil)`，先处理 API 返回状态，再解析其返回的 SteamID64。参见 [API 参考](api/reference.md)。
 

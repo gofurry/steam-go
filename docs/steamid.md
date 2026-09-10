@@ -104,7 +104,7 @@ Failures return zero ID (or an empty formatted string). Error messages do not ec
 
 ## Community URLs and vanity resolution
 
-`ParseCommunityURL` accepts `http` or `https` on the exact hostname `steamcommunity.com` or `www.steamcommunity.com`. `/profiles/<SteamID64>` must identify a structurally valid Individual. One trailing slash, query, and fragment are allowed. Similar-looking hosts, userinfo, extra path segments, group/workshop URLs, and `steam://` URIs are rejected.
+`ParseCommunityURL` accepts `http` or `https` on the exact hostname `steamcommunity.com` or `www.steamcommunity.com`. `/profiles/<SteamID64>` must identify a structurally valid Individual. Paths must be literal: percent-encoding anywhere in the path, including `/profiles/`, `/id/`, or the numeric ID, returns `ErrInvalidFormat`. One trailing slash, query, and fragment are allowed; query and fragment may contain percent-encoding. Similar-looking hosts, userinfo, extra path segments, group/workshop URLs, and `steam://` URIs are rejected.
 
 `/id/<vanity>` returns `ErrVanityReference`. The local parser never calls Steam. For network resolution, pass the vanity **token**, such as `example-user`, to the existing `client.API.SteamUser.ResolveVanityURL(ctx, token, nil)` capability. Handle that API's response before parsing any returned SteamID64. See the [API reference](api/reference.md).
 

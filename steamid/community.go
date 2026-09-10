@@ -8,8 +8,10 @@ import (
 
 // ParseCommunityURL parses an http(s) numeric /profiles/<SteamID64> URL on
 // steamcommunity.com or www.steamcommunity.com. One trailing slash, query, and
-// fragment are allowed. The ID must be a valid Individual. Userinfo and other
-// paths are rejected. Vanity /id/<name> URLs return ErrVanityReference; resolving
+// fragment are allowed, including percent-encoding in query and fragment.
+// Paths must be literal, without percent-encoding. The ID must be a valid
+// Individual. Userinfo and other paths are rejected.
+// Vanity /id/<name> URLs return ErrVanityReference; resolving
 // those requires an explicit call to client.API.SteamUser.ResolveVanityURL.
 func ParseCommunityURL(value string) (ID, error) {
 	u, err := url.Parse(strings.TrimSpace(value))
@@ -18,6 +20,11 @@ func ParseCommunityURL(value string) (ID, error) {
 	}
 	host := u.Hostname()
 	if !strings.EqualFold(host, "steamcommunity.com") && !strings.EqualFold(host, "www.steamcommunity.com") {
+		return 0, ErrInvalidFormat
+	}
+	// Path is already decoded by url.Parse. Check its escaped representation
+	// before matching so encoded prefixes, separators, and digits cannot pass.
+	if strings.Contains(u.EscapedPath(), "%") {
 		return 0, ErrInvalidFormat
 	}
 	parts := strings.SplitN(strings.TrimSuffix(u.Path, "/"), "/", 4)

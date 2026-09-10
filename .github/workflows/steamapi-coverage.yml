@@ -122,9 +122,28 @@ jobs:
             echo '```'
           } > "$body_file"
 
-          gh label create maintenance --force --color "6f42c1" --description "Repository maintenance work"
-          gh label create steam-api-drift --force --color "0969da" --description "Steam Web API inventory changed upstream"
-          gh label create needs-triage --force --color "fbca04" --description "Needs maintainer triage"
+          if ! label_names="$(gh api --method GET --paginate 'repos/{owner}/{repo}/labels?per_page=100' --jq '.[].name')"; then
+            echo "::error::Failed to list repository labels."
+            exit 1
+          fi
+
+          ensure_label() {
+            local name="$1" color="$2" description="$3" existing
+            while IFS= read -r existing; do
+              if [ "$existing" = "$name" ]; then
+                return 0
+              fi
+            done <<< "$label_names"
+
+            if ! gh label create "$name" --color "$color" --description "$description"; then
+              echo "::error::Failed to create missing label '$name'."
+              return 1
+            fi
+          }
+
+          ensure_label maintenance "6f42c1" "Repository maintenance work"
+          ensure_label steam-api-drift "0969da" "Steam Web API inventory changed upstream"
+          ensure_label needs-triage "fbca04" "Needs maintainer triage"
 
           issue_number="$(gh issue list --state open --label steam-api-drift --search "$title in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")"
           if [ -z "$issue_number" ]; then

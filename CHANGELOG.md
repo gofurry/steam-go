@@ -13,6 +13,8 @@ Only tagged releases are listed as versions below. Development work that has not
 ### Fixed
 
 - Close stale Steam Web API coverage-drift issues automatically when the tracked snapshot matches the regenerated report.
+- Reject percent-encoded Community URL paths in `steamid.ParseCommunityURL` while preserving percent-encoding in query and fragment.
+- Preserve existing label colors and descriptions when the coverage-drift workflow creates missing labels.
 
 ## 1.3.10 - 2026-09-04
 
