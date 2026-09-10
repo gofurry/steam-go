@@ -6,6 +6,10 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ## Unreleased
 
+### Fixed
+
+- Close stale Steam Web API coverage-drift issues automatically when the tracked snapshot matches the regenerated report.
+
 ## 1.3.10 - 2026-09-04
 
 ### Fixed
