@@ -23,7 +23,7 @@ type Config struct {
 	AccessToken   string
 	FamilyGroupID string
 	ProxySelector steam.ProxySelector
-	ProxyLabel    string
+	ProxyLabel    string // Redacted URL for display; credentials remain in ProxySelector.
 }
 
 // LoadConfig loads shared credentials and optional proxy settings from the live smoke root.
@@ -78,7 +78,7 @@ func PrintProxy(cfg Config) {
 		fmt.Println("proxy=direct")
 		return
 	}
-	fmt.Printf("proxy=%s\n", cfg.ProxyLabel)
+	fmt.Printf("proxy=%s\n", steam.RedactSensitiveURL(cfg.ProxyLabel))
 }
 
 // RequireAPIKey reports whether a key is available for key-backed endpoints.
@@ -115,12 +115,18 @@ func Fatalf(format string, args ...any) {
 }
 
 func readCredential(name string) string {
-	for _, root := range credentialRoots() {
+	return readCredentialFromRoots(name, credentialRoots())
+}
+
+func readCredentialFromRoots(name string, roots []string) string {
+	for _, root := range roots {
 		body, err := os.ReadFile(filepath.Join(root, name))
 		if err != nil {
 			continue
 		}
-		return strings.TrimSpace(string(body))
+		if value := strings.TrimSpace(string(body)); value != "" {
+			return value
+		}
 	}
 	return ""
 }
@@ -138,7 +144,7 @@ func loadProxySelector() (steam.ProxySelector, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return selector, raw, nil
+	return selector, steam.RedactSensitiveURL(raw), nil
 }
 
 func credentialRoots() []string {
@@ -158,5 +164,5 @@ func legacyTestRoot() string {
 	if !ok {
 		return "test"
 	}
-	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "test"))
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "test"))
 }
