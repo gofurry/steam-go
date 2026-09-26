@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  STATICCHECK_VERSION: v0.7.0
+  STATICCHECK_VERSION: v0.8.1
   GOVULNCHECK_VERSION: v1.3.0
 
 jobs:
@@ -21,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         go-version:
-          - "1.25"
-          - "1.26.6"
+          - "1.26.x"
+          - "1.27.x"
 
     steps:
       - name: Checkout
@@ -32,6 +32,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
+          check-latest: true
           cache: true
 
       - name: Show Go version
@@ -50,7 +51,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.6"
+          go-version: "1.27.x"
+          check-latest: true
           cache: true
 
       - name: Show Go version
@@ -81,7 +83,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.6"
+          go-version: "1.27.x"
+          check-latest: true
           cache: true
 
       - name: Show Go version
