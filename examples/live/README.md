@@ -24,7 +24,7 @@ Optional environment variables for web smoke tests:
 - `STEAM_AUTH_ACCOUNT_NAME` for `examples/live/authenticationservice`
 - `STEAM_PUBLIC_INVENTORY_ID` for `examples/live/webcommunity`
 
-For local transition, the shared helper also falls back to legacy files under `test/` when the new location is empty.
+For local transition, the shared helper also falls back to legacy files under the repository-root `test/` directory when the corresponding file in `examples/live/` is missing or blank. Non-blank environment variables take precedence over both locations. Proxy display labels and console output are redacted; proxy authentication still uses the original credentials.
 
 ## Run
 

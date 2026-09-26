@@ -50,6 +50,7 @@
 `client.Web.*` 提供一小组官方 Steam Web API 之外的只读 Web helper：
 
 - `client.Web.Storefront.GetAppDetails` / `GetAppDetailsRaw`
+- `client.Web.Storefront.GetResolvedAppDetails` / 本地 `storefront.ResolveAppDetails` 用于验证请求 AppID 身份，详见 [AppDetails 警告](../web/reference.md#appdetails-身份警告)。
 - `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
 - `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
 - `client.Web.Storefront.ListAppReviews`

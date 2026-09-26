@@ -36,14 +36,11 @@ func FetchStoreMediaURLs(ctx context.Context, service *storefront.Service, opts 
 		if err != nil {
 			return out, err
 		}
-		result, ok := envelope[strconv.FormatUint(uint64(appID), 10)]
-		if !ok {
-			return out, fmt.Errorf("appdetails response did not include app id %d", appID)
+		match, err := storefront.ResolveAppDetails(envelope, appID)
+		if err != nil {
+			return out, err
 		}
-		if !result.Success {
-			return out, fmt.Errorf("appdetails lookup for app id %d was not successful", appID)
-		}
-		out = append(out, storeMediaItems(appID, result.Data, kinds)...)
+		out = append(out, storeMediaItems(appID, match.Result.Data, kinds)...)
 	}
 	return out, nil
 }

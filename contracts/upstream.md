@@ -112,3 +112,20 @@ Use precise labels such as:
 - `volatile`
 
 Do not use “official” as a synonym for “hosted by Steam”.
+
+## Drift Traceability
+
+Every confirmed upstream drift that causes a compatibility fix must be recorded
+in [the upstream drift ledger](../docs/governance/upstream-drift.md), including:
+
+- observation date and affected surface
+- confirmed behavior and supporting evidence
+- unknown or unverified cause
+- affected SDK behavior
+- compatibility response and preserved public semantics
+- deterministic regression coverage
+
+Do not promote an inference about Valve's cause or intent into a confirmed fact.
+Preserve the original upstream representation, keep fixtures small and sanitized,
+and retain regression protection even if live behavior later recovers. Live
+Steam validation remains opt-in, not a mandatory CI dependency.

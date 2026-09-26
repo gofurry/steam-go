@@ -13,6 +13,7 @@
 ### `client.Web.Storefront`
 
 - `GetAppDetails` / `GetAppDetailsRaw`
+- `GetResolvedAppDetails` / local `storefront.ResolveAppDetails`
 - `GetPackageDetails` / `GetPackageDetailsRaw`
 - `GetAppReviews` / `GetAppReviewsRaw`
 - `GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`
@@ -27,6 +28,38 @@ recommendations, Metacritic, support info, content descriptors, and ratings raw
 JSON. Use `GetAppDetailsRaw` when you need fields not yet typed by the SDK.
 Use `AppDetailsData.DecodeRatings` for common rating board fields and
 `AppDetailsData.SteamGermanyRequiredAge` for Steam Germany age requirements.
+
+#### AppDetails identity warning
+
+`/api/appdetails` is an undocumented, volatile Storefront Web endpoint. On
+2026-09-26, response keys were observed to differ from the requested AppID even
+when `data.steam_appid` correctly identified the requested application. The cause
+is unverified; this is not a confirmed formal Valve contract change. See the
+[upstream drift ledger](../governance/upstream-drift.md).
+
+Do not resolve application identity through `envelope[requestedAppID]`.
+Use `GetResolvedAppDetails` for ordinary single-application consumption, or
+`storefront.ResolveAppDetails(envelope, appID)` when you already have an envelope.
+The returned `AppDetailsMatch` includes `RequestedAppID`, the original string
+`ResponseKey`, and the validated `Result`.
+
+Resolution requires exactly one `data.steam_appid` match with `success=true`.
+Missing or duplicate identity fails closed. If the direct requested-AppID key
+exists but is unsuccessful, has no internal AppID, or contains a different AppID,
+resolution fails even if another entry matches. No DLC/parent/child relationship
+or first-entry fallback is inferred. AppID 0 returns `KindRequestBuild`;
+identity-resolution failures use `KindAPIResponse`.
+
+`GetAppDetailsRaw` preserves upstream bytes, and `GetAppDetails` preserves typed
+upstream keys. `GetAppDetailsBatch` keeps its existing result structure and
+per-item fetch errors: after checking `result.Err`, call
+`storefront.ResolveAppDetails(result.Response, result.AppID)` explicitly.
+Filters that omit `steam_appid` cannot establish identity and will fail resolution.
+
+Doctor reports safely resolved key drift as WARN with requested AppID, response
+key, and internal AppID; it adds no failure and keeps exit code 0 when all other
+checks succeed. Unsafe resolution is FAIL. Live smoke accepts either key shape
+and validates only the resolved identity.
 
 The original `ReleaseDate` and `SupportedLanguages` fields remain unchanged.
 Use the local helpers when you need calculable release-date precision or

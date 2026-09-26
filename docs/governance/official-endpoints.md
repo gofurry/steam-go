@@ -35,4 +35,4 @@ Do not add mutating, account-automation, purchase, sale, trade, or browser-backe
 
 ## Release Checks
 
-Before release, run the sync tool and review any drift. A changed report is not automatically a release blocker, but unexplained drift should be documented in the release notes or roadmap.
+Before release, run the sync tool and review any drift. A changed report is not automatically a release blocker, but unresolved drift should be recorded in `docs/api/coverage-triage.md` and mentioned in the release notes when it affects users.

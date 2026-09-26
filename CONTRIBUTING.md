@@ -8,6 +8,8 @@ This project is a stable Go SDK for the official Steam Web API, with practical r
 
 Use Go 1.25 or newer.
 
+The module minimum remains Go 1.25. CI tests the latest patch releases in the Go 1.26 and 1.27 series; quality, race, and coverage-drift checks use the latest Go 1.27 patch. The scheduled latest-toolchain advisory checks the latest stable Go release separately.
+
 Before opening a pull request, run:
 
 ```bash

@@ -1,26 +1,26 @@
 # Endpoint Coverage
 
-This document lists the current official Steam Web API coverage that is already present in the repository as `steam-go` moves toward `v1.0.0`.
+This document lists the current Steam Web API service groups exposed by `steam-go` v1.x. They include both documented official APIs and observed Steam services; see [the upstream contract](../../contracts/upstream.md) for the distinction.
 
-## Coverage policy before v1.0.0
+## Coverage policy
 
-Before `v1.0.0`, the project is not planning to expand API coverage further.
+New endpoints may be added compatibly in v1.x after reviewing upstream status, authentication, scope, and testability.
 
-The release priority is:
+Use these sources for endpoint-level detail:
 
-- freeze and document the stable surface
-- verify tests and examples
-- complete compatibility and release documentation
-
-Additional official API coverage is deferred to `v1.1.0+`.
+- [API reference](../api/reference.md) for service usage and boundaries
+- [Generated coverage](../api/coverage.generated.md) for the tracked upstream inventory and SDK comparison
+- [Coverage triage](../api/coverage-triage.md) for decisions about gaps and drift
 
 ## Current service groups
 
 The repository currently exposes these grouped services under `client.API.*`:
 
 - `AccountCartService`
+- `AuthenticationService`
 - `BillingService`
 - `CommunityService`
+- `ContentServerDirectoryService`
 - `FamilyGroupsService`
 - `GameServersService`
 - `LoyaltyRewardsService`
@@ -48,23 +48,23 @@ The repository currently exposes these grouped services under `client.API.*`:
 - `UserStoreVisitService`
 - `WishlistService`
 
-## Current release interpretation
+## Coverage review
 
-For `v1.0.0`, the important point is not to claim "complete Steam coverage".
+The SDK does not claim complete Steam coverage.
 
 The practical interpretation is:
 
-- the current official service groups are already broad enough to justify a stable `v1.0.0`
-- missing official endpoints do not block `v1.0.0`
-- new official endpoints can be added compatibly in later `v1.x` releases
+- missing endpoints are reviewed according to user needs and the project boundary
+- an inventory gap alone is not a release blocker
+- new endpoints must preserve the public compatibility contract and document their upstream status
 
 `GameServersService.GetServerList` is intentionally documented as server discovery. If the generated coverage reports mark it as `extra_sdk`, treat that as expected drift for this useful endpoint rather than an automatic removal signal.
 
-## Read-only web surfaces in v1.1.0
+## Read-only web surfaces
 
-Starting with `v1.1.0`, the repository also exposes a separate `client.Web.*` layer for a small set of read-only Storefront, Community, and Market JSON endpoints.
+The repository exposes a separate `client.Web.*` layer for scoped read-only Storefront, Community, and Market JSON endpoints.
 
-These entrypoints are documented separately from the official Web API coverage above so the `client.API.*` boundary remains clear.
+These entrypoints are documented separately in the [Web reference](../web/reference.md) so the `client.API.*` boundary remains clear.
 
 ## Non-coverage areas
 
@@ -75,4 +75,4 @@ The following are intentionally not part of current endpoint coverage:
 - CDN or static asset helper APIs
 - undocumented or unstable web page JSON endpoints beyond the documented `client.Web.*` methods
 
-If these appear later, they should be introduced deliberately and documented separately instead of being quietly mixed into the first stable release.
+Resource helpers already provided by `addons/assets` are documented in the [addon reference](../addons/reference.md). Any broader Web expansion should be scoped and documented separately from Web API endpoint coverage.

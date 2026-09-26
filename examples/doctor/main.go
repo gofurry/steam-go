@@ -220,17 +220,17 @@ func runOfficialChecks(ctx context.Context, report *doctorReport, client *steam.
 
 func runWebChecks(ctx context.Context, report *doctorReport, client *steam.Client, cfg doctorConfig) {
 	withTimeout(ctx, cfg.Timeout, func(checkCtx context.Context) {
-		resp, err := client.Web.Storefront.GetAppDetails(checkCtx, defaultStoreAppID, &storefront.GetAppDetailsOptions{Language: "english"})
+		match, err := client.Web.Storefront.GetResolvedAppDetails(checkCtx, defaultStoreAppID, &storefront.GetAppDetailsOptions{Language: "english"})
 		if err != nil {
 			report.add("web", "Storefront.GetAppDetails", statusFail, classifyError(err), redactError(err))
 			return
 		}
-		app := resp[strconv.FormatUint(uint64(defaultStoreAppID), 10)]
-		if !app.Success {
-			report.add("web", "Storefront.GetAppDetails", statusFail, "appdetails response was not successful", "")
+		detail := fmt.Sprintf("requested_appid=%d response_key=%q steam_appid=%d", match.RequestedAppID, match.ResponseKey, match.Result.Data.SteamAppID)
+		if match.ResponseKey != strconv.FormatUint(uint64(defaultStoreAppID), 10) {
+			report.add("web", "Storefront.GetAppDetails", statusWarn, "appdetails identity resolved despite response-key drift", detail)
 			return
 		}
-		report.add("web", "Storefront.GetAppDetails", statusOK, app.Data.Name, "")
+		report.add("web", "Storefront.GetAppDetails", statusOK, match.Result.Data.Name, detail)
 	})
 
 	withTimeout(ctx, cfg.Timeout, func(checkCtx context.Context) {

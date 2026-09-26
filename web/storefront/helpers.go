@@ -173,6 +173,11 @@ func (s *Service) CollectAppReviews(ctx context.Context, appID uint32, opts *Col
 }
 
 // GetAppDetailsBatch fetches app details while preserving input order and per-item errors.
+//
+// Warning: Each Response preserves the upstream envelope from this undocumented,
+// volatile endpoint. Do not index Response by the requested AppID to identify an
+// application. Use ResolveAppDetails(result.Response, result.AppID) after checking
+// result.Err; identity-resolution failures are separate from per-item fetch errors.
 func (s *Service) GetAppDetailsBatch(ctx context.Context, appIDs []uint32, opts *GetAppDetailsBatchOptions) ([]AppDetailsBatchResult, error) {
 	if ctx == nil {
 		ctx = context.Background()

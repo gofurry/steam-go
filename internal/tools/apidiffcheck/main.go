@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -23,47 +24,60 @@ func main() {
 	flag.StringVar(&apidiffTool, "apidiff", defaultAPIDiffTool, "apidiff command module passed to go run")
 	flag.Parse()
 
+	if err := checkAPI(baseRef, incompatible, apidiffTool); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func checkAPI(baseRef string, incompatible bool, apidiffTool string) (resultErr error) {
 	if strings.TrimSpace(baseRef) == "" {
-		fatalf("-base is required, for example: go run ./internal/tools/apidiffcheck -base v1.2.2")
+		return fmt.Errorf("-base is required, for example: go run ./internal/tools/apidiffcheck -base <previous-tag>")
 	}
 
 	root, err := gitOutput("", "rev-parse", "--show-toplevel")
 	if err != nil {
-		fatalf("resolve git root: %v", err)
+		return fmt.Errorf("resolve git root: %w", err)
 	}
 	root = strings.TrimSpace(root)
 
 	modulePath, err := goOutput(root, "list", "-m")
 	if err != nil {
-		fatalf("resolve module path: %v", err)
+		return fmt.Errorf("resolve module path: %w", err)
 	}
 	modulePath = strings.TrimSpace(modulePath)
 	if modulePath == "" {
-		fatalf("empty module path")
+		return fmt.Errorf("empty module path")
 	}
 
 	tmpRoot, err := os.MkdirTemp("", "steam-go-apidiff-*")
 	if err != nil {
-		fatalf("create temp dir: %v", err)
+		return fmt.Errorf("create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpRoot)
+	defer func() {
+		if err := os.RemoveAll(tmpRoot); err != nil {
+			resultErr = errors.Join(resultErr, fmt.Errorf("remove temporary directory: %w", err))
+		}
+	}()
 
 	baseDir := filepath.Join(tmpRoot, "base")
 	if _, err := run(root, "git", "worktree", "add", "--detach", baseDir, baseRef); err != nil {
-		fatalf("create temporary worktree for %q: %v", baseRef, err)
+		return fmt.Errorf("create temporary worktree for %q: %w", baseRef, err)
 	}
 	defer func() {
-		_, _ = run(root, "git", "worktree", "remove", "--force", baseDir)
+		if _, err := run(root, "git", "worktree", "remove", "--force", baseDir); err != nil {
+			resultErr = errors.Join(resultErr, fmt.Errorf("remove temporary worktree: %w", err))
+		}
 	}()
 
 	oldExport := filepath.Join(tmpRoot, "old.apidiff")
 	newExport := filepath.Join(tmpRoot, "new.apidiff")
 
 	if _, err := run(baseDir, "go", "run", apidiffTool, "-m", "-w", oldExport, modulePath); err != nil {
-		fatalf("export base API: %v", err)
+		return fmt.Errorf("export base API: %w", err)
 	}
 	if _, err := run(root, "go", "run", apidiffTool, "-m", "-w", newExport, modulePath); err != nil {
-		fatalf("export current API: %v", err)
+		return fmt.Errorf("export current API: %w", err)
 	}
 
 	args := []string{"run", apidiffTool}
@@ -77,11 +91,12 @@ func main() {
 		fmt.Print(out)
 	}
 	if err != nil {
-		fatalf("compare API: %v", err)
+		return fmt.Errorf("compare API: %w", err)
 	}
 	if noMeaningfulDiff(out) {
 		fmt.Printf("No API differences found against %s.\n", baseRef)
 	}
+	return nil
 }
 
 func gitOutput(dir string, args ...string) (string, error) {
@@ -109,11 +124,6 @@ func run(dir, name string, args ...string) (string, error) {
 		return out, fmt.Errorf("%s %s failed: %w\n%s", name, strings.Join(args, " "), err, out)
 	}
 	return out, nil
-}
-
-func fatalf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
-	os.Exit(1)
 }
 
 func noMeaningfulDiff(out string) bool {

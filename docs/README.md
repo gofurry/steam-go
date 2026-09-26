@@ -30,6 +30,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [Compatibility policy](governance/compatibility.md)
 - [Endpoint coverage](governance/endpoint-coverage.md)
 - [Endpoint stability](governance/endpoint-stability.md)
+- [Upstream drift incident ledger](governance/upstream-drift.md)
 - [Adding official endpoints](governance/official-endpoints.md)
 - [Fixture and smoke maintenance](governance/fixtures.md)
 - [Credential safety](security/credentials.md)
@@ -42,6 +43,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.3.4 release notes](releases/v1.3.4.md)
 - [v1.3.6 release notes](releases/v1.3.6.md)
 - [v1.3.9 release notes](releases/v1.3.9.md)
+- [v1.3.12 draft release notes (unreleased)](releases/v1.3.12.md)
 - [Release checklist](releases/checklist.md)
 
 ## Chinese
@@ -73,6 +75,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [兼容性策略](zh/governance/compatibility.md)
 - [Endpoint 覆盖范围](zh/governance/endpoint-coverage.md)
 - [Endpoint 稳定性](zh/governance/endpoint-stability.md)
+- [Upstream drift 事故账本](governance/upstream-drift.md)
 - [新增官方 Endpoint](zh/governance/official-endpoints.md)
 - [Fixture 与 Smoke 维护](zh/governance/fixtures.md)
 - [凭据安全](zh/security/credentials.md)
@@ -84,11 +87,7 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.3.4 Release Notes](zh/releases/v1.3.4.md)
 - [v1.3.6 Release Notes](zh/releases/v1.3.6.md)
 - [v1.3.9 Release Notes](zh/releases/v1.3.9.md)
-
-## Chinese-only Operational Docs
-
-- [路线图](roadmap.md)
-- [代码审计](code-audit.md)
+- [v1.3.12 Release Notes 草案（未发布）](zh/releases/v1.3.12.md)
 
 ## Wiki Sources
 

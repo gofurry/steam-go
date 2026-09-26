@@ -27,7 +27,7 @@ For cursor pagination, use `ListAppReviews`. See [High-value read-only helpers](
 ## App Details
 
 ```go
-details, err := client.Web.Storefront.GetAppDetails(context.Background(), 440, &storefront.GetAppDetailsOptions{
+match, err := client.Web.Storefront.GetResolvedAppDetails(context.Background(), 440, &storefront.GetAppDetailsOptions{
 	CountryCode: "US",
 	Language:    "english",
 })
@@ -35,12 +35,19 @@ if err != nil {
 	panic(err)
 }
 
-if app, ok := details["440"]; ok && app.Success {
-	fmt.Println(app.Data.Name)
-}
+fmt.Println(match.Result.Data.Name)
 ```
 
-For multiple AppIDs, use `GetAppDetailsBatch`. See [High-value read-only helpers](high-value-helpers.md).
+The outer response key is not a reliable application identity. This helper uses
+`data.steam_appid`, preserves the original key in `match.ResponseKey`, and fails
+closed on missing, duplicate, unsuccessful, or conflicting identity. See the
+[observed upstream incident](../governance/upstream-drift.md).
+
+For an existing envelope, call `storefront.ResolveAppDetails(envelope, appID)`.
+Use `GetAppDetails` or `GetAppDetailsRaw` when you need upstream fidelity; neither
+rewrites Steam's keys. For multiple AppIDs, use `GetAppDetailsBatch`, check each
+`result.Err`, then call `storefront.ResolveAppDetails(result.Response, result.AppID)`.
+See [High-value read-only helpers](high-value-helpers.md).
 
 ## Notes
 

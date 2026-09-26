@@ -2,9 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
-Only tagged releases are listed as versions below. Development work that has not been released stays under `Unreleased`.
+Entries marked `Unreleased` are prepared for release and have not yet been tagged.
 
 ## Unreleased
+
+## 1.3.12 - 2026-09-27
+
+### Added
+
+- Add `storefront.AppDetailsMatch`, `ResolveAppDetails`, and `Service.GetResolvedAppDetails` for strict requested-AppID identity resolution while retaining original upstream response keys.
+- Record confirmed Steam compatibility incidents in the upstream drift ledger, including AppDetails envelope identity drift and the earlier StoreBrowse asset-metadata type drift.
+
+### Fixed
+
+- Resolve Storefront appdetails key drift through `data.steam_appid`, failing closed on missing, conflicting, duplicate, or unsuccessful identity without changing Raw, typed envelope, or batch-fetch semantics.
+- Restore Storefront media and free-package resolution under key drift, and update examples and diagnostics: safely resolved drift is Doctor WARN, not FAIL.
+- Redact proxy credentials in live example display labels and console output while preserving proxy authentication.
+- Restore live example credential fallback to the repository-root `test/` directory when the corresponding `examples/live/` file is missing or blank.
+- Clean up temporary API-diff worktrees and export files on failures as well as successful checks.
+- Update `golang.org/x/net` to v0.56.0 to clear the GO-2026-5942 module advisory; the SDK does not import the affected DNS package.
+
+### Changed
+
+- Run CI tests against the latest Go 1.25, 1.26, and 1.27 patch releases, retaining coverage of the minimum supported Go version; use Go 1.27 for quality, race, and coverage-drift checks, and update Staticcheck for Go 1.27 support.
 
 ## 1.3.11 - 2026-09-10
 

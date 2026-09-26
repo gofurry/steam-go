@@ -35,4 +35,4 @@ go run ./internal/tools/steamapi-sync -output-dir docs/api
 
 ## Release 检查
 
-发版前运行 sync 工具并 review drift。报告变化不自动构成 release blocker，但无法解释的 drift 应记录在 release notes 或 roadmap 中。
+发版前运行 sync 工具并 review drift。报告变化不自动构成 release blocker，但尚未解决的 drift 应记录在 `docs/api/coverage-triage.md` 中；影响用户时，也应写入 release notes。

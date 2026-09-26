@@ -12,6 +12,7 @@ import (
 
 	steam "github.com/gofurry/steam-go"
 	"github.com/gofurry/steam-go/examples/live/internal/realtest"
+	"github.com/gofurry/steam-go/web/storefront"
 )
 
 const (
@@ -82,21 +83,24 @@ func TestLiveSmokeOptIn(t *testing.T) {
 	})
 
 	runLiveSmokeCheck(&report, "webstorefront", func(ctx context.Context) error {
-		details, err := client.Web.Storefront.GetAppDetails(ctx, realtest.DefaultAppID, nil)
-		if err != nil {
-			return fmt.Errorf("GetAppDetails failed: %w", err)
-		}
-		app := details["550"]
-		if !app.Success || app.Data.SteamAppID != realtest.DefaultAppID {
-			return fmt.Errorf("unexpected appdetails response")
-		}
-		return nil
+		return checkStorefrontAppDetails(ctx, client.Web.Storefront)
 	})
 
 	writeLiveSmokeReports(t, report)
 	if report.Summary.Fail > 0 {
 		t.Fatalf("live smoke failed: ok=%d warn=%d fail=%d skip=%d", report.Summary.OK, report.Summary.Warn, report.Summary.Fail, report.Summary.Skip)
 	}
+}
+
+func checkStorefrontAppDetails(ctx context.Context, service *storefront.Service) error {
+	match, err := service.GetResolvedAppDetails(ctx, realtest.DefaultAppID, nil)
+	if err != nil {
+		return fmt.Errorf("GetResolvedAppDetails failed: %w", err)
+	}
+	if !match.Result.Success || match.Result.Data.SteamAppID != realtest.DefaultAppID {
+		return fmt.Errorf("unexpected resolved appdetails identity")
+	}
+	return nil
 }
 
 func newLiveSmokeReport(proxyMode string) liveSmokeReport {

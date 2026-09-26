@@ -48,6 +48,7 @@ The generated coverage reports compare Steam's public `GetSupportedAPIList` inve
 `client.Web.*` exposes a small read-only Web helper surface outside the official Steam Web API:
 
 - `client.Web.Storefront.GetAppDetails` / `GetAppDetailsRaw`
+- `client.Web.Storefront.GetResolvedAppDetails` / local `storefront.ResolveAppDetails` for validated requested-AppID identity; see the [AppDetails warning](../web/reference.md#appdetails-identity-warning).
 - `client.Web.Storefront.GetPackageDetails` / `GetPackageDetailsRaw`
 - `client.Web.Storefront.GetAppReviews` / `GetAppReviewsRaw`
 - `client.Web.Storefront.ListAppReviews`
