@@ -13,6 +13,7 @@
 ### `client.Web.Storefront`
 
 - `GetAppDetails` / `GetAppDetailsRaw`
+- `GetResolvedAppDetails` / 本地 `storefront.ResolveAppDetails`
 - `GetPackageDetails` / `GetPackageDetailsRaw`
 - `GetAppReviews` / `GetAppReviewsRaw`
 - `GetAdjacentPartnerEvents` / `GetAdjacentPartnerEventsRaw`
@@ -26,6 +27,33 @@
 ratings 原始 JSON。需要 SDK 暂未 typed 的字段时，继续使用 `GetAppDetailsRaw`。
 常见 rating board 字段可通过 `AppDetailsData.DecodeRatings` 读取，德国年龄限制可
 通过 `AppDetailsData.SteamGermanyRequiredAge` 读取。
+
+#### AppDetails 身份警告
+
+`/api/appdetails` 是未公开承诺稳定的、易漂移的 Storefront Web endpoint。
+2026-09-26 已观察到：外层 response key 与请求 AppID 不一致，但
+`data.steam_appid` 仍正确标识请求的应用。原因尚未确认，不能据此声称 Valve
+已正式修改契约。详见 [upstream drift 账本](../../governance/upstream-drift.md)。
+
+不要通过 `envelope[requestedAppID]` 解析应用身份。普通单应用消费使用
+`GetResolvedAppDetails`；已经持有 envelope 时，使用
+`storefront.ResolveAppDetails(envelope, appID)`。返回的 `AppDetailsMatch`
+包含 `RequestedAppID`、保留原样的字符串 `ResponseKey` 和已验证的 `Result`。
+
+解析要求恰好一个 `data.steam_appid` 匹配，且该结果 `success=true`。
+没有匹配或身份重复均失败。如果请求 AppID 对应的 direct key 存在，但它
+`success=false`、缺少内部 AppID，或内部 AppID 冲突，即使另有有效匹配也必须
+失败。不会推断 DLC/parent/child 关系，也不会直接取第一项。AppID 为 0 返回
+`KindRequestBuild`，身份解析失败复用 `KindAPIResponse`。
+
+`GetAppDetailsRaw` 保留原始 bytes，`GetAppDetails` 保留 typed upstream key。
+`GetAppDetailsBatch` 保持原有结果结构和逐项抓取错误语义；检查 `result.Err`
+后，显式调用 `storefront.ResolveAppDetails(result.Response, result.AppID)`。
+如果 Filters 省略 `steam_appid`，则无法建立身份，解析会失败。
+
+Doctor 对安全解析成功的 key drift 显示 WARN，并提供请求 AppID、response key
+和内部 AppID；Fail 不增加，其他检查成功时退出码仍为 0。无法安全解析时才
+显示 FAIL。Live smoke 接受正常或漂移的 key，仅验证解析后的身份。
 
 原有 `ReleaseDate` 与 `SupportedLanguages` 字段保持不变。需要可计算的发行日期
 精度或结构化语言 metadata 时，使用本地 helper：

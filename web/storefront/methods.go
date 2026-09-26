@@ -69,6 +69,10 @@ type GetAppReviewsOptions struct {
 }
 
 // GetAppDetails returns Storefront app details for one AppID.
+//
+// Warning: This undocumented, volatile endpoint can return a response key that
+// differs from the requested AppID. The typed envelope preserves upstream keys;
+// use GetResolvedAppDetails for ordinary single-application consumption.
 func (s *Service) GetAppDetails(ctx context.Context, appID uint32, opts *GetAppDetailsOptions) (AppDetailsEnvelope, error) {
 	body, err := s.GetAppDetailsRaw(ctx, appID, opts)
 	if err != nil {
@@ -78,6 +82,10 @@ func (s *Service) GetAppDetails(ctx context.Context, appID uint32, opts *GetAppD
 }
 
 // GetAppDetailsRaw returns the raw JSON response body for app details.
+//
+// Warning: This undocumented, volatile endpoint can return mismatched outer
+// keys. Raw intentionally preserves the upstream response bytes unchanged,
+// including those keys; it does not validate or rewrite application identity.
 func (s *Service) GetAppDetailsRaw(ctx context.Context, appID uint32, opts *GetAppDetailsOptions) ([]byte, error) {
 	if appID == 0 {
 		return nil, sdkerrors.New(sdkerrors.KindRequestBuild, 0, "app id must be greater than zero", nil, nil)

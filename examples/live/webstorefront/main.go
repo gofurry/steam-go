@@ -21,11 +21,11 @@ func main() {
 	ctx := realtest.BackgroundContext()
 	realtest.PrintProxy(cfg)
 
-	appDetails, err := client.Web.Storefront.GetAppDetails(ctx, 550, nil)
+	appDetails, err := client.Web.Storefront.GetResolvedAppDetails(ctx, 550, nil)
 	if err != nil {
-		realtest.Fatalf("GetAppDetails: %v", err)
+		realtest.Fatalf("GetResolvedAppDetails: %v", err)
 	}
-	fmt.Printf("appdetails ok=%v\n", appDetails["550"].Success)
+	fmt.Printf("appdetails requested_appid=%d response_key=%q steam_appid=%d ok=%v\n", appDetails.RequestedAppID, appDetails.ResponseKey, appDetails.Result.Data.SteamAppID, appDetails.Result.Success)
 
 	packageDetails, err := client.Web.Storefront.GetPackageDetails(ctx, 469, nil)
 	if err != nil {

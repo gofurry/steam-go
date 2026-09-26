@@ -142,7 +142,7 @@ func TestCredentialRenderingRedactsProxy(t *testing.T) {
 	}
 }
 
-func newDoctorTestServer(t *testing.T, statuses map[string]int) *httptest.Server {
+func newDoctorTestServer(t *testing.T, statuses map[string]int, appDetails ...string) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if status := statuses[r.URL.Path]; status != 0 {
@@ -156,6 +156,10 @@ func newDoctorTestServer(t *testing.T, statuses map[string]int) *httptest.Server
 		case "/ISteamUser/GetPlayerSummaries/v2/":
 			_, _ = w.Write([]byte(`{"response":{"players":[{"steamid":"76561198000000001","personaname":"Fixture Player"}]}}`))
 		case "/api/appdetails":
+			if len(appDetails) > 0 {
+				_, _ = w.Write([]byte(appDetails[0]))
+				return
+			}
 			_, _ = w.Write([]byte(`{"550":{"success":true,"data":{"name":"Left 4 Dead 2 Fixture","steam_appid":550,"is_free":false,"short_description":"fixture","header_image":"header.jpg","developers":["Valve"],"publishers":["Valve"],"platforms":{"windows":true}}}}`))
 		case "/appreviews/550":
 			_, _ = w.Write([]byte(`{"success":1,"query_summary":{"total_reviews":12},"cursor":"fixture","reviews":[]}`))
@@ -167,6 +171,57 @@ func newDoctorTestServer(t *testing.T, statuses map[string]int) *httptest.Server
 			http.NotFound(w, r)
 		}
 	}))
+}
+
+func TestDoctorAppDetailsIdentity(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name   string
+		body   string
+		status string
+		fail   int
+		key    string
+	}{
+		{"legacy", `{"550":{"success":true,"data":{"steam_appid":550,"name":"Fixture"}}}`, statusOK, 0, "550"},
+		{"drift", `{"322070":{"success":true,"data":{"steam_appid":550,"name":"Fixture"}}}`, statusWarn, 0, "322070"},
+		{"conflict", `{"550":{"success":true,"data":{"steam_appid":620}},"322070":{"success":true,"data":{"steam_appid":550}}}`, statusFail, 1, ""},
+		{"missing", `{}`, statusFail, 1, ""},
+		{"ambiguous", `{"111":{"success":true,"data":{"steam_appid":550}},"222":{"success":true,"data":{"steam_appid":550}}}`, statusFail, 1, ""},
+		{"unsuccessful", `{"322070":{"success":false,"data":{"steam_appid":550}}}`, statusFail, 1, ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			server := newDoctorTestServer(t, nil, tt.body)
+			defer server.Close()
+			report := runDoctor(t.Context(), doctorConfig{Timeout: time.Second, BaseURL: server.URL, StorefrontBaseURL: server.URL, CommunityBaseURL: server.URL})
+			check := assertCheck(t, report, "web", "Storefront.GetAppDetails", tt.status)
+			if report.Summary.Fail != tt.fail || exitCode(report) != tt.fail {
+				t.Fatalf("summary=%#v exit=%d", report.Summary, exitCode(report))
+			}
+			if tt.key != "" {
+				for _, part := range []string{"requested_appid=550", `response_key="` + tt.key + `"`, "steam_appid=550"} {
+					if !strings.Contains(check.Detail, part) {
+						t.Fatalf("detail missing %q: %q", part, check.Detail)
+					}
+				}
+			}
+			wantWarn := 4 // Missing credentials and optional checks.
+			if tt.status == statusWarn {
+				wantWarn++
+			}
+			if report.Summary.Warn != wantWarn {
+				t.Fatalf("warn count = %d, want %d", report.Summary.Warn, wantWarn)
+			}
+			var human, jsonOutput bytes.Buffer
+			renderHuman(&human, report)
+			if err := renderJSON(&jsonOutput, report); err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(human.String(), tt.body) || strings.Contains(jsonOutput.String(), tt.body) {
+				t.Fatal("diagnostics included the raw response body")
+			}
+		})
+	}
 }
 
 func assertCheck(t *testing.T, report doctorReport, category, name, status string) doctorCheck {

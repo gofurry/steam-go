@@ -10,6 +10,7 @@ Use this checklist before publishing a `steam-go` release.
 - [ ] Confirm new public API additions are compatible with `docs/governance/compatibility.md`.
 - [ ] Confirm new official endpoints update `docs/governance/endpoint-coverage.md`.
 - [ ] Confirm new Web surfaces are documented as unofficial or volatile.
+- [ ] Confirmed upstream drift is recorded in `docs/governance/upstream-drift.md` and protected by deterministic regression tests.
 - [ ] Confirm new addons document what they do and what they do not do.
 
 ## Local Validation

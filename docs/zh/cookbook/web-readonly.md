@@ -27,7 +27,7 @@ fmt.Println(reviews.QuerySummary.TotalReviews)
 ## 应用详情
 
 ```go
-details, err := client.Web.Storefront.GetAppDetails(context.Background(), 440, &storefront.GetAppDetailsOptions{
+match, err := client.Web.Storefront.GetResolvedAppDetails(context.Background(), 440, &storefront.GetAppDetailsOptions{
 	CountryCode: "US",
 	Language:    "english",
 })
@@ -35,12 +35,18 @@ if err != nil {
 	panic(err)
 }
 
-if app, ok := details["440"]; ok && app.Success {
-	fmt.Println(app.Data.Name)
-}
+fmt.Println(match.Result.Data.Name)
 ```
 
-需要查询多个 AppID 时，使用 `GetAppDetailsBatch`。参见：[高价值只读 Helper](high-value-helpers.md)。
+外层 response key 不能可靠地代表应用身份。该方法以 `data.steam_appid` 匹配，
+在 `match.ResponseKey` 中保留原始 key，并在身份缺失、重复、结果失败或冲突时
+拒绝解析。详见[已观察到的上游事故](../../governance/upstream-drift.md)。
+
+已经持有 envelope 时，调用 `storefront.ResolveAppDetails(envelope, appID)`。
+需要保留上游表示时使用 `GetAppDetails` 或 `GetAppDetailsRaw`，两者均不重写
+Steam 的 key。批量查询使用 `GetAppDetailsBatch`，检查每项的 `result.Err` 后，
+调用 `storefront.ResolveAppDetails(result.Response, result.AppID)`。
+参见：[高价值只读 Helper](high-value-helpers.md)。
 
 ## 说明
 

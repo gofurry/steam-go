@@ -2,6 +2,8 @@
 
 This document explains API stability in `steam-go` v1.x. The normative rules are the [compatibility contract](../../contracts/compatibility.md) and [upstream contract](../../contracts/upstream.md).
 
+Known observed compatibility incidents are tracked in the [upstream drift ledger](upstream-drift.md).
+
 ## Stability levels
 
 ### Stable

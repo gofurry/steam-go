@@ -7,6 +7,11 @@ import (
 )
 
 // AppDetailsEnvelope is the keyed Storefront app details payload.
+//
+// Warning: Steam Storefront appdetails is an undocumented and volatile web
+// surface. Response keys have been observed to differ from the requested AppID.
+// Do not use the envelope key as application identity. Use ResolveAppDetails
+// when resolving a response for a requested AppID.
 type AppDetailsEnvelope map[string]AppDetailsResult
 
 // AppDetailsResult is one app details lookup result.

@@ -2,6 +2,8 @@
 
 本文档说明 `steam-go` v1.x 的 API 稳定性。规范性要求以[兼容性契约](../../../contracts/compatibility.md)和[上游契约](../../../contracts/upstream.md)为准。
 
+已确认的上游兼容性事故统一记录在 [upstream drift 账本](../../governance/upstream-drift.md)中。
+
 ## 稳定等级
 
 ### Stable

@@ -2,6 +2,7 @@ package assets
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"sync"
 	"testing"
 
+	sdkerrors "github.com/gofurry/steam-go/internal/errors"
 	"github.com/gofurry/steam-go/internal/request"
 	itraffic "github.com/gofurry/steam-go/internal/traffic"
 	"github.com/gofurry/steam-go/web/storefront"
@@ -39,6 +41,30 @@ func TestFetchStoreMediaURLs(t *testing.T) {
 	}
 	if items[8].Kind != KindStoreBackground || !strings.HasSuffix(items[8].URL, "/background.jpg") {
 		t.Fatalf("background = %#v", items[8])
+	}
+}
+
+func TestFetchStoreMediaURLsKeyDrift(t *testing.T) {
+	t.Parallel()
+	body := strings.Replace(storeMediaAppDetails("https://cdn.example"), `"550":`, `"322070":`, 1)
+	service := newStoreMediaTestService(t, body)
+	items, err := FetchStoreMediaURLs(context.Background(), service, StoreMediaOptions{Kinds: []Kind{KindScreenshotFull}}, 550)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 2 || items[0].AppID != 550 || items[0].URL != "https://cdn.example/ss0_full.jpg" {
+		t.Fatalf("unexpected drift media: %#v", items)
+	}
+}
+
+func TestFetchStoreMediaURLsRejectsInvalidDirectEntry(t *testing.T) {
+	t.Parallel()
+	body := `{"550":{"success":false},` + strings.TrimPrefix(strings.Replace(storeMediaAppDetails("https://cdn.example"), `"550":`, `"322070":`, 1), "{")
+	service := newStoreMediaTestService(t, body)
+	items, err := FetchStoreMediaURLs(context.Background(), service, StoreMediaOptions{}, 550)
+	var apiErr *sdkerrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Kind != sdkerrors.KindAPIResponse || len(items) != 0 {
+		t.Fatalf("invalid direct entry was not rejected: items=%#v err=%v", items, err)
 	}
 }
 

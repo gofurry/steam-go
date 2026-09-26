@@ -86,3 +86,13 @@ Then confirm:
 - no secrets appear in tests/examples
 - relevant docs are updated
 - `CHANGELOG.md` records user-visible changes only
+
+## Handle Confirmed Upstream Drift
+
+1. Preserve the original upstream representation.
+2. Separate confirmed behavior from inferred cause.
+3. Add deterministic regression fixtures and tests.
+4. Record the incident in `docs/governance/upstream-drift.md`.
+5. Update affected API warnings and user documentation.
+6. Add a concise `CHANGELOG.md` entry under `Unreleased` until release.
+7. Keep live Steam validation opt-in; do not make it a mandatory CI dependency.

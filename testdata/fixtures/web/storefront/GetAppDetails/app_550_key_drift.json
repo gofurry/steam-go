@@ -1,0 +1,17 @@
+{
+  "322070": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Left 4 Dead 2",
+      "steam_appid": 550,
+      "required_age": 0,
+      "is_free": false,
+      "short_description": "fixture",
+      "header_image": "header.jpg",
+      "developers": ["Valve"],
+      "publishers": ["Valve"],
+      "platforms": {"windows": true, "mac": false, "linux": true}
+    }
+  }
+}

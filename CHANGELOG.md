@@ -6,8 +6,15 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ## Unreleased
 
+### Added
+
+- Add `storefront.AppDetailsMatch`, `ResolveAppDetails`, and `Service.GetResolvedAppDetails` for strict requested-AppID identity resolution while retaining original upstream response keys.
+- Record confirmed Steam compatibility incidents in the upstream drift ledger, including AppDetails envelope identity drift and the earlier StoreBrowse asset-metadata type drift.
+
 ### Fixed
 
+- Resolve Storefront appdetails key drift through `data.steam_appid`, failing closed on missing, conflicting, duplicate, or unsuccessful identity without changing Raw, typed envelope, or batch-fetch semantics.
+- Restore Storefront media and free-package resolution under key drift, and update examples and diagnostics: safely resolved drift is Doctor WARN, not FAIL.
 - Redact proxy credentials in live example display labels and console output while preserving proxy authentication.
 - Restore live example credential fallback to the repository-root `test/` directory when the corresponding `examples/live/` file is missing or blank.
 - Clean up temporary API-diff worktrees and export files on failures as well as successful checks.

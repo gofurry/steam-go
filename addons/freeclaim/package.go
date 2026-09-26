@@ -3,7 +3,6 @@ package freeclaim
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"strings"
 
 	"github.com/gofurry/steam-go/web/storefront"
@@ -48,15 +47,12 @@ func (c *Client) ResolveFreePackages(ctx context.Context, appID uint32, opts *Re
 		return nil, err
 	}
 
-	result, ok := appDetails[strconv.FormatUint(uint64(appID), 10)]
-	if !ok {
-		return nil, &Error{Code: ErrorCodeVerify, Op: "resolve_free_packages", Message: "app details response missing target app"}
-	}
-	if !result.Success {
-		return nil, &Error{Code: ErrorCodeVerify, Op: "resolve_free_packages", Message: "app details returned success=false"}
+	match, err := storefront.ResolveAppDetails(appDetails, appID)
+	if err != nil {
+		return nil, &Error{Code: ErrorCodeVerify, Op: "resolve_free_packages", Message: "app details identity resolution failed", Err: err}
 	}
 
-	return parseFreePackages(appID, result.Data.Name, result.Data.PackageGroups)
+	return parseFreePackages(appID, match.Result.Data.Name, match.Result.Data.PackageGroups)
 }
 
 func parseFreePackages(appID uint32, appName string, raw json.RawMessage) ([]FreePackage, error) {
