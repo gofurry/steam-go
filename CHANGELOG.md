@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file.
 
 Entries marked `Unreleased` are prepared for release and have not yet been tagged.
 
-## 1.3.12 - Unreleased
+## Unreleased
+
+## 1.3.12 - 2026-09-27
 
 ### Added
 
