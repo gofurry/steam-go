@@ -2,9 +2,9 @@
 
 All notable changes to this project are documented in this file.
 
-Only tagged releases are listed as versions below. Development work that has not been released stays under `Unreleased`.
+Entries marked `Unreleased` are prepared for release and have not yet been tagged.
 
-## Unreleased
+## 1.3.12 - Unreleased
 
 ### Added
 
@@ -22,7 +22,7 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ### Changed
 
-- Run CI tests against the latest Go 1.26 and 1.27 patch releases, use Go 1.27 for quality, race, and coverage-drift checks, and update Staticcheck for Go 1.27 support.
+- Run CI tests against the latest Go 1.25, 1.26, and 1.27 patch releases, retaining coverage of the minimum supported Go version; use Go 1.27 for quality, race, and coverage-drift checks, and update Staticcheck for Go 1.27 support.
 
 ## 1.3.11 - 2026-09-10
 
