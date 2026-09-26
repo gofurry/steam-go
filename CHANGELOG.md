@@ -6,6 +6,17 @@ Only tagged releases are listed as versions below. Development work that has not
 
 ## Unreleased
 
+### Fixed
+
+- Redact proxy credentials in live example display labels and console output while preserving proxy authentication.
+- Restore live example credential fallback to the repository-root `test/` directory when the corresponding `examples/live/` file is missing or blank.
+- Clean up temporary API-diff worktrees and export files on failures as well as successful checks.
+- Update `golang.org/x/net` to v0.56.0 to clear the GO-2026-5942 module advisory; the SDK does not import the affected DNS package.
+
+### Changed
+
+- Run CI tests against the latest Go 1.26 and 1.27 patch releases, use Go 1.27 for quality, race, and coverage-drift checks, and update Staticcheck for Go 1.27 support.
+
 ## 1.3.11 - 2026-09-10
 
 ### Added

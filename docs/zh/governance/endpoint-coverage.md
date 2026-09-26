@@ -1,20 +1,26 @@
 # Endpoint 覆盖范围
 
-本文档说明 `steam-go v1.0.0` 当前已经覆盖的官方 Steam Web API 范围。
+本文档列出 `steam-go` v1.x 当前公开的 Steam Web API 服务分组，其中包括有官方文档的 API 和 observed Steam 服务；两者的区别见[上游契约](../../../contracts/upstream.md)。
 
 ## 覆盖策略
 
-`v1.0.0` 的目标不是宣称“完整 Steam 覆盖”，而是稳定当前已经存在且已文档化的官方 Web API surface。
+v1.x 可以兼容地新增 endpoint，但应先审查上游状态、认证要求、职责范围和可测试性。
 
-后续新的官方 API 覆盖可以在未来兼容版本中继续增加。
+Endpoint 级别的信息以以下文档为入口：
+
+- [API 参考](../api/reference.md)：服务用法和边界
+- [Generated 覆盖报告](../../api/coverage.generated.md)：已记录的上游 inventory 与 SDK 对比
+- [Coverage triage](../../api/coverage-triage.md)：缺口和 drift 的处理决策
 
 ## 当前服务分组
 
 当前仓库在 `client.API.*` 下暴露这些服务分组：
 
 - `AccountCartService`
+- `AuthenticationService`
 - `BillingService`
 - `CommunityService`
+- `ContentServerDirectoryService`
 - `FamilyGroupsService`
 - `GameServersService`
 - `LoyaltyRewardsService`
@@ -42,21 +48,21 @@
 - `UserStoreVisitService`
 - `WishlistService`
 
-## 发布解释
+## 覆盖审查
 
-对 `v1.0.0` 来说，关键点是：
+SDK 不宣称完整覆盖 Steam。审查时应遵循：
 
-- 当前官方 service group 已足够支撑首个稳定版本
-- 缺失的官方 endpoint 不阻塞 `v1.0.0`
-- 新官方 endpoint 可以在后续 `v1.x` 中兼容加入
+- 根据用户需要和项目边界评估缺失的 endpoint
+- inventory 中存在缺口本身不构成发布阻塞
+- 新增 endpoint 必须保持公开兼容性契约，并记录上游状态
 
 `GameServersService.GetServerList` 会被文档化为服务器发现接口。如果 generated coverage 将它标记为 `extra_sdk`，这是该实用 endpoint 没有稳定出现在公开 inventory 中的预期 drift，不是自动删除信号。
 
-## `v1.1.0` 只读 Web surface
+## 只读 Web surface
 
-从 `v1.1.0` 开始，仓库还额外暴露了一层单独的 `client.Web.*`，用于承载一小组只读的 Storefront、Community 与 Market JSON 接口。
+仓库通过独立的 `client.Web.*` 层提供限定范围的只读 Storefront、Community 与 Market JSON 接口。
 
-这些入口与上面的官方 Web API 覆盖范围分开记录，以保证 `client.API.*` 的边界始终清晰。
+这些入口单独记录在 [Web 参考](../web/reference.md)中，以保证 `client.API.*` 的边界清晰。
 
 ## 非覆盖范围
 
@@ -67,4 +73,4 @@
 - CDN 或静态资源 helper API
 - 超出当前 `client.Web.*` 已记录方法范围的未文档化网页 JSON endpoint
 
-这些能力如果未来加入，应独立设计和记录，不应悄悄混入首个稳定版的承诺范围。
+`addons/assets` 已提供的资源 helper 记录在 [addon 参考](../addons/reference.md)中。更广泛的 Web 扩展应单独确定范围和编写文档，与 Web API endpoint 覆盖区分。

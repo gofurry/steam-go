@@ -5,7 +5,7 @@ Use this checklist before publishing a `steam-go` release.
 ## Version Scope
 
 - [ ] Confirm the target version and release type.
-- [ ] Confirm the release matches the roadmap scope.
+- [ ] Confirm the release scope matches the reviewed changes and the `CHANGELOG.md` Unreleased entries.
 - [ ] Confirm no unintended breaking change is included.
 - [ ] Confirm new public API additions are compatible with `docs/governance/compatibility.md`.
 - [ ] Confirm new official endpoints update `docs/governance/endpoint-coverage.md`.

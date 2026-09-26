@@ -1,20 +1,21 @@
 # Compatibility Policy
 
-This document defines what `steam-go` intends to keep stable starting with `v1.0.0`.
+This document summarizes the compatibility policy for `steam-go` v1.x. The normative rules live in [the public compatibility contract](../../contracts/compatibility.md); upstream assumptions live in [the Steam upstream contract](../../contracts/upstream.md).
 
 ## Scope
 
-`steam-go v1.0.0` is positioned as:
+`steam-go` is positioned as:
 
-> A stable Go SDK for Steam Web API with production-oriented request controls.
+> A stable Go SDK for Steam APIs, scoped read-only Web surfaces, and optional addons.
 
-This stability promise is centered on the official `api.steampowered.com` client surface and the request-control tool layer already exposed by the root package.
+The stability promise covers documented public Go APIs. It does not imply that every Steam-hosted endpoint is officially documented or that its upstream payload is stable.
 
-## Stable in v1.0.0
+## Stable in v1.x
 
 Unless otherwise documented, the following are intended to be covered by the `v1` compatibility promise:
 
 - Root package `steam`
+- Public local-only `steamid` package
 - `NewClient(...)`
 - The existing `Option` system
 - `Client` and the grouped `client.API.*` access pattern
@@ -38,11 +39,11 @@ For the stable surface above, `v1` should preserve:
 - documented grouping under `client.API.*`
 - documented grouping under `client.Web.*`
 
-Bug fixes, validation tightening, and internal implementation changes are allowed as long as they do not break the documented stable surface.
+Bug fixes and internal changes should preserve valid callers. Security or correctness fixes may tighten unsafe or objectively invalid behavior; document these exceptions explicitly, as required by the compatibility contract.
 
 ## Not covered by the v1 promise
 
-The following areas are intentionally outside the `v1.0.0` compatibility guarantee unless a future document says otherwise:
+The following areas are outside the v1 compatibility guarantee unless explicitly documented otherwise:
 
 - HTML parsing rules and page-shape assumptions
 - browser-backed fallback implementations
@@ -61,7 +62,7 @@ The following areas are intentionally outside the `v1.0.0` compatibility guarant
 
 The exact internal shape of `json.RawMessage` subtrees is not part of the `v1` compatibility promise unless explicitly documented as stable.
 
-## v1.1.0 unofficial web surfaces
+## Unofficial web surfaces
 
 The following are stable Go APIs but volatile upstream surfaces:
 
@@ -69,11 +70,11 @@ The following are stable Go APIs but volatile upstream surfaces:
 - `client.Web.Community`
 - `client.Web.Market`
 
-Breaking changes caused by upstream payload drift should be handled by preserving typed outer structures and moving volatile subtrees to `json.RawMessage` where possible.
+Handle upstream drift through defensive decoding and additive models while preserving existing method signatures, exported field types, JSON tags, and raw fields. Use `json.RawMessage` for new volatile subtrees when appropriate.
 
-## Experimental and preview areas
+## Request-control infrastructure
 
-The following capabilities may exist in the repository, but should be treated as non-coverage or preview-oriented foundations rather than as a promise of built-in productized fetch APIs:
+The following documented configuration APIs are stable infrastructure for the current Web surfaces:
 
 - `TrafficClassPublicStorePage`
 - `TrafficClassCommunityWeb`
@@ -85,17 +86,10 @@ The following capabilities may exist in the repository, but should be treated as
 
 These configuration APIs are stable as supporting infrastructure for the existing `client.Web.*` surface, but they should not be read as a promise that every future Steam web flow will be productized in the SDK.
 
-## Before and after v1.0.0
+## Compatible evolution
 
-Before `v1.0.0`, the project will prioritize:
-
-- freezing the stable surface
-- documenting boundaries
-- tightening tests and examples
-- avoiding new API expansion
-
-After `v1.0.0`, the project can continue to grow compatibly through:
+The project can continue to grow additively in v1.x through:
 
 - new official Steam Web API methods in `v1.x`
 - additional typed coverage for stable official payloads
-- optional experimental addons for high-volatility web surfaces
+- optional addons with explicit scope and upstream boundaries

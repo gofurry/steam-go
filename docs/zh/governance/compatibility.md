@@ -1,20 +1,21 @@
 # 兼容性策略
 
-本文档定义 `steam-go` 从 `v1.0.0` 开始的兼容性承诺。
+本文档概述 `steam-go` v1.x 的兼容性策略。规范性要求以[公开兼容性契约](../../../contracts/compatibility.md)为准；上游假设以 [Steam 上游契约](../../../contracts/upstream.md)为准。
 
 ## 定位
 
-`steam-go v1.0.0` 的定位是：
+`steam-go` 的定位是：
 
-> 一个面向生产使用、专注于 Steam Web API 的稳定 Go SDK。
+> 一个提供 Steam API、限定范围的只读 Web 能力和可选 addon 的稳定 Go SDK。
 
-稳定承诺集中在官方 `api.steampowered.com` 客户端能力，以及根包已经公开的请求控制工具层。
+稳定承诺覆盖已记录的公开 Go API，不代表每个 Steam 托管的 endpoint 都有官方文档，也不代表其上游 payload 保持稳定。
 
-## `v1.0.0` 稳定范围
+## v1.x 稳定范围
 
 除非另有说明，以下内容属于 `v1` 兼容性承诺范围：
 
 - 根包 `steam`
+- 公开的本地 `steamid` 包
 - `NewClient(...)`
 - 现有 `Option` 系统
 - `Client` 与 `client.API.*` 分组访问模式
@@ -29,7 +30,7 @@
 
 ## 稳定行为预期
 
-稳定范围内应尽量保持：
+稳定范围内应保持：
 
 - 导出名称
 - 方法签名
@@ -38,11 +39,11 @@
 - `client.API.*` 的分组模式
 - `client.Web.*` 的分组模式
 
-Bug 修复、校验收紧和内部实现调整是允许的，只要不破坏已记录的稳定面。
+Bug 修复和内部调整应保持合法调用方的兼容性。安全或正确性修复可以收紧不安全或客观无效的行为，但必须按兼容性契约明确记录例外。
 
-## 不属于 `v1.0.0` 承诺的范围
+## 不属于 v1 承诺的范围
 
-以下内容不属于 `v1.0.0` 兼容性承诺，除非未来文档另行说明：
+以下内容不属于 v1 兼容性承诺，除非文档明确另行说明：
 
 - HTML 解析规则和页面结构假设
 - 浏览器 fallback 的具体实现
@@ -61,7 +62,7 @@ Bug 修复、校验收紧和内部实现调整是允许的，只要不破坏已�
 
 `json.RawMessage` 子树内部的精确结构不属于 `v1` 兼容性承诺，除非文档明确标记为稳定。
 
-## `v1.1.0` 非标准 Web surface
+## 非标准 Web surface
 
 以下能力属于稳定的 Go API，但其上游仍然是高波动的 Web surface：
 
@@ -69,11 +70,11 @@ Bug 修复、校验收紧和内部实现调整是允许的，只要不破坏已�
 - `client.Web.Community`
 - `client.Web.Market`
 
-如果未来因为上游 payload 漂移而需要兼容调整，优先应保持外层 typed 结构稳定，并把高波动子树下沉为 `json.RawMessage`。
+上游 payload 漂移应通过防御性解码和增量模型处理，同时保留现有方法签名、导出字段类型、JSON tag 和原始字段。新增高波动子树可按需使用 `json.RawMessage`。
 
-## Preview 与实验方向
+## 请求控制基础设施
 
-以下能力可以存在于仓库中，但应理解为策略基础或 preview 方向，而不是完整产品化抓取 API：
+以下已记录的配置 API 是当前 Web surface 使用的稳定基础设施：
 
 - `TrafficClassPublicStorePage`
 - `TrafficClassCommunityWeb`
@@ -84,3 +85,11 @@ Bug 修复、校验收紧和内部实现调整是允许的，只要不破坏已�
 - 面向未来 TLS 定制或浏览器执行栈的 per-class transport hook
 
 这些 root package 配置 API 按文档保持稳定，并作为现有 `client.Web.*` 的策略基础设施，但不代表未来所有 Steam Web 流程都会被产品化接入 SDK。
+
+## 兼容演进
+
+v1.x 可以继续以增量方式扩展：
+
+- 新增官方 Steam Web API 方法
+- 为稳定官方 payload 补充 typed 覆盖
+- 新增具有明确范围和上游边界的可选 addon

@@ -85,11 +85,6 @@ This directory keeps project documentation that is too detailed for the reposito
 - [v1.3.6 Release Notes](zh/releases/v1.3.6.md)
 - [v1.3.9 Release Notes](zh/releases/v1.3.9.md)
 
-## Chinese-only Operational Docs
-
-- [路线图](roadmap.md)
-- [代码审计](code-audit.md)
-
 ## Wiki Sources
 
 - English wiki sources: `wiki/en/`

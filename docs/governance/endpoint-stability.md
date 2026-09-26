@@ -1,6 +1,6 @@
 # Endpoint Stability
 
-This document explains how to interpret API stability in `steam-go` as the project prepares for `v1.0.0`.
+This document explains API stability in `steam-go` v1.x. The normative rules are the [compatibility contract](../../contracts/compatibility.md) and [upstream contract](../../contracts/upstream.md).
 
 ## Stability levels
 
@@ -11,14 +11,13 @@ Stable means the exported API shape is intended to be covered by the `v1` compat
 This includes:
 
 - current typed service entrypoints under `client.API.*`
-- exported request and response structs for official Steam Web API methods
+- documented methods and exported request and response structs under `client.API.*` and `client.Web.*`
 - documented root-package configuration APIs such as proxy, retry, traffic policy, and request controls
+- the public local-only `steamid` package and documented addon import paths
 
-### Preview
+### Request-control infrastructure
 
-Preview means the public configuration surface exists and is documented, but the project is not yet promising a complete productized fetch API behind it.
-
-This currently includes:
+The following are documented, stable configuration APIs used by the existing Web surfaces:
 
 - `TrafficClassPublicStorePage`
 - public store-page header profiles
@@ -27,33 +26,25 @@ This currently includes:
 - block detection
 - per-class transport hooks
 
-These are valid building blocks, but they should not be read as a promise that `steam-go v1.0.0` already ships a complete public store-page client.
+These building blocks do not promise a general-purpose scraper or browser client.
 
 ### Experimental
 
-Experimental means a future direction that may appear later as an addon or explicitly experimental package, and is not part of the stable `v1.0.0` contract.
-
-Examples:
-
-- Steam Store page scraping entrypoints
-- Steam Community page helpers
-- CDN-derived resource helpers
-- browser-backed fallback implementations
+Only capabilities explicitly documented as experimental are outside the stable v1 contract on that basis. An unofficial upstream does not by itself make a documented Go API experimental.
 
 ### Out of Scope
 
-Out of scope means not currently promised before `v1.0.0`.
+The SDK does not promise:
 
-This includes:
+- complete Steam endpoint coverage
+- general-purpose Store or Community HTML scraping and automatic browser fallback
+- stable upstream schemas or availability for unofficial Web surfaces
 
-- expanding new API coverage before `v1.0.0`
-- shipping non-official Store / Community / CDN fetch APIs as part of the first stable surface
+## Steam Web API services
 
-## Official Web API services
+`client.API.*` includes documented official APIs and observed Steam services. Their upstream status must be described accurately; hosting on `api.steampowered.com` alone is not an official stability guarantee.
 
-The official `api.steampowered.com` services already exposed through `client.API.*` are treated as the main `v1.0.0` stable surface target.
-
-Their method signatures and exported typed response models should remain stable unless a blocker-level issue forces a breaking rethink before `v1.0.0`.
+Documented method signatures and exported types remain subject to the v1 compatibility contract. New coverage is additive; security and correctness exceptions must be documented explicitly.
 
 ## Raw payload subtrees
 
@@ -64,11 +55,11 @@ It means only that the fine-grained internal JSON shape of that subtree is not p
 
 ## Unofficial Web Surfaces
 
-`v1.1.0` adds a read-only `client.Web.*` layer for Storefront, Community, and Market JSON endpoints outside `api.steampowered.com`.
+`client.Web.*` provides read-only Storefront, Community, and Market JSON endpoints outside `api.steampowered.com`.
 
 These Go method signatures are stable under the `v1` compatibility policy.
 
-The upstream payloads and availability are not guaranteed by Valve as stable official Web API contracts, so future compatibility work may prefer preserving typed outer structures and moving volatile subtrees to `json.RawMessage`.
+Valve does not guarantee these upstream payloads and their availability as stable official Web API contracts. Handle drift through defensive decoding and additive models while preserving existing signatures, field types, JSON tags, and raw fields.
 
 ## Addons
 
@@ -83,3 +74,7 @@ Examples:
 - `addons/assets`
 - `addons/markup`
 - `addons/vdf`
+- `addons/websession`
+- `addons/freeclaim`
+
+Resource discovery and downloads in `addons/assets` are existing supported capabilities. Authentication and mutation boundaries for other addons are documented in the [addon reference](../addons/reference.md) and [safety guidance](../addons/safety.md).

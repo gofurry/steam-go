@@ -1,6 +1,6 @@
 # Endpoint 稳定性
 
-本文档说明 `steam-go v1.0.0` 如何理解 API 稳定性。
+本文档说明 `steam-go` v1.x 的 API 稳定性。规范性要求以[兼容性契约](../../../contracts/compatibility.md)和[上游契约](../../../contracts/upstream.md)为准。
 
 ## 稳定等级
 
@@ -11,14 +11,13 @@ Stable 表示导出的 API 形状会纳入 `v1` 兼容性承诺。
 包括：
 
 - 当前 `client.API.*` 下的 typed service entrypoint
-- 官方 Steam Web API 方法对应的导出 request / response 结构体
+- `client.API.*` 和 `client.Web.*` 已记录的方法及导出 request / response 结构体
 - 已记录的根包配置 API，例如 proxy、retry、traffic policy 和 request controls
+- 公开的本地 `steamid` 包和已记录的 addon import path
 
-### Preview
+### 请求控制基础设施
 
-Preview 表示公开配置面已经存在并有文档，但项目尚未承诺完整产品化抓取 API。
-
-当前包括：
+以下是现有 Web surface 使用的、已记录的稳定配置 API：
 
 - `TrafficClassPublicStorePage`
 - 公开商店页 header profile
@@ -27,33 +26,25 @@ Preview 表示公开配置面已经存在并有文档，但项目尚未承诺完
 - block detection
 - per-class transport hook
 
-这些是有效基础能力，但不应理解为 `steam-go v1.0.0` 已经提供完整公开商店页客户端。
+这些基础能力不承诺提供通用抓取器或浏览器客户端。
 
 ### Experimental
 
-Experimental 表示未来可能通过 addon 或显式 experimental package 推进的方向，不属于 `v1.0.0` 稳定合同。
-
-示例：
-
-- Steam Store 页面抓取入口
-- Steam Community 页面 helper
-- CDN 衍生资源 helper
-- 浏览器 fallback 实现
+只有被文档明确标记为 experimental 的能力，才因此不纳入 v1 稳定合同。使用非官方上游本身并不意味着已记录的 Go API 是实验功能。
 
 ### Out of Scope
 
-Out of Scope 表示当前不承诺。
+SDK 不承诺：
 
-包括：
+- 完整覆盖 Steam endpoint
+- 通用 Store / Community HTML 抓取和自动浏览器 fallback
+- 非官方 Web surface 的上游结构或可用性保持稳定
 
-- 在 `v1.0.0` 前继续扩充新的 API 覆盖
-- 把非官方 Store / Community / CDN 抓取 API 纳入首个稳定面
+## Steam Web API 服务
 
-## 官方 Web API 服务
+`client.API.*` 包括有官方文档的 API 和 observed Steam 服务。必须准确标注上游状态；仅由 `api.steampowered.com` 托管并不构成官方稳定性保证。
 
-当前通过 `client.API.*` 暴露的官方 `api.steampowered.com` 服务，是 `v1.0.0` 的主要稳定面。
-
-除非存在 blocker 级问题，否则方法签名和导出的 typed response model 应保持稳定。
+已记录的方法签名和导出类型受 v1 兼容性契约约束。新增覆盖默认采用增量方式；安全和正确性例外必须明确记录。
 
 ## Raw Payload 子树
 
@@ -63,11 +54,11 @@ Out of Scope 表示当前不承诺。
 
 ## 非标准 Web Surface
 
-`v1.1.0` 新增了只读的 `client.Web.*` 层，用于承载 `api.steampowered.com` 之外的 Storefront、Community 与 Market JSON 接口。
+`client.Web.*` 提供 `api.steampowered.com` 之外的只读 Storefront、Community 与 Market JSON 接口。
 
 这些 Go 方法签名属于 `v1` 兼容性承诺范围。
 
-但上游 payload 结构与可用性并不是 Valve 承诺稳定的官方 Web API 合同，因此后续兼容工作应优先保持 typed outer 结构稳定，并在必要时把高波动子树下沉为 `json.RawMessage`。
+Valve 不保证这些上游 payload 和可用性遵循稳定的官方 Web API 合同。应通过防御性解码和增量模型处理漂移，同时保留现有签名、字段类型、JSON tag 和原始字段。
 
 ## Addons
 
@@ -82,3 +73,7 @@ Out of Scope 表示当前不承诺。
 - `addons/assets`
 - `addons/markup`
 - `addons/vdf`
+- `addons/websession`
+- `addons/freeclaim`
+
+`addons/assets` 的资源发现和下载已属于现有支持能力。其他 addon 的认证与修改操作边界见 [addon 参考](../addons/reference.md)和[安全说明](../addons/safety.md)。
