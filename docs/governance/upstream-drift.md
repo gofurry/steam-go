@@ -44,6 +44,29 @@ The maintainer's incident report dated 2026-09-26 recorded these responses:
 These are dated observations from the incident report, not a claim that every
 current response reproduces the drift.
 
+### Recovery observation — 2026-10-01
+
+Steam Support reported that they could no longer reproduce the mismatch and
+observed response keys matching the requested AppIDs. The maintainer then
+re-tested AppIDs 550, 620, and 1206410 independently and observed the normal
+shape again:
+
+| Requested AppID | Response envelope key | `data.steam_appid` |
+|---:|---|---:|
+| 550 | `550` | 550 |
+| 620 | `620` | 620 |
+| 1206410 | `1206410` | 1206410 |
+
+The incident is therefore currently considered recovered and likely transient
+or limited in scope. One plausible but unverified explanation is temporary drift
+in the Store backend product-ID graph or its envelope serialization: two
+historical unexpected keys, `322070` and `323180`, are related applications
+of the requested base apps. This remains a diagnostic hypothesis, not a
+confirmed Valve root cause.
+
+Regression coverage remains in place even though the current live behavior has
+returned to the legacy key shape.
+
 ### Unknown / unverified
 
 - Whether Valve intentionally changed the contract or introduced a regression.
