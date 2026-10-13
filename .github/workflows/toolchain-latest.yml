@@ -32,10 +32,10 @@ jobs:
       - name: Run go vet with latest stable Go
         run: go vet ./...
 
-      - name: Install latest staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+      - name: Install Staticcheck 2026.2.2
+        run: go install honnef.co/go/tools/cmd/staticcheck@2026.2.2
 
-      - name: Run latest staticcheck
+      - name: Run Staticcheck
         run: staticcheck ./...
 
       - name: Install latest govulncheck
